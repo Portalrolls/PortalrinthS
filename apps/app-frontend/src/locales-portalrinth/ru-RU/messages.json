@@ -1,0 +1,5952 @@
+{
+	"app.news.view-all": {
+		"message": "Список изменений"
+	},
+	"app.sidebar.collapse": {
+		"message": "Свернуть боковую панель"
+	},
+	"app.sidebar.expand": {
+		"message": "Развернуть боковую панель"
+	},
+	"app.library.group.pinned": {
+		"message": "Закреплённые"
+	},
+	"app.library.instance.action.pin": {
+		"message": "Закрепить"
+	},
+	"app.library.instance.action.unpin": {
+		"message": "Открепить"
+	},
+	"app.settings.search": {
+		"message": "Поиск настроек"
+	},
+	"app.settings.search.clear": {
+		"message": "Очистить поиск"
+	},
+	"app.settings.search.no-results": {
+		"message": "Ничего не найдено"
+	},
+	"app.account-provider.description": {
+		"message": "С какого аккаунта вы играете?"
+	},
+	"app.account-provider.ely": {
+		"message": "Аккаунт Ely.by"
+	},
+	"app.account-provider.ely-hint": {
+		"message": "Для серверов, которые принимают Ely.by."
+	},
+	"app.account-provider.header": {
+		"message": "Добавить аккаунт"
+	},
+	"app.account-provider.microsoft": {
+		"message": "Аккаунт Microsoft"
+	},
+	"app.account-provider.microsoft-hint": {
+		"message": "Лицензия Minecraft, купленная у Mojang."
+	},
+	"app.account-provider.offline": {
+		"message": "Оффлайн-аккаунт"
+	},
+	"app.account-provider.offline-hint": {
+		"message": "Просто ник. Одиночная игра и серверы без лицензии."
+	},
+	"app.account.collections": {
+		"message": "Коллекции"
+	},
+	"app.account.notifications": {
+		"message": "Уведомления"
+	},
+	"app.appearance-settings.accent-tint.description": {
+		"message": "Слегка подкрашивает серые фоны и панели тем же оттенком. Акцент, боковая панель и полоска загрузки следуют за пресетом в любом случае."
+	},
+	"app.appearance-settings.accent-tint.title": {
+		"message": "Красить и фон"
+	},
+	"app.appearance-settings.accent.amethyst": {
+		"message": "Аметист"
+	},
+	"app.appearance-settings.accent.description": {
+		"message": "Цвет, которым подсвечен интерфейс. На светлых темах каждый рисуется глубже, на тёмных — ярче."
+	},
+	"app.appearance-settings.accent.ember": {
+		"message": "Уголь"
+	},
+	"app.appearance-settings.accent.glacier": {
+		"message": "Ледник"
+	},
+	"app.appearance-settings.accent.lantern": {
+		"message": "Фонарь"
+	},
+	"app.appearance-settings.accent.midnight": {
+		"message": "Полночь"
+	},
+	"app.appearance-settings.accent.nightshade": {
+		"message": "Паслён"
+	},
+	"app.appearance-settings.accent.rose": {
+		"message": "Роза"
+	},
+	"app.appearance-settings.accent.theme": {
+		"message": "Тема"
+	},
+	"app.appearance-settings.accent.title": {
+		"message": "Цвет акцента"
+	},
+	"app.appearance-settings.accent.verdant": {
+		"message": "Зелень"
+	},
+	"app.appearance-settings.minimize-launcher.description": {
+		"message": "Сворачивать окно лаунчера при запуске Minecraft."
+	},
+	"app.changelog.author": {
+		"message": "Автор"
+	},
+	"app.changelog.installed": {
+		"message": "Установлена"
+	},
+	"app.changelog.modrinth-note": {
+		"message": "Показаны недавние выпуски. Полный список изменений приложения Modrinth доступен на их сайте."
+	},
+	"app.changelog.portalrinth-note": {
+		"message": "Полный список изменений Portalrinth также доступен онлайн."
+	},
+	"app.changelog.open-modrinth": {
+		"message": "Открыть список изменений Modrinth"
+	},
+	"app.changelog.open-portalrinth": {
+		"message": "Открыть список изменений Portalrinth"
+	},
+	"app.changelog.source.modrinth": {
+		"message": "Modrinth"
+	},
+	"app.changelog.source.portalrinth": {
+		"message": "Portalrinth"
+	},
+	"app.changelog.support": {
+		"message": "Поддержать на Boosty"
+	},
+	"app.collection.create.created": {
+		"message": "Коллекция создана"
+	},
+	"app.collection.create.created.detail": {
+		"message": "Создана «{name}»."
+	},
+	"app.collection.create.header": {
+		"message": "Создание коллекции"
+	},
+	"app.collection.create.name": {
+		"message": "Название"
+	},
+	"app.collection.create.name.placeholder": {
+		"message": "Введите название коллекции..."
+	},
+	"app.collection.create.submit": {
+		"message": "Создать коллекцию"
+	},
+	"app.collection.create.submitting": {
+		"message": "Создание..."
+	},
+	"app.collection.create.summary": {
+		"message": "Описание"
+	},
+	"app.collection.create.summary.hint": {
+		"message": "Пара предложений о том, что это за коллекция."
+	},
+	"app.collection.create.summary.placeholder": {
+		"message": "Это коллекция из..."
+	},
+	"app.collection.create.visibility-note": {
+		"message": "Коллекция будет создана публичной, {count, plural, =0 {без проектов} one {с # проектом} few {с # проектами} many {с # проектами} other {с # проектами}}."
+	},
+	"app.collection.delete-modal.description": {
+		"message": "Коллекция будет удалена навсегда. Отменить это действие нельзя."
+	},
+	"app.collection.delete-modal.title": {
+		"message": "Удалить эту коллекцию?"
+	},
+	"app.collection.edit.description": {
+		"message": "Описание"
+	},
+	"app.collection.edit.header": {
+		"message": "Изменение коллекции"
+	},
+	"app.collection.edit.saving": {
+		"message": "Сохранение..."
+	},
+	"app.collection.edit.title": {
+		"message": "Название"
+	},
+	"app.collection.edit.visibility": {
+		"message": "Видимость"
+	},
+	"app.collection.save-button.create": {
+		"message": "Создать коллекцию"
+	},
+	"app.collection.save-button.empty": {
+		"message": "У вас пока нет коллекций."
+	},
+	"app.collection.save-button.loading": {
+		"message": "Загрузка коллекций..."
+	},
+	"app.collection.save-button.no-matches": {
+		"message": "По запросу ничего не нашлось."
+	},
+	"app.collection.save-button.save": {
+		"message": "Сохранить в коллекцию"
+	},
+	"app.collection.save-button.save-tooltip": {
+		"message": "Сохранить"
+	},
+	"app.collection.save-button.saved": {
+		"message": "Сохранено в коллекцию"
+	},
+	"app.collection.save-button.saved-tooltip": {
+		"message": "Сохранено"
+	},
+	"app.collection.save-button.search": {
+		"message": "Поиск..."
+	},
+	"app.collection.save-button.sign-in": {
+		"message": "Войдите в Modrinth, чтобы сохранять проекты."
+	},
+	"app.collection.visibility.listed": {
+		"message": "Публичная"
+	},
+	"app.collection.visibility.private": {
+		"message": "Приватная"
+	},
+	"app.collection.visibility.unlisted": {
+		"message": "По ссылке"
+	},
+	"app.crash-modal.close": {
+		"message": "Закрыть"
+	},
+	"app.crash-modal.header": {
+		"message": "{instance} вылетел"
+	},
+	"app.crash-modal.nothing-found": {
+		"message": "Лаунчер не распознал причину. Подробности — в логе, оттуда же им можно поделиться."
+	},
+	"app.crash-modal.open-logs": {
+		"message": "Открыть логи"
+	},
+	"app.crash-modal.status": {
+		"message": "Статус завершения: {status}"
+	},
+	"app.crash.disable-mod": {
+		"message": "Отключить {mod}"
+	},
+	"app.crash.dismiss": {
+		"message": "Скрыть"
+	},
+	"app.crash.found-in": {
+		"message": "В файле {file}"
+	},
+	"app.crash.game-said": {
+		"message": "Игра сообщила: {description}"
+	},
+	"app.crash.header-count": {
+		"message": "{count, plural, one {Лаунчер нашёл вероятную причину} few {Лаунчер нашёл # вероятные причины} many {Лаунчер нашёл # вероятных причин} other {Лаунчер нашёл # вероятной причины}}"
+	},
+	"app.crash.header-note": {
+		"message": "Об этом запуске стоит знать"
+	},
+	"app.crash.hide-evidence": {
+		"message": "Скрыть строку"
+	},
+	"app.crash.memory-hint": {
+		"message": "У игры было {current} ГБ на {mods} модов. Сборке такого размера обычно нужно {gb} ГБ, и у этого компьютера они есть."
+	},
+	"app.crash.memory-set": {
+		"message": "Выделено {gb} ГБ"
+	},
+	"app.crash.mod-disabled": {
+		"message": "{mod} отключён"
+	},
+	"app.crash.open-folder": {
+		"message": "Открыть папку сборки"
+	},
+	"app.crash.open-settings": {
+		"message": "Открыть настройки"
+	},
+	"app.crash.rule.broken-mod-file.fix": {
+		"message": "Это не читаемый архив — загрузка оборвалась. Отключите его и скачайте заново."
+	},
+	"app.crash.rule.broken-mod-file.title": {
+		"message": "{mod_file} повреждён"
+	},
+	"app.crash.rule.chunk-unreadable.fix": {
+		"message": "Сначала сделайте резервную копию мира. Один повреждённый файл региона можно удалить — он сгенерируется заново, потеряется только построенное там."
+	},
+	"app.crash.rule.chunk-unreadable.title": {
+		"message": "Часть мира не читается (чанк {chunk})"
+	},
+	"app.crash.rule.config-file-empty.fix": {
+		"message": "Игра упала, пока его сохраняла. Удалите его, и мод запишет файл заново с настройками по умолчанию."
+	},
+	"app.crash.rule.config-file-empty.title": {
+		"message": "{file} пустой"
+	},
+	"app.crash.rule.config-truncated.fix": {
+		"message": "Игра упала, пока его сохраняла. Удалите файл, названный в строке ниже, — он запишется заново с настройками по умолчанию."
+	},
+	"app.crash.rule.config-truncated.title": {
+		"message": "Файл настроек пустой или обрезан"
+	},
+	"app.crash.rule.config-unreadable.fix": {
+		"message": "Удалите этот файл и запустите игру снова — мод запишет новый со своими значениями по умолчанию."
+	},
+	"app.crash.rule.config-unreadable.title": {
+		"message": "Файл настроек повреждён ({file})"
+	},
+	"app.crash.rule.connector-fabric-mod.fix": {
+		"message": "На NeoForge ставьте родную NeoForge-сборку мода, если она есть: у Sodium и Iris официальные сборки есть, и через Connector они не идут. На Forge 1.20.1 и старше аналоги — Embeddium и Oculus."
+	},
+	"app.crash.rule.connector-fabric-mod.title": {
+		"message": "Sinytra Connector не смог протащить Fabric-мод ({exception})"
+	},
+	"app.crash.rule.corrupted-archive.fix": {
+		"message": "Почините сборку, чтобы лаунчер скачал его заново. Оборванная загрузка выглядит ровно так."
+	},
+	"app.crash.rule.corrupted-archive.title": {
+		"message": "Файл, который читала игра, повреждён или докачан не до конца"
+	},
+	"app.crash.rule.crash-description.title": {
+		"message": "Игра описала это так: {description}"
+	},
+	"app.crash.rule.datapack-blocked-world.fix": {
+		"message": "Мод, добавлявший рецепты или генерацию мира, убрали или изменили. Верните его либо откройте мир в безопасном режиме, чтобы загрузить без сломанного датапака."
+	},
+	"app.crash.rule.datapack-blocked-world.title": {
+		"message": "Мир не загрузился из-за ошибок в датапаке"
+	},
+	"app.crash.rule.disk-full.fix": {
+		"message": "Освободите место на диске со сборкой и запустите снова."
+	},
+	"app.crash.rule.disk-full.title": {
+		"message": "На диске закончилось место"
+	},
+	"app.crash.rule.duplicate-mod-files.fix": {
+		"message": "Оставьте один файл, остальные удалите: {files}"
+	},
+	"app.crash.rule.duplicate-mod-files.title": {
+		"message": "{mod_name} установлен несколько раз"
+	},
+	"app.crash.rule.duplicate-mods.fix": {
+		"message": "Откройте папку модов и оставьте по одной копии каждого — обычно виноваты две версии одного файла."
+	},
+	"app.crash.rule.duplicate-mods.title": {
+		"message": "Один и тот же мод установлен несколько раз"
+	},
+	"app.crash.rule.exit-access-violation.fix": {
+		"message": "Чаще всего это драйвер видеокарты или оверлей. Обновите драйвер, отключите шейдеры и оверлеи и запустите снова."
+	},
+	"app.crash.rule.exit-access-violation.title": {
+		"message": "Нативный код уронил игру без отчёта"
+	},
+	"app.crash.rule.exit-killed-by-system.fix": {
+		"message": "У компьютера закончилась память целиком. Выделите игре меньше или закройте остальные программы."
+	},
+	"app.crash.rule.exit-killed-by-system.title": {
+		"message": "Система завершила игру, чтобы освободить память"
+	},
+	"app.crash.rule.exit-missing-system-library.fix": {
+		"message": "Установите последний Microsoft Visual C++ Redistributable (x64), затем дайте лаунчеру переустановить Java для этого инстанса."
+	},
+	"app.crash.rule.exit-missing-system-library.title": {
+		"message": "Java не смогла загрузить системную библиотеку ({code})"
+	},
+	"app.crash.rule.exit-not-responding.fix": {
+		"message": "Большие сборки подвисают при загрузке мира, и если в это время кликнуть по окну, Windows предлагает его закрыть. Не трогайте окно, пока мир грузится. Если игра зависла намертво — скорее всего, ей не хватило памяти."
+	},
+	"app.crash.rule.exit-not-responding.title": {
+		"message": "Windows закрыла игру, потому что она перестала отвечать"
+	},
+	"app.crash.rule.exit-stack-buffer-overrun.fix": {
+		"message": "Обычно это оверлей или запись экрана — MSI Afterburner, RivaTuner, OBS, оверлей Discord — либо драйвер видеокарты. Отключите оверлеи и обновите драйвер."
+	},
+	"app.crash.rule.exit-stack-buffer-overrun.title": {
+		"message": "Игру уронило что-то, что в неё встраивается"
+	},
+	"app.crash.rule.exit-stack-overflow.fix": {
+		"message": "Чаще всего два мода бесконечно вызывают друг друга. Посмотрите, какие моды менялись с последнего удачного запуска."
+	},
+	"app.crash.rule.exit-stack-overflow.title": {
+		"message": "У игры переполнился стек"
+	},
+	"app.crash.rule.fabric-missing-dependency.fix": {
+		"message": "Установите {dependency} или уберите {mod_name}."
+	},
+	"app.crash.rule.fabric-missing-dependency.title": {
+		"message": "{mod_name} требует {dependency}, а его нет"
+	},
+	"app.crash.rule.fabric-wrong-dependency-version.fix": {
+		"message": "Обновите {dependency} до {requirement} или возьмите подходящую сборку {mod_name}."
+	},
+	"app.crash.rule.fabric-wrong-dependency-version.title": {
+		"message": "{mod_name} требует другую версию {dependency}"
+	},
+	"app.crash.rule.feature-order-cycle.fix": {
+		"message": "Каждый ждёт другого, поэтому порядка не существует. Уберите один из модов на генерацию мира или поставьте мод, который расставляет порядок."
+	},
+	"app.crash.rule.feature-order-cycle.title": {
+		"message": "Два мода на генерацию мира спорят, что идёт первым"
+	},
+	"app.crash.rule.ferritecore-neighbor-table.fix": {
+		"message": "Поставьте replaceNeighborLookup = false в config/ferritecore-mixin.toml, пока мод из строки ниже не исправят."
+	},
+	"app.crash.rule.ferritecore-neighbor-table.title": {
+		"message": "Мод конфликтует с экономией памяти FerriteCore"
+	},
+	"app.crash.rule.file-locked.fix": {
+		"message": "Закройте другие лаунчеры и ещё запущенные копии игры, и проверьте, не сканирует ли эту папку антивирус."
+	},
+	"app.crash.rule.file-locked.title": {
+		"message": "Файл игры держала другая программа"
+	},
+	"app.crash.rule.forge-missing-dependency.fix": {
+		"message": "Установите {dependency} или уберите {mod_id}."
+	},
+	"app.crash.rule.forge-missing-dependency.title": {
+		"message": "{mod_id} требует {dependency}, которого нет"
+	},
+	"app.crash.rule.gpu-driver-amd.title": {
+		"message": "Упал драйвер видеокарты AMD ({library})"
+	},
+	"app.crash.rule.gpu-driver-generic.title": {
+		"message": "Упал драйвер видеокарты"
+	},
+	"app.crash.rule.gpu-driver-intel.title": {
+		"message": "Упал драйвер видеокарты Intel ({library})"
+	},
+	"app.crash.rule.gpu-driver-nvidia.title": {
+		"message": "Упал драйвер видеокарты NVIDIA ({library})"
+	},
+	"app.crash.rule.gpu-driver.fix": {
+		"message": "Обновите драйвер с сайта производителя, а не через Windows Update, и на время проверки отключите шейдеры."
+	},
+	"app.crash.rule.heap-too-large-to-start.fix": {
+		"message": "Уменьшите выделенную память и запустите снова."
+	},
+	"app.crash.rule.heap-too-large-to-start.title": {
+		"message": "Сборка попросила больше памяти, чем удалось зарезервировать ({size})"
+	},
+	"app.crash.rule.install-incomplete.fix": {
+		"message": "Загрузчик не нашёл сам Minecraft. Восстановите инстанс, чтобы лаунчер установил его заново."
+	},
+	"app.crash.rule.install-incomplete.title": {
+		"message": "Игра или загрузчик установлены не полностью"
+	},
+	"app.crash.rule.integrated-gpu-in-use.fix": {
+		"message": "Если в компьютере есть отдельная видеокарта, игра использует более слабую. Лаунчер может попросить Windows переключиться на другую."
+	},
+	"app.crash.rule.integrated-gpu-in-use.title": {
+		"message": "Игра работает на встроенном видеоядре ({renderer})"
+	},
+	"app.crash.rule.intel-cpu-instability.fix": {
+		"message": "Настольные процессоры Intel 13-го и 14-го поколений деградируют и падают под нагрузкой. Обновите BIOS материнской платы до версии с исправлением микрокода Intel; если причина в этом, замена модов не поможет."
+	},
+	"app.crash.rule.intel-cpu-instability.title": {
+		"message": "Этот процессор ({model}) известен нестабильностью"
+	},
+	"app.crash.rule.java-module-error.fix": {
+		"message": "Java не запускается, когда два файла объявляют один и тот же модуль. Ниже указано какой — найдите, в каких модах он лежит, и оставьте тот, что новее."
+	},
+	"app.crash.rule.java-module-error.title": {
+		"message": "Два мода принесли одну и ту же библиотеку ({exception})"
+	},
+	"app.crash.rule.java-too-new.fix": {
+		"message": "Старым версиям Minecraft нужна старая Java. Дайте лаунчеру поставить ту, которую ждёт эта версия."
+	},
+	"app.crash.rule.java-too-new.title": {
+		"message": "Эта Java новее, чем игра умеет использовать"
+	},
+	"app.crash.rule.java-too-old.fix": {
+		"message": "Укажите сборке Java {needs} или дайте лаунчеру скачать её."
+	},
+	"app.crash.rule.java-too-old.title": {
+		"message": "Что-то требует Java {needs}, а сборка запустилась на Java {has}"
+	},
+	"app.crash.rule.java-unsupported-class.fix": {
+		"message": "Смените Java для этой сборки в её настройках."
+	},
+	"app.crash.rule.java-unsupported-class.title": {
+		"message": "Мод собран под более новую Java, чем та, на которой запустились"
+	},
+	"app.crash.rule.jna-blocked.fix": {
+		"message": "Мешает антивирус или временная папка без прав на запись. Добавьте папку лаунчера в исключения антивируса и проверьте, что в папку TEMP Windows можно писать."
+	},
+	"app.crash.rule.jna-blocked.title": {
+		"message": "Библиотека не смогла распаковаться во временную папку"
+	},
+	"app.crash.rule.jvm-itself-failed.fix": {
+		"message": "Падение внутри самой Java — это либо неисправное железо, либо ошибка в этой сборке Java. Сначала проверьте память; если с ней всё в порядке, поставьте для этой сборки другую версию Java."
+	},
+	"app.crash.rule.jvm-itself-failed.title": {
+		"message": "Упала сама Java, а не игра"
+	},
+	"app.crash.rule.jvm-problematic-frame.title": {
+		"message": "Сама Java остановилась в {frame}"
+	},
+	"app.crash.rule.jvm-signal.title": {
+		"message": "Процесс был остановлен сигналом {signal}"
+	},
+	"app.crash.rule.kubejs-datapack.fix": {
+		"message": "Файл создаёт скрипт из папки kubejs. Исправьте или уберите этот скрипт; скрипты сборки обычно ломаются после обновления одного из её модов."
+	},
+	"app.crash.rule.kubejs-datapack.title": {
+		"message": "Скрипт KubeJS создал сломанный файл датапака ({file})"
+	},
+	"app.crash.rule.language-provider-mismatch.fix": {
+		"message": "В строках ниже написано, что именно он хотел. Либо обновите загрузчик для этой сборки, либо возьмите сборку мода под тот загрузчик, что стоит сейчас."
+	},
+	"app.crash.rule.language-provider-mismatch.title": {
+		"message": "Мод собран под другую версию загрузчика"
+	},
+	"app.crash.rule.loader-suggestion.fix": {
+		"message": "{suggestion}"
+	},
+	"app.crash.rule.loader-suggestion.title": {
+		"message": "Загрузчик модов сам подсказал решение"
+	},
+	"app.crash.rule.missing-class-owner.fix": {
+		"message": "Он ожидал {symbol}, а в установленном {owner_name} этого нет. Аддон должен совпадать с версией мода, который он расширяет: обновите оба или откатите {owner_name} до версии, под которую сделан аддон."
+	},
+	"app.crash.rule.missing-class-owner.title": {
+		"message": "Мод собран под другую версию {owner_name}"
+	},
+	"app.crash.rule.missing-class.fix": {
+		"message": "Он искал {symbol}, и ни в одном установленном моде этого нет. Установите мод, от которого он зависит, или удалите тот, которому это нужно."
+	},
+	"app.crash.rule.missing-class.title": {
+		"message": "Моду нужно то, что не установлено"
+	},
+	"app.crash.rule.missing-indium.fix": {
+		"message": "Sodium не реализует интерфейс отрисовки, через который рисуют некоторые моды, а Indium его возвращает. Поставьте Indium для той же версии Minecraft."
+	},
+	"app.crash.rule.missing-indium.title": {
+		"message": "Моду нужен Indium, чтобы рисовать через Sodium"
+	},
+	"app.crash.rule.missing-main-class.fix": {
+		"message": "Сборка неполная — обычно из-за прерванной установки. Почините или переустановите её."
+	},
+	"app.crash.rule.missing-main-class.title": {
+		"message": "Игра не запустилась вообще ({class_name} отсутствует)"
+	},
+	"app.crash.rule.missing-native-library.fix": {
+		"message": "Почините сборку. Если повторится — проверьте, не отправляет ли антивирус папку natives в карантин."
+	},
+	"app.crash.rule.missing-native-library.title": {
+		"message": "Библиотеку, которую игра грузит с диска, загрузить не удалось"
+	},
+	"app.crash.rule.mixin-failed.fix": {
+		"message": "Имя перед .mixins.json — это и есть мод, который стоит обновить или убрать первым; если один и тот же кусок игры правят два мода, менять придётся оба."
+	},
+	"app.crash.rule.mixin-failed.title": {
+		"message": "Мод не смог пропатчить игру ({config})"
+	},
+	"app.crash.rule.mixin-injection-failed.fix": {
+		"message": "Почти всегда мод из этого файла собран под другую версию игры или другого мода. Обновите его, а если он уже свежий — уберите тот, с которым он конфликтует."
+	},
+	"app.crash.rule.mixin-injection-failed.title": {
+		"message": "Мод не смог изменить игру там, где рассчитывал ({config})"
+	},
+	"app.crash.rule.mixin-invalid-injection.fix": {
+		"message": "Посмотрите, какие моды названы в строках ниже, и обновите их. Если среди них мод на производительность или отрисовку — сначала попробуйте без него: они трогают больше всего."
+	},
+	"app.crash.rule.mixin-invalid-injection.title": {
+		"message": "Два мода изменили одно и то же место в игре"
+	},
+	"app.crash.rule.mod-for-other-version.fix": {
+		"message": "Он искал {symbol}, которого в этой версии нет. Обновите мод или возьмите сборку под вашу версию игры."
+	},
+	"app.crash.rule.mod-for-other-version.title": {
+		"message": "Мод собран под другую версию Minecraft"
+	},
+	"app.crash.rule.mod-incompatible.fix": {
+		"message": "Эти двое вместе не ставятся. Оставьте нужный, второй уберите."
+	},
+	"app.crash.rule.mod-incompatible.title": {
+		"message": "{mod_name} отказывается работать вместе с {conflict}"
+	},
+	"app.crash.rule.mods-changed-since-working.fix": {
+		"message": "Добавлено: {added_count}, удалено: {removed_count}. Если больше ничего здесь не объясняет краш, начните с них — список в строках ниже."
+	},
+	"app.crash.rule.mods-changed-since-working.title": {
+		"message": "Моды менялись с последнего запуска без краша"
+	},
+	"app.crash.rule.native-allocator.fix": {
+		"message": "Почти всегда это сбоящая память или её разгон. Прогоните тест ОЗУ и отключите XMP или EXPO в BIOS — посмотрите, прекратится ли."
+	},
+	"app.crash.rule.native-allocator.title": {
+		"message": "Процесс уронил распределитель памяти ({library})"
+	},
+	"app.crash.rule.native-audio.fix": {
+		"message": "Обычно устройство вывода меняется на ходу: вынули наушники, Bluetooth-колонка ушла в сон. Обновите звуковой драйвер и задайте постоянное устройство вывода."
+	},
+	"app.crash.rule.native-audio.title": {
+		"message": "Процесс уронила звуковая подсистема"
+	},
+	"app.crash.rule.native-shader-macos.fix": {
+		"message": "Шейдерпак, который macOS не может скомпилировать. Отключите шейдеры — почти все они написаны под драйверы, которых у Apple нет."
+	},
+	"app.crash.rule.native-shader-macos.title": {
+		"message": "Процесс уронил графический слой macOS"
+	},
+	"app.crash.rule.native-window-linux.fix": {
+		"message": "Обновите драйвер видеокарты и Mesa. На Wayland большинства таких падений не бывает, если запускать игру через XWayland."
+	},
+	"app.crash.rule.native-window-linux.title": {
+		"message": "Процесс уронила системная графическая библиотека ({library})"
+	},
+	"app.crash.rule.neoforge-dependency-version.fix": {
+		"message": "Обновите {dependency} до версии из этого диапазона либо откатите {mod_id} до той, что примет имеющуюся."
+	},
+	"app.crash.rule.neoforge-dependency-version.title": {
+		"message": "{mod_id} требует {dependency} {expected}, а нашёл {actual}"
+	},
+	"app.crash.rule.not-a-mod-file.fix": {
+		"message": "Обычно это скачанная вместо файла веб-страница или ресурспак, по ошибке положенный в папку модов. Удалите и скачайте заново."
+	},
+	"app.crash.rule.not-a-mod-file.title": {
+		"message": "{file} — не мод"
+	},
+	"app.crash.rule.oculus-without-embeddium.fix": {
+		"message": "Oculus рисует через Embeddium и без него не стартует. Поставьте Embeddium — или, если это NeoForge, используйте официальные сборки Sodium и Iris вместо обоих."
+	},
+	"app.crash.rule.oculus-without-embeddium.title": {
+		"message": "Oculus стоит без Embeddium"
+	},
+	"app.crash.rule.opengl-unsupported.fix": {
+		"message": "Обновите драйвер видеокарты. На ноутбуке с двумя видеокартами убедитесь, что игра запускается на более мощной."
+	},
+	"app.crash.rule.opengl-unsupported.title": {
+		"message": "Драйвер не смог дать игре нужный ей OpenGL"
+	},
+	"app.crash.rule.optifine-present.fix": {
+		"message": "OptiFine ломается о большинство современных модов. Sodium с Iris или Embeddium с Oculus делают то же самое и рассчитаны на соседство с ними."
+	},
+	"app.crash.rule.optifine-present.title": {
+		"message": "В момент падения был загружен OptiFine"
+	},
+	"app.crash.rule.out-of-memory-heap.fix": {
+		"message": "Выдайте сборке больше памяти или требуйте от неё меньше: дальность прорисовки и моды на генерацию мира обычно съедают больше всего."
+	},
+	"app.crash.rule.out-of-memory-heap.title": {
+		"message": "Игре не хватило выданной ей памяти"
+	},
+	"app.crash.rule.out-of-memory-metaspace.fix": {
+		"message": "Так бывает у очень больших сборок на маленьком объёме памяти. Поднимите его для этой сборки."
+	},
+	"app.crash.rule.out-of-memory-metaspace.title": {
+		"message": "Игре не хватило места под загружаемый код"
+	},
+	"app.crash.rule.out-of-memory-system.fix": {
+		"message": "Уменьшите объём памяти, который просит сборка, или закройте лишние программы. Если просить больше, чем есть у машины, игра не запустится вовсе."
+	},
+	"app.crash.rule.out-of-memory-system.title": {
+		"message": "На компьютере не осталось свободной памяти"
+	},
+	"app.crash.rule.resource-location-invalid.fix": {
+		"message": "Minecraft допускает в таких именах только строчные латинские буквы, цифры и несколько символов. Обычная причина — учётная запись Windows названа не латиницей, и эти буквы оказываются в пути ко всему. Перенесите папку лаунчера туда, где путь целиком латинский."
+	},
+	"app.crash.rule.resource-location-invalid.title": {
+		"message": "В путь попало имя, которое игра не принимает"
+	},
+	"app.crash.rule.server-config-broken.fix": {
+		"message": "Он лежит в папке serverconfig этого мира, а не в config. Удалите файл и откройте мир снова — мод создаст новый."
+	},
+	"app.crash.rule.server-config-broken.title": {
+		"message": "Повреждён файл настроек мира ({file})"
+	},
+	"app.crash.rule.server-thread-stuck.fix": {
+		"message": "Что-то заняло столько времени, что игра перестала ждать — обычно генерация мира на медленном диске или мод, застрявший в цикле. В строках ниже видно, чем она была занята."
+	},
+	"app.crash.rule.server-thread-stuck.title": {
+		"message": "Мир перестал отвечать и был выключен"
+	},
+	"app.crash.rule.software-renderer.fix": {
+		"message": "Windows перешла на программную отрисовку, а на ней Minecraft не работает. Установите драйвер видеокарты с сайта производителя."
+	},
+	"app.crash.rule.software-renderer.title": {
+		"message": "Игра рисует без драйвера видеокарты ({renderer})"
+	},
+	"app.crash.rule.spark-profiler-crash.fix": {
+		"message": "Его нативный профайлер не работает на новых версиях Java. Обновите Spark или запускайте этот инстанс на Java 21."
+	},
+	"app.crash.rule.spark-profiler-crash.title": {
+		"message": "Процесс уронил профайлер Spark"
+	},
+	"app.crash.rule.suspect-mod.fix": {
+		"message": "Когда игра упала, выполнялся код этого мода. Сначала обновите его; если не поможет — отключите и запустите снова, чтобы убедиться."
+	},
+	"app.crash.rule.suspect-mod.title": {
+		"message": "Краш произошёл внутри {mod_name}"
+	},
+	"app.crash.rule.suspected-mods.fix": {
+		"message": "Отключите их по одному и запускайте игру после каждого."
+	},
+	"app.crash.rule.suspected-mods.title": {
+		"message": "Загрузчик подозревает: {mods}"
+	},
+	"app.crash.rule.too-many-block-ids.fix": {
+		"message": "В старых версиях Minecraft тут жёсткий предел. Уберите часть контентных модов или поставьте мод, поднимающий лимит для этой версии."
+	},
+	"app.crash.rule.too-many-block-ids.title": {
+		"message": "В сборке кончились идентификаторы блоков или предметов"
+	},
+	"app.crash.rule.wrong-jdk-apple-silicon.fix": {
+		"message": "Mac на Apple Silicon с Java под Intel или наоборот. Дайте лаунчеру поставить Java для этой сборки вместо уже установленной в системе."
+	},
+	"app.crash.rule.wrong-jdk-apple-silicon.title": {
+		"message": "Java не той сборки для этого Mac"
+	},
+	"app.crash.set-memory": {
+		"message": "Выделить {gb} ГБ"
+	},
+	"app.crash.show-evidence": {
+		"message": "Показать строку"
+	},
+	"app.crash.show-less": {
+		"message": "Свернуть"
+	},
+	"app.crash.show-more": {
+		"message": "Показать ещё {count}"
+	},
+	"app.error-modal.copy-debug-info": {
+		"message": "Скопировать отладочную информацию"
+	},
+	"app.error-modal.debug-information": {
+		"message": "Отладочная информация"
+	},
+	"app.error-modal.directory.cancel": {
+		"message": "Отменить смену папки"
+	},
+	"app.error-modal.directory.generic.body": {
+		"message": "Portalrinth не может перенести данные в выбранную папку. Обратитесь в поддержку или отмените смену папки."
+	},
+	"app.error-modal.directory.no-space.body": {
+		"message": "Похоже, на диске с выбранной папкой не хватает места. Освободите место и попробуйте снова или отмените смену папки."
+	},
+	"app.error-modal.directory.no-space.heading": {
+		"message": "Недостаточно места"
+	},
+	"app.error-modal.directory.read-only.body": {
+		"message": "Похоже, Portalrinth не может писать в выбранную папку. Измените права доступа и попробуйте снова или отмените смену папки."
+	},
+	"app.error-modal.directory.read-only.heading": {
+		"message": "Измените права на папку"
+	},
+	"app.error-modal.directory.retry": {
+		"message": "Повторить смену папки"
+	},
+	"app.error-modal.game-pass.body": {
+		"message": "Сначала войдите через <launcher-link>официальный лаунчер Minecraft</launcher-link>. Как закончите — возвращайтесь сюда и входите!"
+	},
+	"app.error-modal.game-pass.heading": {
+		"message": "Пользуетесь PC Game Pass, переходите с Bedrock или только что купили игру?"
+	},
+	"app.error-modal.get-support": {
+		"message": "Написать в поддержку"
+	},
+	"app.error-modal.hosts-file.body": {
+		"message": "Portalrinth пытался подключиться к сервисам Microsoft / Xbox / Minecraft, но удалённый сервер отклонил соединение. Возможно, эти сервисы заблокированы в файле hosts. Откройте <support-article>нашу статью поддержки</support-article>, чтобы узнать, как это исправить."
+	},
+	"app.error-modal.network.body": {
+		"message": "Похоже, у Portalrinth не получилось связаться с серверами Microsoft. Обычно виновато нестабильное соединение, так что попробуйте ещё раз. Если не помогает, выполните шаги из <support-article>нашей статьи поддержки</support-article>."
+	},
+	"app.error-modal.network.heading": {
+		"message": "Проблемы с сетью"
+	},
+	"app.error-modal.no-error-message": {
+		"message": "Сообщения об ошибке нет."
+	},
+	"app.error-modal.no-loader.body": {
+		"message": "Portalrinth не нашёл версию загрузчика для этой сборки."
+	},
+	"app.error-modal.no-loader.fix": {
+		"message": "Чтобы это исправить, нужно восстановить сборку. Нажмите кнопку ниже."
+	},
+	"app.error-modal.no-loader.repair": {
+		"message": "Восстановить сборку"
+	},
+	"app.error-modal.other-account.body": {
+		"message": "Проверьте, тем ли аккаунтом вы вошли. Minecraft может быть куплен на другом аккаунте Microsoft."
+	},
+	"app.error-modal.other-account.button": {
+		"message": "Войти другим аккаунтом"
+	},
+	"app.error-modal.other-account.heading": {
+		"message": "Попробуйте другой аккаунт Microsoft"
+	},
+	"app.error-modal.service-outage.body": {
+		"message": "Серверы входа Microsoft ответили ошибкой, и Portalrinth не смог до них достучаться даже после нескольких попыток. Это неполадка на их стороне, обычно она проходит за несколько минут — подождите немного и попробуйте снова."
+	},
+	"app.error-modal.service-outage.heading": {
+		"message": "Сервисы Microsoft недоступны"
+	},
+	"app.error-modal.state-init.body": {
+		"message": "Portalrinth не смог загрузиться правильно. Возможно, повреждён файл или не хватает важных файлов приложения."
+	},
+	"app.error-modal.state-init.fix-internet": {
+		"message": "Убедитесь, что есть интернет, и перезапустите приложение."
+	},
+	"app.error-modal.state-init.fix-redownload": {
+		"message": "Скачайте приложение заново."
+	},
+	"app.error-modal.state-init.fixes": {
+		"message": "Это можно попробовать исправить так:"
+	},
+	"app.error-modal.support-prompt": {
+		"message": "Если ничего не помогает и нужна помощь, зайдите на <support-page>страницу поддержки</support-page> и начните чат через виджет в правом нижнем углу — мы поможем. Не забудьте передать оператору отладочную информацию ниже:"
+	},
+	"app.error-modal.title.directory-move": {
+		"message": "Не удалось сменить папку приложения"
+	},
+	"app.error-modal.title.minecraft-auth": {
+		"message": "Не удалось войти в Minecraft"
+	},
+	"app.error-modal.title.no-loader": {
+		"message": "Загрузчик не выбран"
+	},
+	"app.error-modal.title.state-init": {
+		"message": "Не удалось запустить Portalrinth"
+	},
+	"app.error-modal.title.unknown": {
+		"message": "Произошла ошибка"
+	},
+	"app.error-modal.try-signing-in-again": {
+		"message": "Попробовать войти снова"
+	},
+	"app.export-modal.include-icon": {
+		"message": "Вложить иконку инстанса"
+	},
+	"app.export-modal.include-icon-hint": {
+		"message": "Сохраняется как иконка пака — её показывают Modrinth App и другие лаунчеры при установке."
+	},
+	"app.hosting.title": {
+		"message": "Хостинг"
+	},
+	"app.hosting.update-required.description": {
+		"message": "Чтобы пользоваться хостингом Modrinth через Portalrinth, нужно обновиться"
+	},
+	"app.hosting.update-required.title": {
+		"message": "Нужно обновить Portalrinth"
+	},
+	"app.instance.add-content.from-file": {
+		"message": "Добавить из файла"
+	},
+	"app.instance.add-content.install": {
+		"message": "Установить контент"
+	},
+	"app.instance.logs.live": {
+		"message": "Трансляция лога"
+	},
+	"app.instance.logs.unknown-file": {
+		"message": "Неизвестный"
+	},
+	"app.instance.share.members.column.joined": {
+		"message": "Присоединился"
+	},
+	"app.instance.share.members.column.method": {
+		"message": "Способ"
+	},
+	"app.instance.share.members.never-played": {
+		"message": "Никогда"
+	},
+	"app.instance.share.members.search": {
+		"message": "Поиск среди {count, plural, one {# участника} few {# участников} many {# участников} other {# участника}}..."
+	},
+	"app.instance.share.method.direct": {
+		"message": "Прямое приглашение"
+	},
+	"app.instance.share.method.link": {
+		"message": "Ссылка-приглашение"
+	},
+	"app.library.search.hint": {
+		"message": "↑↓ — выбрать · Tab — вставить · условия складываются, а - переворачивает любое"
+	},
+	"app.library.search.pending": {
+		"message": "Читаю, что установлено…"
+	},
+	"app.library.search.placeholder": {
+		"message": "Поиск по сборкам, или @ # ! для фильтров"
+	},
+	"app.library.search.sigil.mod": {
+		"message": "по моду"
+	},
+	"app.library.search.sigil.mod.hint": {
+		"message": "Сборки, в которых есть указанный мод, ресурспак или шейдер"
+	},
+	"app.library.search.sigil.state": {
+		"message": "по состоянию"
+	},
+	"app.library.search.sigil.state.hint": {
+		"message": "Сборки, где что-то устарело, отключено или сломано"
+	},
+	"app.library.search.sigil.type": {
+		"message": "по типу"
+	},
+	"app.library.search.sigil.type.hint": {
+		"message": "Сборки, в которых есть моды, шейдеры, ресурспаки или дата-паки"
+	},
+	"app.library.search.state.broken": {
+		"message": "Саму сборку нужно починить"
+	},
+	"app.library.search.state.disabled": {
+		"message": "Что-то установлено, но выключено"
+	},
+	"app.library.search.state.outdated": {
+		"message": "Для чего-то установленного есть обновление"
+	},
+	"app.library.search.type.datapack": {
+		"message": "Есть дата-паки"
+	},
+	"app.library.search.type.mod": {
+		"message": "Есть моды"
+	},
+	"app.library.search.type.resourcepack": {
+		"message": "Есть ресурспаки"
+	},
+	"app.library.search.type.shader": {
+		"message": "Есть шейдеры"
+	},
+	"app.lan.action.publish": {
+		"message": "Открыть LAN"
+	},
+	"app.lan.action.unpublish": {
+		"message": "Остановить"
+	},
+	"app.lan.copied": {
+		"message": "Адрес скопирован"
+	},
+	"app.lan.description": {
+		"message": "Играйте вместе через интернет: откройте мир для сети в Minecraft и поделитесь им с друзьями отсюда."
+	},
+	"app.lan.empty-description": {
+		"message": "Запустите сборку — она появится здесь."
+	},
+	"app.lan.empty-heading": {
+		"message": "Ничего не запущено"
+	},
+	"app.lan.error-heading": {
+		"message": "Не удалось прочитать запущенные сборки"
+	},
+	"app.lan.heading": {
+		"message": "LAN"
+	},
+	"app.lan.published": {
+		"message": "Опубликовано по адресу {address}"
+	},
+	"app.lan.state.closed": {
+		"message": "Мир не открыт для сети"
+	},
+	"app.lan.state.lost": {
+		"message": "Релиз перестал передавать игроков"
+	},
+	"app.lan.state.ready": {
+		"message": "Мир открыт для сети, на порту {port}"
+	},
+	"app.lan.stopped": {
+		"message": "Больше не опубликовано"
+	},
+	"app.migration.modrinth.action.choose": {
+		"message": "Выбрать сборки"
+	},
+	"app.migration.modrinth.action.dismiss": {
+		"message": "Скрыть"
+	},
+	"app.migration.modrinth.action.import-all": {
+		"message": "Перенести все"
+	},
+	"app.migration.modrinth.action.importing": {
+		"message": "Переносим..."
+	},
+	"app.migration.modrinth.description": {
+		"message": "{count, plural, one {Найдена # сборка} few {Найдено # сборки} many {Найдено # сборок} other {Найдено # сборки}} в вашей установке Modrinth App. При переносе они копируются сюда — сам Modrinth App остаётся нетронутым."
+	},
+	"app.migration.modrinth.title": {
+		"message": "Перенесите свои сборки из Modrinth App"
+	},
+	"app.minecraft-auth-error.contact-support": {
+		"message": "Написать в поддержку"
+	},
+	"app.minecraft-auth-error.copy-debug-info": {
+		"message": "Скопировать отладочную информацию"
+	},
+	"app.minecraft-auth-error.debug-information": {
+		"message": "Отладочная информация"
+	},
+	"app.minecraft-auth-error.header": {
+		"message": "Не удалось войти"
+	},
+	"app.minecraft-auth-error.how-to-fix": {
+		"message": "Как это исправить"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.step-1": {
+		"message": "Откройте <link>Xbox</link> и войдите"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.step-2": {
+		"message": "Пройдите проверку личности"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.step-3": {
+		"message": "После этого попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.what": {
+		"message": "Аккаунт требует подтверждения совершеннолетия по правилам Южной Кореи."
+	},
+	"app.minecraft-auth-error.korea-adult-verification.step-1": {
+		"message": "Откройте <link>Xbox</link> и войдите"
+	},
+	"app.minecraft-auth-error.korea-adult-verification.step-2": {
+		"message": "Пройдите проверку личности"
+	},
+	"app.minecraft-auth-error.korea-adult-verification.step-3": {
+		"message": "После этого попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.korea-adult-verification.what": {
+		"message": "Аккаунт требует подтверждения совершеннолетия по правилам Южной Кореи."
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-1": {
+		"message": "Подождите несколько минут и попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-2": {
+		"message": "Проверьте <link>статус Xbox</link> — возможно, идут сбои"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-3": {
+		"message": "Попробуйте войти через <link>официальный лаунчер Minecraft</link>, чтобы понять, повторяется ли проблема и там"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-4": {
+		"message": "Если сервисы работают, а ошибка повторяется, обратитесь в поддержку и приложите отладочную информацию ниже"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.what": {
+		"message": "Сервис авторизации Minecraft отвечает ошибкой сервера, поэтому Portalrinth сейчас не может завершить вход."
+	},
+	"app.minecraft-auth-error.network.step-1": {
+		"message": "Перезапустите Portalrinth и попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.network.step-2": {
+		"message": "Проверьте, работает ли интернет"
+	},
+	"app.minecraft-auth-error.network.step-3": {
+		"message": "Разрешите Portalrinth доступ в брандмауэре, антивирусе, прокси, VPN и правилах файла hosts"
+	},
+	"app.minecraft-auth-error.network.step-4": {
+		"message": "Попробуйте другую сеть или временно отключите VPN и прокси, если пользуетесь ими"
+	},
+	"app.minecraft-auth-error.network.step-5": {
+		"message": "Если дело в маршрутизации или DNS, иногда помогает сервис вроде Cloudflare WARP"
+	},
+	"app.minecraft-auth-error.network.what": {
+		"message": "Portalrinth не смог подключиться к сервису Microsoft, Xbox или Minecraft, который нужен для входа. Обычно мешают локальная сеть, DNS, прокси, брандмауэр, файл hosts, VPN или антивирус."
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-1": {
+		"message": "Убедитесь, что Minecraft куплен на этом аккаунте"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-2": {
+		"message": "Откройте <link>страницу входа Minecraft</link> и войдите"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-3": {
+		"message": "Создайте профиль Xbox, если появится такой запрос"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-4": {
+		"message": "После этого попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.what": {
+		"message": "У этого аккаунта нет профиля Xbox или на нём не куплен Minecraft."
+	},
+	"app.minecraft-auth-error.player-profile.step-1": {
+		"message": "Войдите через <link>официальный лаунчер Minecraft</link>"
+	},
+	"app.minecraft-auth-error.player-profile.step-2": {
+		"message": "Запустите Minecraft: Java Edition из официального лаунчера хотя бы раз"
+	},
+	"app.minecraft-auth-error.player-profile.step-3": {
+		"message": "Если покупка или создание профиля были недавно, подождите до часа"
+	},
+	"app.minecraft-auth-error.player-profile.step-4": {
+		"message": "Убедитесь, что используете аккаунт Microsoft, на котором куплен Minecraft. Подсказка: <link>как найти нужный аккаунт Xbox</link>"
+	},
+	"app.minecraft-auth-error.player-profile.step-5": {
+		"message": "Попробуйте войти в Portalrinth снова"
+	},
+	"app.minecraft-auth-error.player-profile.what": {
+		"message": "Сервисы Minecraft не вернули профиль Java Edition для этого аккаунта. Обычно так бывает, если игра куплена недавно, профиль Java ещё не создан или используется не тот аккаунт Microsoft."
+	},
+	"app.minecraft-auth-error.refresh-token.step-1": {
+		"message": "Выйдите из этого аккаунта Minecraft в Portalrinth"
+	},
+	"app.minecraft-auth-error.refresh-token.step-2": {
+		"message": "Войдите в него заново"
+	},
+	"app.minecraft-auth-error.refresh-token.step-3": {
+		"message": "Когда вход завершится, попробуйте запустить Minecraft снова"
+	},
+	"app.minecraft-auth-error.refresh-token.what": {
+		"message": "Сохранённый токен входа Microsoft истёк или был отозван, поэтому Portalrinth не может обновить сессию Minecraft."
+	},
+	"app.minecraft-auth-error.region-unavailable.step-1": {
+		"message": "Войти можно только там, где поддерживаются сервисы Xbox"
+	},
+	"app.minecraft-auth-error.region-unavailable.step-2": {
+		"message": "Список стран: <link>доступность Xbox</link>"
+	},
+	"app.minecraft-auth-error.region-unavailable.what": {
+		"message": "Xbox Live недоступен в вашем регионе, поэтому вход заблокирован."
+	},
+	"app.minecraft-auth-error.restricted-online-play.step-1": {
+		"message": "Попросите родителя или опекуна войти в <link>Microsoft Family</link>"
+	},
+	"app.minecraft-auth-error.restricted-online-play.step-2": {
+		"message": "Измените разрешения на игру по сети"
+	},
+	"app.minecraft-auth-error.restricted-online-play.step-3": {
+		"message": "После этого попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.restricted-online-play.what": {
+		"message": "Аккаунт ограничен: у него нет разрешения на игру по сети."
+	},
+	"app.minecraft-auth-error.sign-in-again": {
+		"message": "Войти снова"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-1": {
+		"message": "Откройте настройки даты и времени в системе"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-2": {
+		"message": "Включите автоматический часовой пояс и автоматическое время, если такая опция есть"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-3": {
+		"message": "Синхронизируйте часы кнопкой синхронизации в настройках системы"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-4": {
+		"message": "Перезапустите Portalrinth"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-5": {
+		"message": "Попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.what": {
+		"message": "Сервисы Xbox отклонили первый ответ при входе. Чаще всего виноваты сбитые системные часы или часовой пояс."
+	},
+	"app.minecraft-auth-error.summary": {
+		"message": "Не получилось войти в ваш аккаунт Microsoft. Возможно, дело в ограничениях аккаунта или региона."
+	},
+	"app.minecraft-auth-error.suspended.step-1": {
+		"message": "Откройте <link>поддержку Xbox</link> и посмотрите детали блокировки"
+	},
+	"app.minecraft-auth-error.suspended.step-2": {
+		"message": "Подайте апелляцию, если такая возможность есть"
+	},
+	"app.minecraft-auth-error.suspended.what": {
+		"message": "Аккаунт заблокирован за нарушение правил сообщества Xbox."
+	},
+	"app.minecraft-auth-error.terms-not-accepted.step-1": {
+		"message": "Откройте <link>Xbox</link> и войдите"
+	},
+	"app.minecraft-auth-error.terms-not-accepted.step-2": {
+		"message": "Примите условия, если появится запрос"
+	},
+	"app.minecraft-auth-error.terms-not-accepted.step-3": {
+		"message": "После этого попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.terms-not-accepted.what": {
+		"message": "На аккаунте не приняты условия использования Xbox."
+	},
+	"app.minecraft-auth-error.too-many-requests.step-1": {
+		"message": "Подождите примерно час, прежде чем пробовать снова"
+	},
+	"app.minecraft-auth-error.too-many-requests.step-2": {
+		"message": "После ожидания перезапустите Portalrinth"
+	},
+	"app.minecraft-auth-error.too-many-requests.step-3": {
+		"message": "Попробуйте войти ещё раз"
+	},
+	"app.minecraft-auth-error.too-many-requests.step-4": {
+		"message": "Если сообщение повторится, подождите дольше — временное ограничение должно сняться"
+	},
+	"app.minecraft-auth-error.too-many-requests.what": {
+		"message": "Microsoft или Minecraft временно заблокировали запрос на вход: слишком много попыток за короткое время."
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-1": {
+		"message": "Откройте страницу <link>входа Minecraft</link> и войдите"
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-2": {
+		"message": "Следуйте инструкциям, чтобы подтвердить возраст"
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-3": {
+		"message": "После подтверждения попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-4": {
+		"message": "Подробности: <link>подтверждение возраста в Великобритании на Xbox</link>"
+	},
+	"app.minecraft-auth-error.uk-age-verification.what": {
+		"message": "Аккаунт Minecraft/Xbox Live требует подтверждения возраста по правилам Великобритании. Без этого вход невозможен."
+	},
+	"app.minecraft-auth-error.underage-no-family.step-1": {
+		"message": "Изучите <link>руководство по семейной группе</link>"
+	},
+	"app.minecraft-auth-error.underage-no-family.step-2": {
+		"message": "Присоединитесь к семейной группе или создайте её по инструкции"
+	},
+	"app.minecraft-auth-error.underage-no-family.step-3": {
+		"message": "После этого попробуйте войти снова"
+	},
+	"app.minecraft-auth-error.underage-no-family.what": {
+		"message": "Аккаунт принадлежит несовершеннолетнему и не привязан к семейной группе Microsoft."
+	},
+	"app.minecraft-auth-error.unknown": {
+		"message": "Неизвестная ошибка"
+	},
+	"app.minecraft-auth-error.unknown-advice": {
+		"message": "Попробуйте зайти на <login-link>страницу входа Minecraft</login-link> — там могут подсказать, что нужно сделать. Также можно обратиться в поддержку, и мы разберёмся подробнее."
+	},
+	"app.minecraft-auth-error.unknown-body": {
+		"message": "Мы не узнали эту ошибку и не можем подсказать точные шаги."
+	},
+	"app.minecraft-auth-error.what-happened": {
+		"message": "Что, по-нашему, произошло"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-1": {
+		"message": "Войдите через <link>официальный лаунчер Minecraft</link>"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-2": {
+		"message": "Выполните всё, о чём попросят Microsoft, Xbox или Minecraft"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-3": {
+		"message": "Попробуйте войти в Portalrinth снова"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-4": {
+		"message": "Если официальный лаунчер тоже не пускает, действуйте по его подсказке или обратитесь в поддержку Xbox"
+	},
+	"app.minecraft-auth-error.xsts-authorize.what": {
+		"message": "Сервисы Xbox отклонили запрос на авторизацию этого аккаунта в Minecraft, но не сообщили конкретное ограничение, которое Portalrinth умеет распознавать."
+	},
+	"app.nav.lan": {
+		"message": "LAN"
+	},
+	"app.nav.modrinth-hosting": {
+		"message": "Хостинг Modrinth"
+	},
+	"app.notifications.accept": {
+		"message": "Принять"
+	},
+	"app.notifications.decline": {
+		"message": "Отклонить"
+	},
+	"app.notifications.error.accept": {
+		"message": "Не удалось принять приглашение"
+	},
+	"app.notifications.error.decline": {
+		"message": "Не удалось отклонить приглашение"
+	},
+	"app.notifications.error.mark-read": {
+		"message": "Не удалось отметить уведомление прочитанным"
+	},
+	"app.notifications.invited-to-join": {
+		"message": "пригласил(а) вас присоединиться к <target>{name}</target>."
+	},
+	"app.notifications.mark-as-read": {
+		"message": "Отметить прочитанным"
+	},
+	"app.notifications.moderator-message": {
+		"message": "Ваш проект, <project>{title}</project>, получил {count, plural, one {сообщение} other {сообщения}} от модераторов."
+	},
+	"app.notifications.not-signed-in": {
+		"message": "Вы не вошли в аккаунт"
+	},
+	"app.notifications.project-updated": {
+		"message": "Проект, на который вы подписаны, <project>{title}</project>, был обновлён:"
+	},
+	"app.notifications.read-badge": {
+		"message": "Прочитано"
+	},
+	"app.notifications.received": {
+		"message": "Получено {time}"
+	},
+	"app.notifications.status-changed": {
+		"message": "<project>{title}</project> сменил статус с <strong>{oldStatus}</strong> на <strong>{newStatus}</strong> по решению модераторов."
+	},
+	"app.notifications.version-for": {
+		"message": "для"
+	},
+	"app.project.copy-link.copied": {
+		"message": "Ссылка скопирована"
+	},
+	"app.project.sign-in-to-follow": {
+		"message": "Войдите, чтобы подписаться"
+	},
+	"app.recover-instances.description": {
+		"message": "Ищет папки со сборками, о которых лаунчер ничего не знает, — то, что остаётся, когда база данных потерялась, а папки нет."
+	},
+	"app.recover-instances.found": {
+		"message": "{count, plural, one {# папки нет в лаунчере} few {# папок нет в лаунчере} many {# папок нет в лаунчере} other {# папок нет в лаунчере}}"
+	},
+	"app.recover-instances.import": {
+		"message": "Импортировать"
+	},
+	"app.recover-instances.imported": {
+		"message": "{name} вернулась"
+	},
+	"app.recover-instances.imported-body": {
+		"message": "Папка не тронута. Файлы версии докачаются при следующем запуске."
+	},
+	"app.recover-instances.mods": {
+		"message": "{count, plural, one {# мод} few {# мода} many {# модов} other {# мода}}"
+	},
+	"app.recover-instances.none": {
+		"message": "Все папки там уже есть в лаунчере."
+	},
+	"app.recover-instances.scan": {
+		"message": "Просканировать папку"
+	},
+	"app.recover-instances.scanning": {
+		"message": "Сканирую…"
+	},
+	"app.recover-instances.title": {
+		"message": "Сборки в папке лаунчера"
+	},
+	"app.recover-instances.unknown-version": {
+		"message": "Нет лога или отчёта о падении, из которого можно прочитать версию, — такую папку придётся добавить вручную."
+	},
+	"app.recover-instances.worlds": {
+		"message": "{count, plural, one {# мир} few {# мира} many {# миров} other {# мира}}"
+	},
+	"app.resource-settings.proxy.description": {
+		"message": "Направляет весь сетевой трафик лаунчера (Modrinth API и загрузки с CDN) через прокси. Поддерживаются URL вида http://, https://, socks5:// и socks5h://. Полезно, когда Modrinth недоступен в вашем регионе. Оставьте пустым для прямого подключения. (требуется перезапуск приложения)"
+	},
+	"app.resource-settings.proxy.title": {
+		"message": "Прокси"
+	},
+	"app.settings.app-version": {
+		"message": "Portalrinth {version}"
+	},
+	"app.settings.default-instance-options.universal-skins.description": {
+		"message": "Серверы в offline-режиме не присылают скины вообще — поэтому там все Стивы. Запрашивать их по нику у Ely.by, который отдаёт скины своих пользователей, а для остальных — скины Mojang. Моды не нужны, а скин, присланный сервером, никогда не подменяется."
+	},
+	"app.settings.default-instance-options.universal-skins.title": {
+		"message": "Скины всех игроков"
+	},
+	"app.settings.feature-flags.search.placeholder": {
+		"message": "Поиск флагов..."
+	},
+	"app.settings.java.gpu.choice.auto": {
+		"message": "На усмотрение Windows"
+	},
+	"app.settings.java.gpu.choice.high-performance": {
+		"message": "Высокая производительность"
+	},
+	"app.settings.java.gpu.choice.power-saving": {
+		"message": "Энергосбережение"
+	},
+	"app.settings.java.gpu.label": {
+		"message": "Видеоадаптер"
+	},
+	"app.settings.java.gpu.no-preference": {
+		"message": "Предпочтение не задано, поэтому выбирает Windows — на ноутбуке это обычно встроенная графика. Доступны: {adapters}"
+	},
+	"app.settings.java.gpu.on-high-performance": {
+		"message": "Windows будет запускать эту среду на производительном адаптере."
+	},
+	"app.settings.java.gpu.on-named-adapter": {
+		"message": "Windows будет запускать эту среду на {adapter}."
+	},
+	"app.settings.java.gpu.on-power-saving": {
+		"message": "Windows будет запускать эту среду на энергосберегающем адаптере — обычно это встроенная графика, для Minecraft это медленный вариант."
+	},
+	"app.settings.java.runtimes.delete-label": {
+		"message": "Удалить среду"
+	},
+	"app.settings.java.runtimes.delete-tooltip": {
+		"message": "Удалить эту среду"
+	},
+	"app.settings.java.runtimes.description": {
+		"message": "Java, которую скачал лаунчер, всего {size}. При обновлении Java старая копия остаётся на диске, поэтому они накапливаются."
+	},
+	"app.settings.java.runtimes.in-use": {
+		"message": "Используется"
+	},
+	"app.settings.java.runtimes.in-use-tooltip": {
+		"message": "На неё указывает одна из настроек Java — сначала измените её"
+	},
+	"app.settings.java.runtimes.remove-unused": {
+		"message": "Удалить неиспользуемые: {count} ({size})"
+	},
+	"app.settings.java.runtimes.removed-text": {
+		"message": "Освобождено {size}."
+	},
+	"app.settings.java.runtimes.removed-title": {
+		"message": "Среды удалены"
+	},
+	"app.settings.java.runtimes.title": {
+		"message": "Скачанные среды Java"
+	},
+	"app.settings.privacy.discord-rich-presence.description": {
+		"message": "Показывать Portalrinth в текущей активности Discord. Не влияет на Rich Presence, который добавляют моды. Требуется перезапуск."
+	},
+	"app.settings.resource-management.app-directory.description": {
+		"message": "Здесь Portalrinth хранит сборки и другие файлы. Изменения вступят в силу после перезапуска."
+	},
+	"app.settings.tabs.changelog": {
+		"message": "Список изменений"
+	},
+	"app.skins.cape-from": {
+		"message": "Плащ из {source}"
+	},
+	"app.skins.ely.edit.texture-locked": {
+		"message": "На Ely.by текстура и скин — одно целое, так что заменить её здесь нельзя. Загрузите новую текстуру отдельным скином."
+	},
+	"app.skins.ely.edit.upload-new": {
+		"message": "Загрузить новый скин"
+	},
+	"app.skins.ely.my-skins.empty": {
+		"message": "Пока ничего не загружено. Добавьте скин плиткой ниже или перетащите на неё PNG."
+	},
+	"app.skins.ely.my-skins.title": {
+		"message": "Ваши скины Ely.by"
+	},
+	"app.skins.ely.sign-in-needed.text": {
+		"message": "Для этого Ely.by нужен вход на самом сайте. Нажмите «Изменить скин на Ely.by», войдите и повторите."
+	},
+	"app.skins.ely.sign-in-needed.title": {
+		"message": "Ely.by не принял изменение"
+	},
+	"app.survey.body": {
+		"message": "Не хотите ответить на несколько вопросов о вашем опыте с Portalrinth?"
+	},
+	"app.update-popup.body": {
+		"message": "Portalrinth v{version} готов к установке! Перезагрузите, чтобы обновить сейчас, или обновление произойдёт автоматически при закрытии Portalrinth."
+	},
+	"app.update-popup.body.download-complete": {
+		"message": "Скачивание Portalrinth v{version} завершено. Перезапустите приложение, чтобы обновить его, или оно обновится автоматически после закрытия."
+	},
+	"app.update-popup.body.downloading": {
+		"message": "Portalrinth v{version} — {downloaded} из {size}"
+	},
+	"app.update-popup.body.downloading-unknown-size": {
+		"message": "Portalrinth v{version} загружается…"
+	},
+	"app.update-popup.body.linux": {
+		"message": "Доступна версия Portalrinth {version}. Обновите приложение через менеджер пакетов, чтобы получить последние улучшения и исправления!"
+	},
+	"app.update-popup.body.metered": {
+		"message": "Версия Portalrinth {version} доступна для скачивания! Используется сеть с лимитным тарифным планом, поэтому скачивание не началось автоматически."
+	},
+	"app.update-popup.downloading": {
+		"message": "Загрузка обновления"
+	},
+	"app.welcome-screen.title": {
+		"message": "Добро пожаловать в Portalrinth"
+	},
+	"app.window-controls.close": {
+		"message": "Закрыть окно"
+	},
+	"app.window-controls.minimize": {
+		"message": "Свернуть окно"
+	},
+	"app.window-controls.toggle-maximize": {
+		"message": "Развернуть или восстановить окно"
+	},
+	"collection.delete": {
+		"message": "Удалить"
+	},
+	"collection.edit": {
+		"message": "Изменить"
+	},
+	"collection.filter.all": {
+		"message": "Все"
+	},
+	"collection.following.description": {
+		"message": "Автоматически созданная коллекция всех проектов, на которые вы подписаны."
+	},
+	"collection.following.name": {
+		"message": "Отслеживаемые проекты"
+	},
+	"collection.loading": {
+		"message": "Загрузка…"
+	},
+	"collection.no-followed": {
+		"message": "Вы пока ни на кого не подписаны"
+	},
+	"collection.no-matching": {
+		"message": "Нет подходящих проектов"
+	},
+	"collection.no-projects": {
+		"message": "В этой коллекции нет проектов"
+	},
+	"collection.open-on-web": {
+		"message": "Открыть на сайте"
+	},
+	"collection.projects-count.one": {
+		"message": "проект"
+	},
+	"collection.projects-count.other": {
+		"message": "проектов"
+	},
+	"collection.remove-project": {
+		"message": "Убрать проект"
+	},
+	"collection.remove-tooltip": {
+		"message": "Убрать из коллекции"
+	},
+	"collection.removing": {
+		"message": "Удаление…"
+	},
+	"collection.search-placeholder": {
+		"message": "Поиск проектов…"
+	},
+	"collection.sort-by": {
+		"message": "Сортировка: "
+	},
+	"collection.sort-by-name": {
+		"message": "Сортировка"
+	},
+	"collection.sort.downloads": {
+		"message": "По скачиваниям"
+	},
+	"collection.sort.followers": {
+		"message": "По подписчикам"
+	},
+	"collection.sort.name": {
+		"message": "По названию (А-Я)"
+	},
+	"collection.sort.updated": {
+		"message": "По дате обновления"
+	},
+	"collection.status.private": {
+		"message": "Личная"
+	},
+	"collection.status.public": {
+		"message": "Публичная"
+	},
+	"collection.status.rejected": {
+		"message": "Отклонена"
+	},
+	"collection.status.unlisted": {
+		"message": "По ссылке"
+	},
+	"collection.type.datapack": {
+		"message": "Дата-паки"
+	},
+	"collection.type.mod": {
+		"message": "Моды"
+	},
+	"collection.type.modpack": {
+		"message": "Сборки"
+	},
+	"collection.type.plugin": {
+		"message": "Плагины"
+	},
+	"collection.type.resourcepack": {
+		"message": "Ресурспаки"
+	},
+	"collection.type.shader": {
+		"message": "Шейдеры"
+	},
+	"collection.unfollow-project": {
+		"message": "Отписаться от проекта"
+	},
+	"collection.unfollowing": {
+		"message": "Отписываемся…"
+	},
+	"collection.updated-ago": {
+		"message": "Обновлено {time}"
+	},
+	"collections.create-new": {
+		"message": "Создать"
+	},
+	"collections.followed-projects": {
+		"message": "Отслеживаемые проекты"
+	},
+	"collections.followed-projects-desc": {
+		"message": "Автоматически собранная коллекция всех проектов, на которые вы подписаны."
+	},
+	"collections.loading": {
+		"message": "Загрузка коллекций…"
+	},
+	"collections.no-collections": {
+		"message": "У вас пока нет коллекций"
+	},
+	"collections.no-collections-body": {
+		"message": "Создайте свою первую коллекцию на modrinth.com, чтобы начать!"
+	},
+	"collections.no-match": {
+		"message": "Нет коллекций, подходящих под запрос"
+	},
+	"collections.no-match-body": {
+		"message": "Попробуйте изменить фильтры или поисковый запрос."
+	},
+	"collections.projects-count.one": {
+		"message": "проект"
+	},
+	"collections.projects-count.other": {
+		"message": "проектов"
+	},
+	"collections.search-placeholder": {
+		"message": "Поиск коллекций…"
+	},
+	"collections.sign-in-prompt": {
+		"message": "Войдите, чтобы увидеть свои коллекции"
+	},
+	"collections.sign-in-prompt-body": {
+		"message": "Войдите в аккаунт Modrinth, чтобы увидеть здесь свои коллекции."
+	},
+	"collections.sort-by": {
+		"message": "Сортировка: "
+	},
+	"collections.sort-by-name": {
+		"message": "Сортировка"
+	},
+	"collections.sort.created": {
+		"message": "По дате создания"
+	},
+	"collections.sort.name": {
+		"message": "По названию (А-Я)"
+	},
+	"collections.sort.updated": {
+		"message": "По дате обновления"
+	},
+	"collections.status.private": {
+		"message": "Личная"
+	},
+	"collections.status.public": {
+		"message": "Публичная"
+	},
+	"collections.status.rejected": {
+		"message": "Отклонена"
+	},
+	"collections.status.unlisted": {
+		"message": "По ссылке"
+	},
+	"console.actions.collapse": {
+		"message": "Свернуть"
+	},
+	"console.actions.expand": {
+		"message": "Развернуть"
+	},
+	"console.crash.problems-detected": {
+		"message": "{count, plural, one {Найдена # проблема} few {Найдено # проблемы} many {Найдено # проблем} other {Найдено # проблемы}}"
+	},
+	"console.delete-modal.header": {
+		"message": "Удалить файл лога"
+	},
+	"console.delete-modal.irreversible": {
+		"message": "Это необратимо"
+	},
+	"console.delete-modal.warning": {
+		"message": "Удаление файла лога нельзя отменить. Продолжить?"
+	},
+	"console.empty-state.instance": {
+		"message": "Запустите сборку кнопкой справа сверху, чтобы здесь появились логи!"
+	},
+	"console.empty-state.server": {
+		"message": "Добро пожаловать на ваш сервер Modrinth! Нажмите зелёную кнопку, чтобы запустить его!"
+	},
+	"console.filter.all": {
+		"message": "Все"
+	},
+	"console.filter.debug": {
+		"message": "Отладка"
+	},
+	"console.filter.error": {
+		"message": "Ошибки"
+	},
+	"console.filter.info": {
+		"message": "Информация"
+	},
+	"console.filter.trace": {
+		"message": "Трассировка"
+	},
+	"console.filter.warn": {
+		"message": "Предупреждения"
+	},
+	"console.search.placeholder": {
+		"message": "Поиск по логам"
+	},
+	"console.share-modal.header": {
+		"message": "Поделиться логами"
+	},
+	"console.terminal.input-disabled": {
+		"message": "Ввод команд отключён"
+	},
+	"console.terminal.send-command": {
+		"message": "Введите команду"
+	},
+	"console.terminal.server-not-running": {
+		"message": "Сервер не запущен"
+	},
+	"creation-flow.modal.import-instance.delete-source.description": {
+		"defaultMessage": "Удаляет файлы каждой перенесённой сборки из другого лаунчера, чтобы они не хранились дважды. Оставьте выключенным, чтобы сохранить обе копии."
+	},
+	"creation-flow.modal.import-instance.delete-source.label": {
+		"defaultMessage": "Удалить из {launcher} после переноса"
+	},
+	"ely-login.back": {
+		"message": "Назад"
+	},
+	"ely-login.cancel": {
+		"message": "Отмена"
+	},
+	"ely-login.error.generic": {
+		"message": "Не удалось войти. Проверьте учётные данные."
+	},
+	"ely-login.error.network": {
+		"message": "Не удалось подключиться к серверам Ely.by. Проверьте интернет-соединение."
+	},
+	"ely-login.error.client": {
+		"message": "Вход через страницу Ely.by в этой сборке пока недоступен. Войдите по паролю."
+	},
+	"ely-login.error.page": {
+		"message": "Вход не завершился. Попробуйте снова или войдите по паролю."
+	},
+	"ely-login.forgot-password": {
+		"message": "Забыли?"
+	},
+	"ely-login.header": {
+		"message": "Вход через Ely.by"
+	},
+	"ely-login.hide-password": {
+		"message": "Скрыть пароль"
+	},
+	"ely-login.intro": {
+		"message": "Аккаунт Ely.by позволяет играть на серверах, которые его принимают, не покупая Minecraft."
+	},
+	"ely-login.no-account": {
+		"message": "Нет аккаунта?"
+	},
+	"ely-login.page-button": {
+		"message": "Продолжить на ely.by"
+	},
+	"ely-login.page-button-hint": {
+		"message": "Откроет страницу входа Ely.by."
+	},
+	"ely-login.page-description": {
+		"message": "Ely.by спросит, кто вы, на своей странице, в отдельном окне. Пароль вводится там и через лаунчер не проходит."
+	},
+	"ely-login.page-waiting": {
+		"message": "Ждём Ely.by..."
+	},
+	"ely-login.password-label": {
+		"message": "Пароль"
+	},
+	"ely-login.password-placeholder": {
+		"message": "Введите пароль…"
+	},
+	"ely-login.password-warning-body": {
+		"message": "Это работает, и пароль уходит прямо в Ely.by. Но вход на их собственной странице означает, что здесь его никто не видит — используйте его, если он открывается."
+	},
+	"ely-login.password-warning-header": {
+		"message": "Здесь лаунчер спрашивает ваш пароль от Ely.by"
+	},
+	"ely-login.show-password": {
+		"message": "Показать пароль"
+	},
+	"ely-login.sign-in": {
+		"message": "Войти"
+	},
+	"ely-login.sign-up-link": {
+		"message": "Зарегистрироваться на ely.by"
+	},
+	"ely-login.signing-in": {
+		"message": "Вход…"
+	},
+	"ely-login.totp-hint": {
+		"message": "Аккаунт защищён двухфакторной аутентификацией. Введите шесть цифр из приложения-аутентификатора."
+	},
+	"ely-login.totp-label": {
+		"message": "Код двухфакторной аутентификации"
+	},
+	"ely-login.totp-placeholder": {
+		"message": "Введите 6-значный код..."
+	},
+	"ely-login.use-password": {
+		"message": "Войти по паролю"
+	},
+	"ely-login.username-hint": {
+		"message": "То же, чем вы входите на ely.by."
+	},
+	"ely-login.username-label": {
+		"message": "Имя пользователя или email"
+	},
+	"ely-login.username-placeholder": {
+		"message": "Введите имя пользователя или email Ely.by…"
+	},
+	"ely-skins.change-button": {
+		"message": "Изменить скин на Ely.by"
+	},
+	"ely-skins.default-notice": {
+		"message": "У этого аккаунта нет загруженного скина (или его не удалось загрузить) — показан стандартный скин."
+	},
+	"ely-skins.description": {
+		"message": "Скины для аккаунтов Ely.by управляются на сайте Ely.by. Кнопка ниже откроет его в окне прямо в приложении — если вы не вошли, Ely.by сначала попросит авторизоваться. После закрытия окна превью обновится автоматически."
+	},
+	"ely-skins.page-title": {
+		"message": "Скины"
+	},
+	"ely-skins.refresh-button": {
+		"message": "Обновить превью"
+	},
+	"ely-skins.section-title": {
+		"message": "Скин Ely.by"
+	},
+	"format.bytes.1": {
+		"defaultMessage": "{count, number} KiB"
+	},
+	"format.bytes.2": {
+		"defaultMessage": "{count, number} MiB"
+	},
+	"format.bytes.3": {
+		"defaultMessage": "{count, number} GiB"
+	},
+	"format.bytes.4": {
+		"defaultMessage": "{count, number} TiB"
+	},
+	"friends.friend.more-options": {
+		"message": "Ещё действия"
+	},
+	"friends.requests.none": {
+		"message": "Заявок в друзья пока нет :C"
+	},
+	"instance.action.play-again": {
+		"message": "Запустить ещё одну копию"
+	},
+	"instance.badge.locked": {
+		"message": "Заблокирована"
+	},
+	"instance.badge.locked.label": {
+		"message": "Информация о заблокированной сборке"
+	},
+	"instance.badge.shared": {
+		"message": "Общая"
+	},
+	"instance.badge.shared.label": {
+		"message": "Информация об общей сборке"
+	},
+	"instance.console.copies-running": {
+		"message": "{count, plural, one {Запущена # копия} few {Запущено # копии} many {Запущено # копий} other {Запущено # копии}}"
+	},
+	"instance.console.copy-started-at": {
+		"message": "запущена в {time}"
+	},
+	"instance.console.copy-unknown-account": {
+		"message": "Неизвестный аккаунт"
+	},
+	"instance.console.one-at-a-time": {
+		"message": "По одной"
+	},
+	"instance.console.side-by-side": {
+		"message": "Рядом"
+	},
+	"instance.metadata.loader-tooltip": {
+		"message": "Загрузчик модов и версия Minecraft"
+	},
+	"instance.metadata.total-playtime": {
+		"message": "Общее время в игре"
+	},
+	"instance.playtime.hours": {
+		"message": "{hours, plural, one {# час} few {# часа} many {# часов} other {# часа}}"
+	},
+	"instance.playtime.minutes": {
+		"message": "{minutes, plural, one {# минута} few {# минуты} many {# минут} other {# минуты}}"
+	},
+	"instance.playtime.seconds": {
+		"message": "{seconds, plural, one {# секунда} few {# секунды} many {# секунд} other {# секунды}}"
+	},
+	"instance.settings.tabs.java.modern-java": {
+		"message": "Современная Java"
+	},
+	"instance.settings.tabs.java.modern-java-beta": {
+		"message": "Бета"
+	},
+	"instance.settings.tabs.java.modern-java-beta-note": {
+		"message": "Функция новая и мало обкатана. Сделайте резервную копию сборки перед включением и учтите, что моды, рассчитанные на Java 8, могут вести себя странно."
+	},
+	"instance.settings.tabs.java.modern-java-description": {
+		"message": "Minecraft {gameVersion} обычно запускается только на Java 8. {provider} заменяет LWJGL 2 и переделывает Forge, чтобы сборка пошла на современной Java."
+	},
+	"instance.settings.tabs.java.modern-java-install": {
+		"message": "Включить"
+	},
+	"instance.settings.tabs.java.modern-java-installed": {
+		"message": "Включено — {provider} {version}, работает на Java {javaMajor}"
+	},
+	"instance.settings.tabs.java.modern-java-installing": {
+		"message": "Включаю..."
+	},
+	"instance.settings.tabs.java.modern-java-mods-note": {
+		"message": "Отключение убирает патчи лаунчера. Установленные моды останутся в сборке — удалите их во вкладке «Моды», если они больше не нужны."
+	},
+	"instance.settings.tabs.java.modern-java-remove": {
+		"message": "Отключить"
+	},
+	"instance.settings.tabs.java.modern-java-version": {
+		"message": "Версия Java"
+	},
+	"instance.settings.tabs.java.modern-java-version-hint": {
+		"message": "Выбор версии скачает её и закрепит за этой сборкой. Самая младшая обкатана лучше всех; новые поддерживаются, но с модами этой версии Minecraft проверены меньше."
+	},
+	"minecraft-account.add-ely-account": {
+		"message": "Добавить аккаунт Ely.by"
+	},
+	"minecraft-account.add-offline-account": {
+		"message": "Добавить оффлайн-аккаунт"
+	},
+	"minecraft-account.label-ely-by": {
+		"message": "Аккаунт Ely.by"
+	},
+	"minecraft-account.label-microsoft": {
+		"message": "Аккаунт Microsoft"
+	},
+	"minecraft-account.label-offline": {
+		"message": "Оффлайн-аккаунт"
+	},
+	"minecraft-account.label-offline-short": {
+		"message": "Оффлайн"
+	},
+	"notifications.back": {
+		"message": "Назад"
+	},
+	"notifications.heading": {
+		"message": "Уведомления"
+	},
+	"notifications.heading-history": {
+		"message": "История уведомлений"
+	},
+	"notifications.history-empty": {
+		"message": "В истории нет уведомлений."
+	},
+	"notifications.loading": {
+		"message": "Загрузка уведомлений…"
+	},
+	"notifications.mark-all-read": {
+		"message": "Прочитать все"
+	},
+	"notifications.sign-in-prompt": {
+		"message": "Войдите, чтобы увидеть уведомления"
+	},
+	"notifications.sign-in-prompt-body": {
+		"message": "Войдите в аккаунт Modrinth, чтобы увидеть здесь свои уведомления."
+	},
+	"notifications.type.all": {
+		"message": "Все"
+	},
+	"notifications.type.moderator-message": {
+		"message": "Сообщения от модераторов"
+	},
+	"notifications.type.organization-invite": {
+		"message": "Приглашения в организации"
+	},
+	"notifications.type.other": {
+		"message": "Прочее"
+	},
+	"notifications.type.project-update": {
+		"message": "Обновления"
+	},
+	"notifications.type.status-change": {
+		"message": "Изменения статуса"
+	},
+	"notifications.type.team-invite": {
+		"message": "Приглашения в команды"
+	},
+	"notifications.unread-empty": {
+		"message": "У вас нет непрочитанных уведомлений."
+	},
+	"notifications.view-history": {
+		"message": "Посмотреть историю"
+	},
+	"offline-account.add": {
+		"message": "Добавить аккаунт"
+	},
+	"offline-account.description": {
+		"message": "Только ник и ничего больше. С ним лаунчер запускает игру, когда войти некуда."
+	},
+	"offline-account.header": {
+		"message": "Добавить оффлайн-аккаунт"
+	},
+	"offline-account.invalid": {
+		"message": "От 3 до 16 латинских букв, цифр или подчёркиваний — как принимает сервер."
+	},
+	"offline-account.limitation-body": {
+		"message": "Серверы с лицензией спрашивают у Mojang, настоящая ли сессия, а её здесь нет. Всё остальное — миры на этом компьютере, локальная сеть и серверы с online-mode=false — работает как работало."
+	},
+	"offline-account.limitation-header": {
+		"message": "Только одиночная игра и серверы без лицензии"
+	},
+	"offline-account.username-label": {
+		"message": "Ник"
+	},
+	"offline-account.username-placeholder": {
+		"message": "Ник, под которым играть…"
+	},
+	"offline-account.uuid": {
+		"message": "Будет играть как {uuid}"
+	},
+	"search.sort.date-published": {
+		"message": "Дата публикации"
+	},
+	"search.sort.date-updated": {
+		"message": "Дата обновления"
+	},
+	"search.sort.downloads": {
+		"message": "Загрузки"
+	},
+	"search.sort.followers": {
+		"message": "Подписчики"
+	},
+	"search.sort.players": {
+		"message": "Игроки"
+	},
+	"search.sort.relevance": {
+		"message": "Релевантность"
+	},
+	"search.sort.verified-plays": {
+		"message": "Подтверждённые запуски"
+	},
+	"servers.list-empty.no-servers-description": {
+		"message": "Устанавливайте моды, зовите друзей и играйте вместе прямо в Portalrinth."
+	},
+	"servers.list-empty.play-with-friends-description": {
+		"message": "Пригласите друзей на свой сервер — из Portalrinth они зайдут в один клик."
+	},
+	"settings.display.theme.description": {
+		"message": "Выберите тему для Portalrinth на этом устройстве."
+	},
+	"settings.language.coverage.app-tooltip": {
+		"message": "Примерно {percentage}% Portalrinth доступно на этом языке."
+	},
+	"skin.preview.drag-to-rotate": {
+		"message": "Тяните, чтобы вращать"
+	},
+	"portalrinth.translate.button": {
+		"message": "Перевести на {language}"
+	},
+	"portalrinth.translate.original": {
+		"message": "Оригинал"
+	},
+	"portalrinth.translate.translating": {
+		"message": "Перевожу..."
+	},
+	"portalrinth.translate.failed": {
+		"message": "Не получилось перевести: {reason}"
+	},
+	"portalrinth.settings.splash-cube.title": {
+		"message": "Куб на заставке"
+	},
+	"portalrinth.settings.splash-cube.description": {
+		"message": "Какой куб показывает заставка при запуске. Применится со следующего запуска."
+	},
+	"portalrinth.settings.splash-cube.theme": {
+		"message": "По теме (изредка наоборот)"
+	},
+	"portalrinth.settings.splash-cube.inverted": {
+		"message": "Наоборот: чёрный на белом, белый на чёрном"
+	},
+	"portalrinth.settings.splash-cube.random": {
+		"message": "Случайно при каждом запуске"
+	},
+	"portalrinth.auth-servers.unreachable.retry": {
+		"message": "Проверить снова"
+	},
+	"portalrinth.auth-servers.unreachable.scope": {
+		"message": "Пока они не ответят, вход и игра с аккаунтом Microsoft могут не работать. Оффлайн-аккаунтов и Ely.by это не касается."
+	},
+	"skin.preview.scroll-to-zoom": {
+		"message": "Колёсико — масштаб"
+	},
+	"portalrinth.translate.source-language": {
+		"message": "Язык описания: {language}"
+	},
+	"portalrinth.translate.translated-by": {
+		"message": "Перевёл {service}"
+	},
+	"portalrinth.translate.retry": {
+		"message": "Попробовать снова"
+	},
+	"portalrinth.settings.translation.title": {
+		"message": "Перевод описаний"
+	},
+	"portalrinth.settings.translation.description": {
+		"message": "Предлагает перевести описание проекта на ваш язык, с переключателем обратно на оригинал."
+	},
+	"portalrinth.settings.translation.service": {
+		"message": "Сервис"
+	},
+	"portalrinth.settings.translation.google": {
+		"message": "Google Переводчик: бесплатно, без ключа"
+	},
+	"portalrinth.settings.translation.deepl": {
+		"message": "DeepL: естественнее, нужен свой бесплатный API-ключ"
+	},
+	"portalrinth.settings.translation.deepl-key": {
+		"message": "API-ключ DeepL"
+	},
+	"portalrinth.settings.translation.deepl-key-hint": {
+		"message": "Бесплатный ключ переводит 500 000 символов в месяц. Получить можно на"
+	},
+	"portalrinth.settings.translation.target": {
+		"message": "Переводить на"
+	},
+	"portalrinth.settings.translation.target-app": {
+		"message": "Язык лаунчера ({language})"
+	},
+	"portalrinth.settings.translation.skip": {
+		"message": "Языки, которые вы и так читаете"
+	},
+	"portalrinth.settings.translation.skip-hint": {
+		"message": "Описания на них останутся как есть."
+	},
+	"portalrinth.settings.translation.auto": {
+		"message": "Переводить сразу при открытии описания"
+	},
+	"portalrinth.settings.translation.precheck": {
+		"message": "Сначала определять язык и прятать кнопку, когда переводить нечего"
+	},
+	"portalrinth.settings.translation.test": {
+		"message": "Проверить сервис"
+	},
+	"portalrinth.settings.translation.test-ok": {
+		"message": "Работает, {milliseconds} мс: «{text}»"
+	},
+	"portalrinth.instance.stop-copy": {
+		"message": "Остановить {name} · {time}"
+	},
+	"portalrinth.instance.stop-all-copies": {
+		"message": "Остановить все копии"
+	},
+	"portalrinth.settings.background.title": {
+		"message": "Фоновая картинка"
+	},
+	"portalrinth.settings.background.description": {
+		"message": "Картинка за лаунчером: видна сквозь его рамку и, немного, сквозь карточки на страницах."
+	},
+	"portalrinth.settings.background.choose": {
+		"message": "Выбрать картинку"
+	},
+	"portalrinth.settings.background.change": {
+		"message": "Сменить картинку"
+	},
+	"portalrinth.settings.background.remove": {
+		"message": "Убрать"
+	},
+	"portalrinth.settings.background.blur.title": {
+		"message": "Размыть картинку"
+	},
+	"portalrinth.settings.background.blur.description": {
+		"message": "Смягчает её, чтобы она не спорила с тем, что поверх."
+	},
+	"app.behavior-settings.refocus-on-game-close.description": {
+		"message": "Выводить Portalrinth на передний план при закрытии игры."
+	},
+	"app.screenshots.selection.global-export-filename": {
+		"message": "Скриншоты Portalrinth.zip"
+	},
+	"app.settings.game-options.compatibility.reason.launcher-controlled": {
+		"message": "Этим параметром управляют настройки запуска Portalrinth."
+	},
+	"app.settings.resource-management.debug-info.description": {
+		"message": "Экспортировать журналы приложения и диагностические данные в ZIP-файл, чтобы приложить его к сообщению о проблеме."
+	},
+	"app.settings.synced-options.game-settings.custom-empty": {
+		"message": "Настройки, добавленные модами, появятся здесь после того, как Portalrinth найдёт их в одной из сборок."
+	},
+	"app.settings.privacy.telemetry.description": {
+		"message": "Portalrinth не отправляет ни аналитику, ни данные об использовании, как бы ни стоял этот переключатель. Он оставлен, чтобы настройка переносилась из Modrinth App и обратно."
+	},
+	"portalrinth.settings.background.drop-hint": {
+		"message": "Или перетащите картинку на окно."
+	},
+	"portalrinth.settings.background.drop-here": {
+		"message": "Бросайте сюда"
+	},
+	"portalrinth.settings.background.dim.title": {
+		"message": "Затемнение картинки"
+	},
+	"portalrinth.settings.background.dim.description": {
+		"message": "Для яркой или пёстрой картинки, чтобы то, что поверх, легко читалось."
+	},
+	"app.settings.resource-management.curseforge.title": {
+		"message": "Ключ API CurseForge"
+	},
+	"app.settings.resource-management.curseforge.description": {
+		"message": "CurseForge требует ключ для поиска, списка файлов и загрузки. Оставьте поле пустым, чтобы использовать ключ, с которым собрана эта сборка, если он есть."
+	},
+	"app.settings.resource-management.curseforge.hint": {
+		"message": "Создайте API-токен на"
+	},
+	"app.settings.resource-management.curseforge.missing": {
+		"message": "Ключ не настроен, поэтому CurseForge недоступен нигде в этом лаунчере."
+	},
+	"app.settings.resource-management.curseforge.present": {
+		"message": "Для CurseForge используется ваш собственный ключ."
+	},
+	"app.appearance-settings.accent.pick": {
+		"message": "Выберите цвет акцента"
+	},
+	"app.appearance-settings.accent.my-colours": {
+		"message": "Мои цвета акцента"
+	},
+	"app.appearance-settings.accent.keep-colour": {
+		"message": "Сохранить этот цвет"
+	},
+	"app.appearance-settings.accent.remove-colour": {
+		"message": "Удалить этот цвет"
+	},
+	"app.appearance-settings.accent.too-many-colours": {
+		"message": "Ряд заполнен - сначала удалите один из своих цветов"
+	},
+	"app.appearance-settings.accent.use-colour": {
+		"message": "Использовать {color}"
+	},
+	"app.features.browse.scroll-pages.title": {
+		"message": "Без страниц"
+	},
+	"app.features.browse.scroll-pages.description": {
+		"message": "Список результатов вовсе без страниц: одна длинная лента, которая сама подгружается, когда прокручиваешь вниз."
+	},
+	"app.features.browse.scroll-pages.scope.off": {
+		"message": "Выключено"
+	},
+	"app.features.browse.scroll-pages.scope.discover": {
+		"message": "Discover"
+	},
+	"app.features.browse.scroll-pages.scope.both": {
+		"message": "Discover и поиск проектов"
+	},
+	"app.features.browse.page-size.title": {
+		"message": "Результатов на странице"
+	},
+	"app.features.browse.page-size.description": {
+		"message": "Сколько результатов помещается на страницу. Чем больше, тем меньше страниц - тот же список делится иначе."
+	},
+	"app.sidebar.find-friends": {
+		"message": "Найти друзей"
+	},
+	"app.sidebar.add-friend": {
+		"message": "Добавить друга"
+	},
+	"app.lan.players": {
+		"message": "В мире"
+	},
+	"app.lan.players.none": {
+		"message": "В мире пока никого нет"
+	},
+	"app.lan.action.copy": {
+		"message": "Скопировать адрес"
+	},
+	"app.lan.action.more": {
+		"message": "Подробнее"
+	},
+	"app.lan.details.header": {
+		"message": "Что есть в этом мире"
+	},
+	"app.lan.details.loading": {
+		"message": "Читаем мир..."
+	},
+	"app.lan.details.empty": {
+		"message": "В нём ничего нет"
+	},
+	"app.lan.details.mods": {
+		"message": "Моды"
+	},
+	"app.lan.details.resource-packs": {
+		"message": "Наборы ресурсов"
+	},
+	"app.lan.details.data-packs": {
+		"message": "Наборы данных"
+	},
+	"app.lan.details.shaders": {
+		"message": "Шейдеры"
+	},
+	"app.lan.details.other": {
+		"message": "Прочее"
+	},
+	"app.lan.details.download": {
+		"message": "Скачать сборку"
+	},
+	"app.lan.details.download-done": {
+		"message": "Сборка сохранена"
+	},
+	"app.lan.details.join": {
+		"message": "Зайти в мир"
+	},
+	"app.lan.details.version": {
+		"message": "Minecraft {version}"
+	},
+	"app.lan.details.loader": {
+		"message": "{loader} {loaderVersion}"
+	},
+	"app.lan.action.open-in-game": {
+		"message": "Открыть LAN"
+	},
+	"app.lan.action.open-in-game.hint": {
+		"message": "В Minecraft откройте мир для сети: E, затем «Открыть для сети». Страница найдёт его сама."
+	},
+	"app.lan.hint": {
+		"message": "Открыть LAN"
+	},
+	"app.lan.details.world": {
+		"message": "Мир по адресу"
+	},
+	"app.lan.details.world-closed": {
+		"message": "пока не открыт для сети"
+	},
+	"app.lan.state.live": {
+		"message": "В сети"
+	},
+	"app.lan.state.not-live": {
+		"message": "Не в сети"
+	},
+	"friends.find.title": {
+		"message": "Найти друзей"
+	},
+	"friends.find.description": {
+		"message": "Ищите по нику на Modrinth и отправляйте заявку."
+	},
+	"app.browse.curseforge.key.title": {
+		"message": "Для CurseForge нужен API-ключ"
+	},
+	"app.browse.curseforge.key.description": {
+		"message": "В эту сборку не встроен ключ CurseForge. Добавьте свой в настройках, и проекты CurseForge появятся здесь."
+	},
+	"app.browse.curseforge.key.action": {
+		"message": "Открыть настройки CurseForge"
+	},
+	"app.browse.source.label": {
+		"message": "Где искать"
+	},
+	"app.browse.source.both": {
+		"message": "Modrinth + CurseForge"
+	},
+	"app.browse.card-source.label": {
+		"message": "Откуда установить"
+	},
+	"app.lan.card.closed": {
+		"message": "Ждём мир"
+	},
+	"app.lan.card.ready": {
+		"message": "Мир открыт"
+	},
+	"app.lan.card.lost": {
+		"message": "Связь потеряна"
+	},
+	"app.lan.card.closed-hint": {
+		"message": "В Minecraft нажмите Esc, затем «Открыть для сети» и «Начать». Карточка заметит это сама."
+	},
+	"app.lan.card.ready-hint": {
+		"message": "Мир открыт на порту {port}. Откройте его друзьям — и они смогут зайти откуда угодно."
+	},
+	"app.lan.card.live-hint": {
+		"message": "Друзья добавляют этот адрес как сервер в Minecraft."
+	},
+	"app.lan.flow.header": {
+		"message": "Открываем мир друзьям"
+	},
+	"app.lan.flow.node.build": {
+		"message": "Ваша сборка"
+	},
+	"app.lan.flow.node.relay": {
+		"message": "Ретранслятор"
+	},
+	"app.lan.flow.node.friends": {
+		"message": "Активация"
+	},
+	"app.lan.flow.explain": {
+		"message": "Мир остаётся на вашем компьютере. Ретранслятор только передаёт соединение, поэтому друзья заходят откуда угодно, а открывать порты не нужно."
+	},
+	"app.lan.flow.world.title": {
+		"message": "Ищем мир"
+	},
+	"app.lan.flow.world.description": {
+		"message": "Мир, открытый для сети в Minecraft"
+	},
+	"app.lan.flow.account.title": {
+		"message": "Проверяем аккаунт"
+	},
+	"app.lan.flow.account.description": {
+		"message": "Ретранслятор узнаёт, кто открывает мир, и выдаёт токен"
+	},
+	"app.lan.flow.session.title": {
+		"message": "Получаем адрес"
+	},
+	"app.lan.flow.session.description": {
+		"message": "Ретранслятор резервирует для мира публичный адрес"
+	},
+	"app.lan.flow.tunnel.title": {
+		"message": "Открываем туннель"
+	},
+	"app.lan.flow.tunnel.description": {
+		"message": "Соединение, через которое придут игроки"
+	},
+	"app.lan.flow.done.title": {
+		"message": "Мир открыт"
+	},
+	"app.lan.flow.done.description": {
+		"message": "Отправьте этот адрес друзьям: в Minecraft они добавляют его как сервер."
+	},
+	"app.lan.flow.failed.title": {
+		"message": "Остановились на шаге «{step}»"
+	},
+	"app.lan.flow.failed.world": {
+		"message": "Мир больше не открыт для сети. Откройте его в игре снова и повторите."
+	},
+	"app.lan.flow.failed.account": {
+		"message": "Ретранслятор не принял аккаунт. Нужен аккаунт Microsoft или Ely.by; обычно помогает войти в него заново."
+	},
+	"app.lan.flow.failed.session": {
+		"message": "Ретранслятор не выдал адрес. Возможно, он сейчас занят — попробуйте через минуту."
+	},
+	"app.lan.flow.failed.tunnel": {
+		"message": "Не удалось открыть туннель. Проверьте интернет и что брандмауэр выпускает лаунчер в сеть."
+	},
+	"app.lan.flow.details": {
+		"message": "Подробности"
+	},
+	"app.lan.flow.retry": {
+		"message": "Повторить"
+	},
+	"app.lan.flow.close": {
+		"message": "Закрыть"
+	},
+	"app.lan.flow.done": {
+		"message": "Готово"
+	},
+	"app.lan.flow.copy": {
+		"message": "Копировать"
+	},
+	"app.appearance-settings.accent.solid": {
+		"message": "Цвет"
+	},
+	"app.appearance-settings.accent.gradient": {
+		"message": "Градиент"
+	},
+	"app.appearance-settings.accent.direction": {
+		"message": "Направление"
+	},
+	"app.appearance-settings.accent.add-stop": {
+		"message": "Добавить цвет в градиент"
+	},
+	"app.appearance-settings.accent.remove-stop": {
+		"message": "Убрать из градиента"
+	},
+	"app.appearance-settings.accent.apply": {
+		"message": "Применить"
+	},
+	"portalrinth.settings.background.page-shade.title": {
+		"message": "Затемнение страницы"
+	},
+	"portalrinth.settings.background.page-shade.description": {
+		"message": "Насколько середина окна темнее панелей: 0 — как панели, 100 — полностью тёмная."
+	},
+	"app.organization.label": {
+		"message": "Организация"
+	},
+	"app.organization.members-count": {
+		"message": "{count, plural, one {участник} few {участника} many {участников} other {участника}}"
+	},
+	"app.organization.projects-count": {
+		"message": "{count, plural, one {проект} few {проекта} many {проектов} other {проекта}}"
+	},
+	"app.organization.downloads-count": {
+		"message": "{count, plural, one {скачивание} few {скачивания} many {скачиваний} other {скачивания}}"
+	},
+	"app.organization.members": {
+		"message": "Участники"
+	},
+	"app.organization.owner": {
+		"message": "Владелец"
+	},
+	"app.organization.open-on-modrinth": {
+		"message": "Открыть на Modrinth"
+	},
+	"app.organization.no-projects": {
+		"message": "У этой организации пока нет проектов"
+	},
+	"app.organization.not-found": {
+		"message": "Организация не найдена"
+	},
+	"app.organization.load-error": {
+		"message": "Не удалось загрузить организацию. Проверьте подключение и попробуйте снова."
+	},
+	"app.project.more-from-creator.title": {
+		"message": "Другие проекты: {name}"
+	},
+	"app.project.more-from-creator.view-all": {
+		"message": "Все проекты ({count})"
+	},
+	"project.card.author.by": {
+		"message": "от"
+	},
+	"profile.button.edit-user": {
+		"message": "Редактировать пользователя"
+	},
+	"profile.label.restricted": {
+		"message": "Ограничен"
+	},
+	"profile.button.restrict": {
+		"message": "Ограничить пользователя"
+	},
+	"profile.button.edit-restrictions": {
+		"message": "Изменить ограничения"
+	},
+	"curseforge.category.addons": {
+		"message": "Дополнения"
+	},
+	"curseforge.category.applied-energistics-2": {
+		"message": "Applied Energistics 2"
+	},
+	"curseforge.category.blood-magic": {
+		"message": "Blood Magic"
+	},
+	"curseforge.category.buildcraft": {
+		"message": "Buildcraft"
+	},
+	"curseforge.category.crafttweaker": {
+		"message": "CraftTweaker"
+	},
+	"curseforge.category.create": {
+		"message": "Create"
+	},
+	"curseforge.category.forestry": {
+		"message": "Forestry"
+	},
+	"curseforge.category.galacticraft": {
+		"message": "Galacticraft"
+	},
+	"curseforge.category.industrial-craft": {
+		"message": "Industrial Craft"
+	},
+	"curseforge.category.integrated-dynamics": {
+		"message": "Integrated Dynamics"
+	},
+	"curseforge.category.kubejs": {
+		"message": "KubeJS"
+	},
+	"curseforge.category.skyblock": {
+		"message": "Скайблок"
+	},
+	"curseforge.category.thaumcraft": {
+		"message": "Thaumcraft"
+	},
+	"curseforge.category.thermal-expansion": {
+		"message": "Thermal Expansion"
+	},
+	"curseforge.category.tinker-s-construct": {
+		"message": "Tinker's Construct"
+	},
+	"curseforge.category.twilight-forest": {
+		"message": "Twilight Forest"
+	},
+	"curseforge.category.refined-storage": {
+		"message": "Refined Storage"
+	},
+	"curseforge.category.adventure-and-rpg": {
+		"message": "Приключения и RPG"
+	},
+	"curseforge.category.api-and-library": {
+		"message": "API и библиотеки"
+	},
+	"curseforge.category.armor-tools-and-weapons": {
+		"message": "Броня, инструменты и оружие"
+	},
+	"curseforge.category.bug-fixes": {
+		"message": "Исправления ошибок"
+	},
+	"curseforge.category.cosmetic": {
+		"message": "Косметика"
+	},
+	"curseforge.category.education": {
+		"message": "Обучение"
+	},
+	"curseforge.category.food": {
+		"message": "Еда"
+	},
+	"curseforge.category.magic": {
+		"message": "Магия"
+	},
+	"curseforge.category.map-and-information": {
+		"message": "Карты и информация"
+	},
+	"curseforge.category.mcreator": {
+		"message": "MCreator"
+	},
+	"curseforge.category.miscellaneous": {
+		"message": "Разное"
+	},
+	"curseforge.category.performance": {
+		"message": "Производительность"
+	},
+	"curseforge.category.redstone": {
+		"message": "Редстоун"
+	},
+	"curseforge.category.server-utility": {
+		"message": "Серверные утилиты"
+	},
+	"curseforge.category.storage": {
+		"message": "Хранение"
+	},
+	"curseforge.category.technology": {
+		"message": "Технологии"
+	},
+	"curseforge.category.automation": {
+		"message": "Автоматизация"
+	},
+	"curseforge.category.energy": {
+		"message": "Энергия"
+	},
+	"curseforge.category.energy-fluid-and-item-transport": {
+		"message": "Передача энергии, жидкостей и предметов"
+	},
+	"curseforge.category.farming": {
+		"message": "Фермерство"
+	},
+	"curseforge.category.genetics": {
+		"message": "Генетика"
+	},
+	"curseforge.category.player-transport": {
+		"message": "Передвижение игрока"
+	},
+	"curseforge.category.processing": {
+		"message": "Переработка"
+	},
+	"curseforge.category.twitch-integration": {
+		"message": "Интеграция с Twitch"
+	},
+	"curseforge.category.utility-qol": {
+		"message": "Утилиты и удобство"
+	},
+	"curseforge.category.world-gen": {
+		"message": "Генерация мира"
+	},
+	"curseforge.category.biomes": {
+		"message": "Биомы"
+	},
+	"curseforge.category.dimensions": {
+		"message": "Измерения"
+	},
+	"curseforge.category.mobs": {
+		"message": "Мобы"
+	},
+	"curseforge.category.ores-and-resources": {
+		"message": "Руды и ресурсы"
+	},
+	"curseforge.category.structures": {
+		"message": "Строения"
+	},
+	"curseforge.category.combat-pvp": {
+		"message": "Бой / PvP"
+	},
+	"curseforge.category.exploration": {
+		"message": "Исследование"
+	},
+	"curseforge.category.extra-large": {
+		"message": "Очень большие"
+	},
+	"curseforge.category.ftb-official-pack": {
+		"message": "Официальные сборки FTB"
+	},
+	"curseforge.category.hardcore": {
+		"message": "Хардкор"
+	},
+	"curseforge.category.horror": {
+		"message": "Хоррор"
+	},
+	"curseforge.category.map-based": {
+		"message": "На основе карты"
+	},
+	"curseforge.category.mini-game": {
+		"message": "Мини-игры"
+	},
+	"curseforge.category.multiplayer": {
+		"message": "Мультиплеер"
+	},
+	"curseforge.category.quests": {
+		"message": "Квесты"
+	},
+	"curseforge.category.sci-fi": {
+		"message": "Научная фантастика"
+	},
+	"curseforge.category.small-light": {
+		"message": "Маленькие / лёгкие"
+	},
+	"curseforge.category.tech": {
+		"message": "Технологии"
+	},
+	"curseforge.category.vanilla-plus": {
+		"message": "Ванилла+"
+	},
+	"curseforge.category.expert": {
+		"message": "Экспертные"
+	},
+	"curseforge.category.space": {
+		"message": "Космос"
+	},
+	"curseforge.category.16x": {
+		"message": "16x"
+	},
+	"curseforge.category.32x": {
+		"message": "32x"
+	},
+	"curseforge.category.64x": {
+		"message": "64x"
+	},
+	"curseforge.category.128x": {
+		"message": "128x"
+	},
+	"curseforge.category.256x": {
+		"message": "256x"
+	},
+	"curseforge.category.512x-and-higher": {
+		"message": "512x и выше"
+	},
+	"curseforge.category.animated": {
+		"message": "Анимированные"
+	},
+	"curseforge.category.data-packs": {
+		"message": "Наборы данных"
+	},
+	"curseforge.category.font-packs": {
+		"message": "Шрифты"
+	},
+	"curseforge.category.medieval": {
+		"message": "Средневековье"
+	},
+	"curseforge.category.mod-support": {
+		"message": "Поддержка модов"
+	},
+	"curseforge.category.modern": {
+		"message": "Современные"
+	},
+	"curseforge.category.photo-realistic": {
+		"message": "Фотореалистичные"
+	},
+	"curseforge.category.steampunk": {
+		"message": "Стимпанк"
+	},
+	"curseforge.category.traditional": {
+		"message": "Традиционные"
+	},
+	"curseforge.category.fantasy": {
+		"message": "Фэнтези"
+	},
+	"curseforge.category.realistic": {
+		"message": "Реалистичные"
+	},
+	"curseforge.category.vanilla": {
+		"message": "Ванильные"
+	},
+	"curseforge.category.adventure": {
+		"message": "Приключения"
+	},
+	"curseforge.category.library": {
+		"message": "Библиотеки"
+	},
+	"curseforge.category.utility": {
+		"message": "Утилиты"
+	},
+	"portalrinth.settings.background.header-shade.title": {
+		"message": "Затемнение верхней плашки"
+	},
+	"portalrinth.settings.background.header-shade.description": {
+		"message": "Плашка сверху при добавлении контента в сборку, чтобы список под ней не просвечивал сквозь текст: 0 — прозрачная, 100 — полностью тёмная."
+	},
+	"app.lan.mode.survival": {
+		"message": "Выживание"
+	},
+	"app.lan.mode.creative": {
+		"message": "Творческий"
+	},
+	"app.lan.mode.adventure": {
+		"message": "Приключение"
+	},
+	"app.lan.mode.spectator": {
+		"message": "Наблюдатель"
+	},
+	"app.lan.mode.hardcore": {
+		"message": "Хардкор"
+	},
+	"app.browse.project-type.skins": {
+		"message": "Скины"
+	},
+	"app.browse.discover-skins": {
+		"message": "Поиск скинов"
+	},
+	"app.skin-browse.search": {
+		"message": "Поиск скинов..."
+	},
+	"app.skin-browse.popular": {
+		"message": "Популярные скины"
+	},
+	"app.skin-browse.results": {
+		"message": "Результаты по запросу «{query}»"
+	},
+	"app.skin-browse.similar-to-yours": {
+		"message": "Скины, похожие на ваш"
+	},
+	"app.skin-browse.back-to-all": {
+		"message": "Все скины"
+	},
+	"app.skin-browse.nothing-found": {
+		"message": "Скины не найдены"
+	},
+	"app.skin-browse.load-error": {
+		"message": "Не удалось подключиться к laby.net. Проверьте соединение и попробуйте ещё раз."
+	},
+	"app.skin-browse.retry": {
+		"message": "Повторить"
+	},
+	"app.skin-browse.load-more": {
+		"message": "Загрузить ещё"
+	},
+	"app.skin-browse.powered-by": {
+		"message": "Скины с laby.net"
+	},
+	"app.skin-browse.modal-title": {
+		"message": "Скин"
+	},
+	"app.skin-browse.uses": {
+		"message": "Игроков: {count}"
+	},
+	"app.skin-browse.crouch": {
+		"message": "Присесть"
+	},
+	"app.skin-browse.stand": {
+		"message": "Встать"
+	},
+	"app.skin-browse.hide-layer": {
+		"message": "Скрыть слой"
+	},
+	"app.skin-browse.show-layer": {
+		"message": "Показать слой"
+	},
+	"app.skin-browse.add-cape": {
+		"message": "Добавить плащ"
+	},
+	"app.skin-browse.no-capes": {
+		"message": "На этом аккаунте нет плащей"
+	},
+	"app.skin-browse.no-cape": {
+		"message": "Нет"
+	},
+	"app.skin-browse.cape-fallback": {
+		"message": "Плащ"
+	},
+	"app.skin-browse.start-walking": {
+		"message": "Включить анимацию"
+	},
+	"app.skin-browse.stop-walking": {
+		"message": "Выключить анимацию"
+	},
+	"app.skin-browse.install": {
+		"message": "Установить скин"
+	},
+	"app.skin-browse.installed": {
+		"message": "Скин установлен"
+	},
+	"app.skin-browse.installed-text": {
+		"message": "Скин добавлен в ваши скины и надет."
+	},
+	"app.skin-browse.open-on-laby": {
+		"message": "Открыть на laby.net"
+	},
+	"app.skin-browse.similar": {
+		"message": "Похожие скины"
+	},
+	"app.skin-browse.similar-empty": {
+		"message": "Похожие скины не найдены"
+	},
+	"app.skins.modal.similar-skins": {
+		"message": "Похожие скины"
+	},
+	"app.bedrock.edition": {
+		"message": "Bedrock Edition"
+	},
+	"app.bedrock.play": {
+		"message": "Играть"
+	},
+	"app.bedrock.get-from-store": {
+		"message": "Установить из Microsoft Store"
+	},
+	"app.bedrock.not-installed": {
+		"message": "Minecraft for Windows не установлен на этом ПК. Установите его из Microsoft Store и вернитесь сюда."
+	},
+	"app.bedrock.recheck": {
+		"message": "Проверить снова"
+	},
+	"app.bedrock.launched": {
+		"message": "Minecraft for Windows запускается"
+	},
+	"app.bedrock.tab.installed": {
+		"message": "Контент"
+	},
+	"app.bedrock.tab.browse": {
+		"message": "Добавить контент"
+	},
+	"app.bedrock.nothing-installed": {
+		"message": "В этой сборке пока ничего не установлено."
+	},
+	"app.bedrock.remove": {
+		"message": "Удалить"
+	},
+	"app.bedrock.delete-build": {
+		"message": "Удалить сборку"
+	},
+	"app.bedrock.delete-title": {
+		"message": "Удалить эту сборку Bedrock?"
+	},
+	"app.bedrock.delete-body": {
+		"message": "Сборка будет убрана из лаунчера. Установленные ею паки и миры можно удалить и из игры."
+	},
+	"app.bedrock.delete-keep": {
+		"message": "Оставить паки в игре"
+	},
+	"app.bedrock.delete-all": {
+		"message": "Удалить и паки"
+	},
+	"app.bedrock.cancel": {
+		"message": "Отмена"
+	},
+	"app.bedrock.rename": {
+		"message": "Переименовать"
+	},
+	"app.bedrock.save": {
+		"message": "Сохранить"
+	},
+	"app.bedrock.change-icon": {
+		"message": "Изменить иконку"
+	},
+	"app.bedrock.remove-icon": {
+		"message": "Убрать иконку"
+	},
+	"app.bedrock.search": {
+		"message": "Поиск контента для Bedrock..."
+	},
+	"app.bedrock.all-categories": {
+		"message": "Все категории"
+	},
+	"app.bedrock.sort.popularity": {
+		"message": "Популярность"
+	},
+	"app.bedrock.sort.downloads": {
+		"message": "Загрузки"
+	},
+	"app.bedrock.sort.updated": {
+		"message": "Недавно обновлённые"
+	},
+	"app.bedrock.sort.name": {
+		"message": "Название"
+	},
+	"app.bedrock.install": {
+		"message": "Установить"
+	},
+	"app.bedrock.installed": {
+		"message": "Установлено"
+	},
+	"app.bedrock.installed-toast": {
+		"message": "{name} установлен"
+	},
+	"app.bedrock.choose-file": {
+		"message": "Выберите файл"
+	},
+	"app.bedrock.no-files": {
+		"message": "У этого проекта нет файлов для установки."
+	},
+	"app.bedrock.open-curseforge": {
+		"message": "Открыть на CurseForge"
+	},
+	"app.bedrock.nothing-found": {
+		"message": "Ничего не найдено"
+	},
+	"app.bedrock.load-more": {
+		"message": "Загрузить ещё"
+	},
+	"app.bedrock.downloads": {
+		"message": "{count} загрузок"
+	},
+	"app.bedrock.by-author": {
+		"message": "от {author}"
+	},
+	"app.bedrock.no-key": {
+		"message": "Добавьте ключ API CurseForge в настройках, чтобы искать контент для Bedrock."
+	},
+	"app.bedrock.kind.resource": {
+		"message": "Набор ресурсов"
+	},
+	"app.bedrock.kind.behavior": {
+		"message": "Набор поведения"
+	},
+	"app.bedrock.kind.skin": {
+		"message": "Набор скинов"
+	},
+	"app.bedrock.kind.world": {
+		"message": "Мир"
+	},
+	"app.bedrock.kind.world-template": {
+		"message": "Шаблон мира"
+	},
+	"collection.projects-count": {
+		"message": "{count, plural, one {проект} few {проекта} many {проектов} other {проекта}}"
+	},
+	"collections.projects-count": {
+		"message": "{count, plural, one {проект} few {проекта} many {проектов} other {проекта}}"
+	},
+	"app.curseforge-member.label": {
+		"message": "Автор CurseForge"
+	},
+	"app.curseforge-member.summary": {
+		"message": "Проекты, которые этот автор или команда опубликовали на CurseForge."
+	},
+	"app.curseforge-member.open-on-curseforge": {
+		"message": "Открыть на CurseForge"
+	},
+	"app.curseforge-member.no-projects": {
+		"message": "У этого автора не найдено проектов"
+	},
+	"app.curseforge-member.load-error": {
+		"message": "Не удалось загрузить проекты"
+	},
+	"app.curseforge-member.load-error-description": {
+		"message": "Проверьте подключение и ключ API CurseForge, затем попробуйте снова."
+	},
+	"app.settings.tabs.sound": {
+		"message": "Звук"
+	},
+	"app.settings.sound.music": {
+		"message": "Музыка"
+	},
+	"app.settings.sound.music-description": {
+		"message": "Играет ваш плейлист в лаунчере. Громкость и плеер — под кнопкой звука в заголовке окна."
+	},
+	"app.settings.sound.music-volume": {
+		"message": "Громкость музыки"
+	},
+	"app.settings.sound.video": {
+		"message": "Звук фонового видео"
+	},
+	"app.settings.sound.video-description": {
+		"message": "Воспроизводит звук видео, установленного фоном. Если выключено, видео идёт без звука."
+	},
+	"app.settings.sound.video-volume": {
+		"message": "Громкость видео"
+	},
+	"app.settings.sound.playlist": {
+		"message": "Плейлист"
+	},
+	"app.settings.sound.playlist-usage": {
+		"message": "Треки копируются в лаунчер и остаются даже после удаления оригинала. Занято {used} из {limit}."
+	},
+	"app.settings.sound.add": {
+		"message": "Добавить музыку"
+	},
+	"app.settings.sound.sort": {
+		"message": "Порядок"
+	},
+	"app.settings.sound.sort-added": {
+		"message": "По дате добавления"
+	},
+	"app.settings.sound.sort-duration": {
+		"message": "По длительности, сначала самые долгие"
+	},
+	"app.settings.sound.sort-alpha": {
+		"message": "По буквам"
+	},
+	"app.settings.sound.sort-random": {
+		"message": "Случайно"
+	},
+	"app.settings.sound.sort-custom": {
+		"message": "По расстановке"
+	},
+	"app.settings.sound.empty": {
+		"message": "Музыки пока нет. Добавьте свои файлы, чтобы собрать плейлист."
+	},
+	"app.settings.sound.drag": {
+		"message": "Зажмите и перетащите"
+	},
+	"app.settings.sound.play-track": {
+		"message": "Играть"
+	},
+	"app.settings.sound.remove": {
+		"message": "Убрать из плейлиста"
+	},
+	"app.settings.sound.gigabytes": {
+		"message": "{value} ГБ"
+	},
+	"app.settings.sound.megabytes": {
+		"message": "{value} МБ"
+	},
+	"app.sound.button": {
+		"message": "Звук"
+	},
+	"app.sound.music-volume": {
+		"message": "Громкость музыки"
+	},
+	"app.sound.video-volume": {
+		"message": "Громкость фонового видео"
+	},
+	"app.sound.next": {
+		"message": "Следующий"
+	},
+	"app.sound.previous": {
+		"message": "Предыдущий"
+	},
+	"app.sound.nothing-playing": {
+		"message": "Ничего не играет"
+	},
+	"app.sound.unknown-artist": {
+		"message": "Неизвестный исполнитель"
+	},
+	"app.sound.pause": {
+		"message": "Пауза"
+	},
+	"app.sound.play": {
+		"message": "Играть"
+	},
+	"app.sound.repeat-off": {
+		"message": "Повтор выключен"
+	},
+	"app.sound.repeat-all": {
+		"message": "Повтор плейлиста"
+	},
+	"app.sound.repeat-one": {
+		"message": "Повтор трека"
+	},
+	"app.sound.seek": {
+		"message": "Позиция в треке"
+	},
+	"portalrinth.settings.themes.title": {
+		"message": "Темы"
+	},
+	"portalrinth.settings.themes.description": {
+		"message": "Сохраните текущие обои и акцент под именем и возвращайте их одним нажатием. До {max} тем."
+	},
+	"portalrinth.settings.themes.save": {
+		"message": "Сохранить тему"
+	},
+	"portalrinth.settings.themes.replace": {
+		"message": "Заменить"
+	},
+	"portalrinth.settings.themes.apply": {
+		"message": "Применить тему {name}"
+	},
+	"portalrinth.settings.themes.remove": {
+		"message": "Удалить тему"
+	},
+	"portalrinth.settings.themes.modal-header": {
+		"message": "Сохранить тему"
+	},
+	"portalrinth.settings.themes.name": {
+		"message": "Название"
+	},
+	"portalrinth.settings.themes.name-placeholder": {
+		"message": "Например, Ночной город"
+	},
+	"portalrinth.settings.themes.icon": {
+		"message": "Иконка"
+	},
+	"portalrinth.settings.themes.own-icon": {
+		"message": "Своя картинка"
+	},
+	"portalrinth.settings.themes.full-title": {
+		"message": "Уже сохранено {max} тем"
+	},
+	"portalrinth.settings.themes.full-description": {
+		"message": "Больше хранить нельзя. Выберите тему, которую заменит новая."
+	},
+	"portalrinth.settings.themes.saved": {
+		"message": "Тема сохранена"
+	},
+	"app.appearance-settings.accent.gradient-shimmer.title": {
+		"message": "Переливающийся градиент"
+	},
+	"app.appearance-settings.accent.gradient-shimmer.description": {
+		"message": "Цвета градиентного акцента медленно переливаются в кнопках и элементах интерфейса."
+	},
+	"app.settings.sound.effects": {
+		"message": "Звуки лаунчера"
+	},
+	"app.settings.sound.effects-description": {
+		"message": "Клик при нажатии кнопок и звонок, когда мод, скин или Java успешно установлены."
+	},
+	"app.settings.sound.effects-volume": {
+		"message": "Громкость звуков"
+	},
+	"app.settings.resource-management.skin-services.title": {
+		"message": "Сервис-скинов"
+	},
+	"app.settings.resource-management.skin-services.description": {
+		"message": "Кто рисует 3D-превью скинов. Работает один сервис целиком — во всех превью сразу, без смешивания, — и его можно выбрать."
+	},
+	"app.settings.resource-management.skin-services.laby": {
+		"message": "Родной рендер библиотеки скинов: понимает хэши всех скинов в «Обзоре». Выбран по умолчанию."
+	},
+	"app.settings.resource-management.skin-services.crafty": {
+		"message": "Рендерит по хэшу текстуры, но знает только текстуры, проиндексированные Mojang, — скины библиотеки может показать Стивом."
+	},
+	"app.settings.resource-management.skin-services.mcskin": {
+		"message": "Рисует игроков по нику или UUID и не умеет рендерить по хэшу текстуры — превью скинов рисует сам лаунчер."
+	},
+	"app.nav.ai": {
+		"message": "ИИ-Помощник"
+	},
+	"app.ai.heading": {
+		"message": "ИИ-Помощник"
+	},
+	"app.ai.description": {
+		"message": "Portalus — агент лаунчера: создаёт моды, шейдеры и ресурс-паки, ищет в интернете, собирает сборки, разбирает ваши файлы и помнит прошлые разговоры."
+	},
+	"app.ai.input.placeholder": {
+		"message": "Спросите что-нибудь… например, «собери сборку на 1.21 с JEI»"
+	},
+	"app.ai.send": {
+		"message": "Отправить"
+	},
+	"app.ai.clear": {
+		"message": "Очистить историю"
+	},
+	"app.ai.name": {
+		"message": "Порталус"
+	},
+	"app.ai.empty.title": {
+		"message": "Чем помочь?"
+	},
+	"app.ai.empty.hint": {
+		"message": "Спросите про моды, сборки, скины или ошибки — ответы приходят от выбранной модели, а действия агент выполняет прямо в лаунчере."
+	},
+	"app.ai.suggestion.build": {
+		"message": "Собери сборку на 1.21.1 с оптимизацией"
+	},
+	"app.ai.suggestion.mods": {
+		"message": "Найди мод на карты для Forge 1.20.1"
+	},
+	"app.ai.suggestion.crash": {
+		"message": "Почему сборка не запускается? Что посмотреть в логах?"
+	},
+	"app.ai.suggestion.skins": {
+		"message": "Как поменять скин игрока в лаунчере?"
+	},
+	"app.ai.thinking": {
+		"message": "Думает…"
+	},
+	"app.ai.tab.section": {
+		"message": "Модель"
+	},
+	"app.ai.settings.provider": {
+		"message": "Провайдер"
+	},
+	"app.ai.settings.model": {
+		"message": "Модель"
+	},
+	"app.ai.settings.key": {
+		"message": "API-ключ"
+	},
+	"app.ai.settings.key.placeholder": {
+		"message": "Вставьте API-ключ этого провайдера"
+	},
+	"app.ai.settings.getkey": {
+		"message": "Получить ключ"
+	},
+	"app.ai.settings.custombase": {
+		"message": "Адрес (OpenAI-совместимый)"
+	},
+	"app.ai.settings.custommodel": {
+		"message": "Имя модели"
+	},
+	"app.ai.settings.note.free": {
+		"message": "Ключ не нужен. Если модель занята, лаунчер сам подхватит запасного провайдера."
+	},
+	"app.ai.settings.fallback": {
+		"message": "Если у основного кончатся лимиты, ответ придёт от запасного провайдера без ключа."
+	},
+	"app.ai.mascot.placeholder": {
+		"message": "Скажите маскоту…"
+	},
+	"app.ai.mascot.hide": {
+		"message": "Скрыть ответы"
+	},
+	"app.ai.mascot.show": {
+		"message": "Показать ответы"
+	},
+	"app.ai.mascot.yes": {
+		"message": "Да"
+	},
+	"app.ai.mascot.no": {
+		"message": "Нет"
+	},
+	"app.ai.mascot.replies": {
+		"message": "Последние ответы"
+	},
+	"app.settings.tabs.ai-assistant": {
+		"message": "ИИ-Помощник"
+	},
+	"app.settings.ai-assistant.mascot.title": {
+		"message": "Маскот"
+	},
+	"app.settings.ai-assistant.mascot.description": {
+		"message": "Маленький друг со скином, который живёт в интерфейсе: ходит по лаунчеру, подсказывает, отвечает в пузыре и умеет выполнять команды. Погладить — Alt + левая кнопка мыши. Всё, что он знает, хранится локально."
+	},
+	"app.settings.ai-assistant.enable": {
+		"message": "Показывать маскота"
+	},
+	"app.settings.ai-assistant.effects": {
+		"message": "Эффекты чата"
+	},
+	"app.settings.ai-assistant.name": {
+		"message": "Имя маскота"
+	},
+	"app.settings.ai-assistant.name-hint": {
+		"message": "Маскот отзывается на это имя в разговоре."
+	},
+	"app.settings.ai-assistant.skin.title": {
+		"message": "Скин маскота"
+	},
+	"app.settings.ai-assistant.skin.account": {
+		"message": "Как у моего аккаунта"
+	},
+	"app.settings.ai-assistant.skin.hash": {
+		"message": "Скин из библиотеки (хэш laby.net)"
+	},
+	"app.settings.ai-assistant.skin.hash-hint": {
+		"message": "Хэш можно взять из адреса любого скина в «Обзоре» — страница скина открывается по клику на него."
+	},
+	"app.settings.ai-assistant.skin.mascot-section": {
+		"message": "Маскот"
+	},
+	"app.settings.ai-assistant.skin.mascot-section-description": {
+		"message": "Свой скин для маленького друга из вкладки «ИИ-Помощник». Он ходит по лаунчеру, помогает и с ним можно переписываться из любого экрана."
+	},
+	"app.settings.ai-assistant.skin.open-settings": {
+		"message": "Настроить маскота"
+	},
+	"app.settings.ai-assistant.brain.title": {
+		"message": "Мозг"
+	},
+	"app.settings.ai-assistant.brain.description": {
+		"message": "Одна модель на всё: вкладку «ИИ-Помощник» и маскота. Провайдеров с пометкой «РФ» можно использовать из России без VPN."
+	},
+	"app.settings.ai-assistant.affection": {
+		"message": "Расположение маскота"
+	},
+	"app.settings.ai-assistant.affection-hint": {
+		"message": "Растёт, когда маскота гладят (Alt + ЛКМ). Влияет на его характер."
+	},
+	"app.settings.ai-assistant.reset-affection": {
+		"message": "Сбросить"
+	},
+	"app.ai.plus": {
+		"message": "Меню чата"
+	},
+	"app.ai.plus.new-chat": {
+		"message": "Новый чат"
+	},
+	"app.ai.plus.paste": {
+		"message": "Вставить из буфера"
+	},
+	"app.ai.plus.paste-empty": {
+		"message": "В буфере обмена нет текста."
+	},
+	"app.ai.plus.attach": {
+		"message": "Прикрепить файл"
+	},
+	"app.ai.attach-empty": {
+		"message": "Файл не выбран"
+	},
+	"app.ai.models": {
+		"message": "Модель"
+	},
+	"app.ai.models.peak-busy": {
+		"message": "Z.AI: часы пик"
+	},
+	"app.ai.models.peak-free": {
+		"message": "Z.AI: свободно"
+	},
+	"app.ai.activity.commands": {
+		"message": "команд"
+	},
+	"app.ai.activity.created": {
+		"message": "сгенерирован файл"
+	},
+	"app.ai.activity.changed": {
+		"message": "изменён файл"
+	},
+	"app.ai.question.title": {
+		"message": "Помощник ждёт вашего решения"
+	},
+	"app.ai.question.own": {
+		"message": "Свой ответ…"
+	},
+	"app.ai.question.send": {
+		"message": "Ответить"
+	},
+	"app.ai.no-vision": {
+		"message": "Эта модель не видит изображения."
+	},
+	"app.ai.cards.mods": {
+		"message": "Моды"
+	},
+	"app.ai.cards.jars": {
+		"message": "Файлы"
+	},
+	"app.ai.cards.open": {
+		"message": "Открыть"
+	},
+	"app.ai.cards.install": {
+		"message": "В сборку"
+	},
+	"app.ai.cards.installed": {
+		"message": "Установлено"
+	},
+	"app.ai.cards.install-fail": {
+		"message": "Не установилось"
+	},
+	"app.ai.cards.no-instances": {
+		"message": "Сначала создай сборку — куда ставить .jar?"
+	},
+	"app.ai.bridge": {
+		"message": "Мост"
+	},
+	"app.ai.bridge.hint": {
+		"message": "Мост поднимает локальную страницу: открой адрес в браузере на этом же компьютере, введи ключ — и общайся с Порталусом со страницы. Всё работает через лаунчер, без облака и бесплатно."
+	},
+	"app.ai.bridge.start": {
+		"message": "Запустить"
+	},
+	"app.ai.bridge.stop": {
+		"message": "Остановить"
+	},
+	"app.ai.bridge.copy": {
+		"message": "Скопировать адрес и ключ"
+	},
+	"app.ai.bridge.copied": {
+		"message": "Скопировано!"
+	},
+	"app.ai.bridge.running": {
+		"message": "Работает"
+	},
+	"app.ai.bridge.idle": {
+		"message": "Выключен"
+	},
+	"app.settings.ai-assistant.assistant.title": {
+		"message": "Помощник"
+	},
+	"app.settings.ai-assistant.assistant.description": {
+		"message": "Вкладка «ИИ-Помощник»: отвечает на вопросы, ищет в интернете, работает с файлами в своей песочнице и управляет лаунчером. Всё, что он знает, хранится локально."
+	},
+	"app.settings.resource-management.skin-services.minotar": {
+		"message": "Рисует плоскую фигуру в полный рост прямо по хэшу текстуры на своём хосте — запасной вариант, который работает, даже когда laby.net тормозит."
+	},
+	"app.ai.activity.open-folder": {
+		"message": "Открыть папку в проводнике"
+	},
+	"app.screenshots.set-as-background": {
+		"message": "Сделать фоном лаунчера"
+	},
+	"app.ai.history": {
+		"message": "История чатов"
+	},
+	"app.ai.history.empty": {
+		"message": "Пока пусто — начните первый разговор"
+	},
+	"app.ai.history.new-chat": {
+		"message": "Новый чат"
+	},
+	"app.ai.history.messages": {
+		"message": "сообщ."
+	},
+	"app.ai.notice.send": {
+		"message": "Отправить"
+	},
+	"app.ai.settings.group.work": {
+		"message": "Для работы"
+	},
+	"app.ai.settings.group.image": {
+		"message": "Для генерации изображений"
+	},
+	"app.ai.settings.test": {
+		"message": "Проверить связь"
+	},
+	"app.ai.settings.test.running": {
+		"message": "Проверяю связь…"
+	},
+	"app.ai.settings.test.ok": {
+		"message": "Связь есть — ИИ отвечает"
+	},
+	"app.ai.settings.test.fail": {
+		"message": "Не отвечает"
+	},
+	"app.speed.title": {
+		"message": "Скорость интернета"
+	},
+	"app.speed.measure": {
+		"message": "Измерить"
+	},
+	"app.speed.again": {
+		"message": "Измерить снова"
+	},
+	"app.speed.running": {
+		"message": "Измеряю…"
+	},
+	"app.speed.down": {
+		"message": "Мбит/с загрузка"
+	},
+	"app.speed.ping": {
+		"message": "мс пинг"
+	},
+	"app.speed.fail": {
+		"message": "Не получилось измерить"
+	},
+	"app.ai.skills": {
+		"message": "Скиллы"
+	},
+	"app.ai.skills.hint": {
+		"message": "Скилл — постоянная инструкция для ИИ (что уметь и как себя вести). ИИ тоже может ставить их сам через <<skill_save|имя::описание>>."
+	},
+	"app.ai.skills.empty": {
+		"message": "Скиллов пока нет — добавь свой ниже."
+	},
+	"app.ai.skills.name": {
+		"message": "Название скилла"
+	},
+	"app.ai.skills.text": {
+		"message": "Что уметь и как (инструкция)"
+	},
+	"app.ai.skills.add": {
+		"message": "Установить скилл"
+	},
+	"app.settings.tabs.changes": {
+		"message": "Изменения"
+	},
+	"app.settings.tabs.connections": {
+		"message": "Подключения"
+	},
+	"instance.action.clean-launch": {
+		"message": "Чистый запуск"
+	},
+	"instance.files.move-bulk-failed": {
+		"message": "Не удалось переместить некоторые файлы"
+	},
+	"instance.settings.tabs.mods-sync": {
+		"message": "Синхронизация модов"
+	},
+	"instance.settings.tabs.backups": {
+		"message": "Бэкапы"
+	},
+	"instance.settings.mods-sync.title": {
+		"message": "Синхронизация модов"
+	},
+	"instance.settings.mods-sync.description": {
+		"message": "Моды, установленные или обновлённые в этой сборке, сами обновятся во всех остальных сборках, где тот же мод уже стоит. Чего-то нового туда не добавляется — только общие моды держатся одной версии. По умолчанию выключена."
+	},
+	"instance.settings.mods-sync.enabled": {
+		"message": "Синхронизировать общие моды с другими сборками"
+	},
+	"instance.settings.mods-sync.sync-now": {
+		"message": "Синхронизировать сейчас"
+	},
+	"instance.settings.mods-sync.running": {
+		"message": "Сверяю версии…"
+	},
+	"instance.settings.backups.title": {
+		"message": "Бэкапы"
+	},
+	"instance.settings.backups.description": {
+		"message": "Копии сборки целиком: моды, конфиги, миры. Лаунчер сам делает бэкап перед обновлением сборки, а ты можешь сохранить ещё один в любой момент кнопкой ниже. Восстановление разворачивает копию поверх сборки."
+	},
+	"instance.settings.backups.new": {
+		"message": "Новый Бэкап"
+	},
+	"instance.settings.backups.making": {
+		"message": "Собираю копию… Готовые версии сюда не изменяются."
+	},
+	"instance.settings.backups.empty": {
+		"message": "Копий пока нет — сделай первую, чтобы не потерять прогресс."
+	},
+	"instance.settings.backups.restore": {
+		"message": "Восстановить"
+	},
+	"instance.settings.backups.restore-confirm": {
+		"message": "Точно? Поверх сборки"
+	},
+	"instance.settings.backups.restoring": {
+		"message": "Разворачиваю копию…"
+	},
+	"instance.settings.backups.delete": {
+		"message": "Удалить"
+	},
+	"instance.settings.backups.fail": {
+		"message": "Не получилось"
+	},
+	"app.ai.stop": {
+		"message": "Остановить"
+	},
+	"app.ai.process.title": {
+		"message": "Процесс размышления"
+	},
+	"app.ai.phase.thinking": {
+		"message": "Думаю…"
+	},
+	"app.ai.phase.working": {
+		"message": "Работаю…"
+	},
+	"app.ai.phase.speaking": {
+		"message": "Отвечаю…"
+	},
+	"app.ai.queued": {
+		"message": "в очереди"
+	},
+	"app.ai.settings.custom-model-any": {
+		"message": "Своя модель (id с сайта провайдера — там их намного больше):"
+	},
+	"app.settings.sound.playlist-heavy": {
+		"message": "Плейлист уже занимает много места ({used}) — возможно, стоит удалить что-нибудь."
+	},
+	"app.settings.sound.online.title": {
+		"message": "Музыка из интернета"
+	},
+	"app.settings.sound.online.url-placeholder": {
+		"message": "Прямая ссылка на трек (https://…/track.mp3)"
+	},
+	"app.settings.sound.online.add": {
+		"message": "Скачать"
+	},
+	"app.settings.sound.online.hint": {
+		"message": "Вставьте прямую ссылку на трек (например, https://…/track.mp3) - и он скачается прямо в плейлист. Порталус тоже умеет: попросите его «скачать трек по ссылке …»."
+	},
+	"app.settings.sound.online.url-ok": {
+		"message": "Трек скачан в плейлист"
+	},
+	"app.settings.sound.online.url-fail": {
+		"message": "Не добавилось"
+	},
+	"app.bedrock.not-found.title": {
+		"message": "Сборка не найдена"
+	},
+	"app.bedrock.not-found.description": {
+		"message": "Такой сборки Bedrock больше нет — возможно, она была удалена. Боковая панель обновлена."
+	},
+	"app.bedrock.not-found.home": {
+		"message": "Вернуться в лаунчер"
+	},
+	"app.appearance-settings.accent.gradient-speed.title": {
+		"message": "Скорость переливания"
+	},
+	"app.appearance-settings.accent.gradient-speed.description": {
+		"message": "Один проход градиента занимает {seconds} с."
+	},
+	"app.search.title": {
+		"message": "Поиск в интернете"
+	},
+	"app.weather.title": {
+		"message": "Погода"
+	},
+	"app.weather.wind": {
+		"message": "ветер"
+	},
+	"app.weather.day": {
+		"message": "день"
+	},
+	"app.weather.night": {
+		"message": "ночь"
+	},
+	"app.weather.loading": {
+		"message": "Смотрю в окно…"
+	},
+	"app.weather.fail": {
+		"message": "Погода не отвечает"
+	},
+	"app.weather.refresh": {
+		"message": "Обновить"
+	},
+	"app.widgets.title": {
+		"message": "Виджеты и функции"
+	},
+	"app.widgets.search.title": {
+		"message": "Поиск в интернете"
+	},
+	"app.widgets.search.description": {
+		"message": "Кнопка поиска в титл-баре: открывает DuckDuckGo в отдельном окне лаунчера."
+	},
+	"app.widgets.clock.title": {
+		"message": "Часы сверху"
+	},
+	"app.widgets.clock.description": {
+		"message": "Время по системному региону в центре титл-бара: солнце днём, луна ночью, рассвет и закат."
+	},
+	"app.settings.tabs.hotkeys": {
+		"message": "Горячие клавиши"
+	},
+	"app.settings.hotkeys.title": {
+		"message": "Горячие клавиши"
+	},
+	"app.settings.hotkeys.note": {
+		"message": "Нажми на сочетание и задай своё. Работает из любого экрана лаунчера (когда курсор не в поле ввода)."
+	},
+	"app.settings.hotkeys.press": {
+		"message": "Нажми сочетание… (Esc — отмена)"
+	},
+	"app.settings.hotkeys.reset": {
+		"message": "Вернуть по умолчанию"
+	},
+	"app.settings.hotkeys.taken": {
+		"message": "Убрано с другой команды"
+	},
+	"app.instance.tab.notes": {
+		"message": "Инфо"
+	},
+	"app.instance.notes.title": {
+		"message": "Заметки"
+	},
+	"app.instance.notes.description": {
+		"message": "Записка к этой сборке: планы, что проверить, адрес сервера. Перед каждым запуском игры она всплывёт на экране."
+	},
+	"app.instance.notes.placeholder": {
+		"message": "Например: не забыть включить шейдеры и зайти на сервер…"
+	},
+	"app.instance.notes.save": {
+		"message": "Сохранить"
+	},
+	"app.instance.notes.saved": {
+		"message": "Сохранено"
+	},
+	"app.instance.notes.empty": {
+		"message": "Пока пусто: запиши что-нибудь - и заметка станет выплывать перед каждым запуском этой сборки."
+	},
+	"app.instance.notes.popup.header": {
+		"message": "Заметка к сборке «{name}»"
+	},
+	"app.instance.notes.popup.never": {
+		"message": "Больше не напоминать"
+	},
+	"app.instance.notes.popup.ok": {
+		"message": "Ок"
+	},
+	"app.skin-browse.page": {
+		"message": "Стр. {page}"
+	},
+	"app.skin-browse.page-last": {
+		"message": "Стр. {page} — последняя"
+	},
+	"app.bedrock.page": {
+		"message": "Стр. {page}"
+	},
+	"app.bedrock.page-last": {
+		"message": "Стр. {page} — последняя"
+	},
+	"app.skin-browse.similar-page": {
+		"message": "Стр. {page} из {total}"
+	},
+	"app.skin-browse.similar-category": {
+		"message": "Категория: {tags}"
+	},
+	"app.skin-browse.filters": {
+		"message": "Фильтры скинов"
+	},
+	"app.skin-browse.group-people": {
+		"message": "Люди"
+	},
+	"app.skin-browse.group-styles": {
+		"message": "Стили"
+	},
+	"app.skin-browse.group-fantasy": {
+		"message": "Фэнтези"
+	},
+	"app.skin-browse.group-roles": {
+		"message": "Роли и профессии"
+	},
+	"app.skin-browse.group-creatures": {
+		"message": "Существа"
+	},
+	"app.skin-browse.group-holidays": {
+		"message": "Праздники"
+	},
+	"app.skin-browse.group-media": {
+		"message": "Медиа и спорт"
+	},
+	"app.skin-browse.filter-nick": {
+		"message": "По нику"
+	},
+	"app.skin-browse.nick-placeholder": {
+		"message": "Введите ник игрока..."
+	},
+	"app.skin-browse.nick-heading": {
+		"message": "Скин игрока {nick}"
+	},
+	"app.skin-browse.nick-prompt": {
+		"message": "Введите ник в поиск — здесь появится скин этого игрока, и его можно будет применить."
+	},
+	"app.skin-browse.nick-not-found": {
+		"message": "Игрок «{nick}» не найден или у него нет своего скина."
+	},
+	"app.skin-browse.nick-source": {
+		"message": "Скин игрока · {source}"
+	},
+	"app.skin-browse.open-on-namemc": {
+		"message": "Открыть на NameMC"
+	},
+	"app.skin-browse.open-on-ely": {
+		"message": "Открыть на Ely.by"
+	},
+	"app.skin-browse.filter-results": {
+		"message": "Скины: {filter}"
+	},
+	"app.appearance-settings.accent-icons.title": {
+		"message": "Все иконки под акцент"
+	},
+	"app.appearance-settings.accent-icons.description": {
+		"message": "Иконки Modrinth, CurseForge и наш логотип - сверху и на рабочем столе - берут цвет акцента. Градиент отдаёт им свой первый цвет. Иконки аккаунта остаются своими."
+	},
+	"app.appearance-settings.font.title": {
+		"message": "Шрифт интерфейса"
+	},
+	"app.appearance-settings.font.description": {
+		"message": "Шрифт, которым написан весь лаунчер. Буквы, которых в выбранном шрифте нет, рисуются шрифтом Inter."
+	},
+	"app.appearance-settings.font.default": {
+		"message": "Inter"
+	},
+	"app.appearance-settings.font.system": {
+		"message": "Системный"
+	},
+	"app.appearance-settings.font.minecraft": {
+		"message": "Minecraft"
+	},
+	"app.appearance-settings.font.custom": {
+		"message": "Свой"
+	},
+	"app.appearance-settings.font.default.badge": {
+		"message": "По умолчанию"
+	},
+	"app.appearance-settings.font.custom.placeholder": {
+		"message": "Выберите шрифт, установленный на компьютере"
+	},
+	"app.appearance-settings.font.custom.search": {
+		"message": "Поиск шрифтов"
+	},
+	"app.appearance-settings.font.custom.none": {
+		"message": "Такого шрифта не установлено"
+	},
+	"app.settings.ai-assistant.enabled": {
+		"message": "Включить ИИ-Помощника"
+	},
+	"app.settings.ai-assistant.enabled-hint": {
+		"message": "Если выключить, вкладка ИИ и маскот скрываются из лаунчера."
+	},
+	"app.skin-browse.profile": {
+		"message": "Профиль игрока"
+	},
+	"app.skin-browse.profile-copy": {
+		"message": "Копировать"
+	},
+	"app.skin-browse.profile-color": {
+		"message": "Цвет полосы локатора"
+	},
+	"app.skin-browse.profile-head": {
+		"message": "Получение головы"
+	},
+	"app.skin-browse.profile-copied": {
+		"message": "Скопировано"
+	},
+	"app.skin-browse.arm-classic": {
+		"message": "Классика"
+	},
+	"app.skin-browse.arm-slim": {
+		"message": "Slim"
+	},
+	"app.nav.hosting-paid": {
+		"message": "Modrinth Hosting"
+	},
+	"app.nav.lan-free": {
+		"message": "LAN"
+	},
+	"app.ai.effort": {
+		"message": "Раздумье"
+	},
+	"app.ai.effort.low": {
+		"message": "Низкий"
+	},
+	"app.ai.effort.medium": {
+		"message": "Средний"
+	},
+	"app.ai.effort.high": {
+		"message": "Высокий"
+	},
+	"app.ai.settings.showkey": {
+		"message": "Показать ключ"
+	},
+	"app.ai.settings.hidekey": {
+		"message": "Скрыть ключ"
+	},
+	"app.ai.settings.picker.hint": {
+		"message": "Выберите модель — список сгруппирован по провайдерам"
+	},
+	"app.ai.settings.manage": {
+		"message": "Управление моделями"
+	},
+	"app.ai.settings.done": {
+		"message": "Готово"
+	},
+	"app.ai.settings.manage.hint": {
+		"message": "Нажмите на название провайдера, чтобы вставить ключ. Ползунок прячет модель из выбора выше."
+	},
+	"app.ai.settings.key.missing": {
+		"message": "Без ключа модели этого провайдера не работают — вставьте его здесь."
+	},
+	"app.ai.settings.models.alloff": {
+		"message": "Все модели этого провайдера выключены"
+	},
+	"app.ai.code.edit": "Редактировать",
+	"app.ai.code.done": "Готово",
+	"app.ai.code.ping": "Пингануть",
+	"app.ai.code.ping-hint": "Прицепить к следующему сообщению — ИИ будет знать, какой код иметь в виду",
+	"app.ai.code.file-created": "файл создан",
+	"app.ai.code.file-changed": "файл изменён",
+	"app.ai.pings": "Пинг",
+	"app.settings.ai-assistant.effects-hint": {
+		"message": "Ответ печатается по буквам, код появляется с анимацией."
+	},
+	"app.ai.mode.ask": {
+		"message": "Ask"
+	},
+	"app.ai.mode.build": {
+		"message": "Build"
+	},
+	"app.ai.mode.ask-hint": {
+		"message": "Только отвечает и ищет, ничего не меняет в лаунчере"
+	},
+	"app.ai.mode.build-hint": {
+		"message": "Ask + автоматизация: отвечает на вопросы и сам делает задачи"
+	},
+	"app.ai.focus": {
+		"message": "Категория"
+	},
+	"app.ai.focus.any": {
+		"message": "Всё"
+	},
+	"app.ai.focus.mods": {
+		"message": "Моды"
+	},
+	"app.ai.focus.shaders": {
+		"message": "Шейдеры"
+	},
+	"app.ai.focus.resourcepacks": {
+		"message": "Ресурс-паки"
+	},
+	"app.ai.focus.datapacks": {
+		"message": "Датапаки"
+	},
+	"app.ai.focus.modpacks": {
+		"message": "Сборки"
+	},
+	"app.settings.ai-assistant.gradle.title": {
+		"message": "Сборка модов (Gradle)"
+	},
+	"app.settings.ai-assistant.gradle.description": {
+		"message": "Порталус собирает моды через Gradle прямо в лаунчере. Gradle и нужный JDK скачиваются только при первой сборке и не входят в установщик."
+	},
+	"app.settings.ai-assistant.gradle.installed": {
+		"message": "Gradle {version} скачан · занято {size}"
+	},
+	"app.settings.ai-assistant.gradle.missing": {
+		"message": "Не скачан · занято {size}"
+	},
+	"app.settings.ai-assistant.gradle.remove": {
+		"message": "Удалить Gradle и кэш"
+	},
+	"app.ai.mode.handoff": {
+		"message": "Порталус предложил план — выполнить его в Build?"
+	},
+	"app.ai.mode.handoff-action": {
+		"message": "Сделать в Build"
+	},
+	"app.ai.mode.handoff-prompt": {
+		"message": "Сделай это"
+	},
+	"instance.settings.backups.running": {
+		"message": "Сначала закрой игру — пока она запущена, файлы сборки заняты."
+	},
+	"instance.settings.backups.restored": {
+		"message": "Копия восстановлена."
+	},
+	"app.quick-instance-switcher.reset-order": {
+		"message": "Сбросить порядок"
+	},
+	"app.instance.notes.note": {
+		"message": "Заметка"
+	},
+	"app.instance.notes.tasks": {
+		"message": "Задачи"
+	},
+	"app.instance.notes.task-placeholder": {
+		"message": "Новая задача"
+	},
+	"app.instance.notes.add-task": {
+		"message": "Добавить"
+	},
+	"app.instance.notes.remove-task": {
+		"message": "Удалить задачу"
+	},
+	"app.instance.notes.clear-done": {
+		"message": "Убрать выполненные"
+	},
+	"app.instance.notes.no-tasks": {
+		"message": "Задач нет"
+	},
+	"app.instance.notes.remind": {
+		"message": "Показывать перед запуском"
+	},
+	"app.instance.notes.saving": {
+		"message": "Сохраняю…"
+	},
+	"app.instance.notes.chars": {
+		"message": "{count} симв."
+	},
+	"app.instance.notes.clear": {
+		"message": "Очистить"
+	},
+	"portalrinth.install.progress.waiting": {
+		"message": "Подготовка…"
+	},
+	"portalrinth.install.progress.installing": {
+		"message": "Установка контента…"
+	},
+	"app.download-manager.contents.title": {
+		"message": "Что загружается"
+	},
+	"app.download-manager.contents.current": {
+		"message": "Загружается сейчас"
+	},
+	"app.download-manager.contents.loaded": {
+		"message": "Загруженные"
+	},
+	"app.download-manager.contents.pending": {
+		"message": "Загружаемые"
+	},
+	"app.download-manager.contents.preparing": {
+		"message": "Подготовка…"
+	},
+	"app.download-manager.contents.failure": {
+		"message": "Ошибка"
+	},
+	"app.download-manager.contents.kind.all": {
+		"message": "Все"
+	},
+	"app.download-manager.contents.kind.mod": {
+		"message": "Моды"
+	},
+	"app.download-manager.contents.kind.resource_pack": {
+		"message": "Ресурс-паки"
+	},
+	"app.download-manager.contents.kind.shader": {
+		"message": "Шейдеры"
+	},
+	"app.download-manager.contents.kind.data_pack": {
+		"message": "Дата-паки"
+	},
+	"app.download-manager.contents.likes": {
+		"message": "Лайки"
+	},
+	"app.download-manager.contents.downloads": {
+		"message": "Загрузки"
+	},
+	"app.download-manager.contents.updated": {
+		"message": "Обновлялось"
+	},
+	"app.download-manager.contents.open-page": {
+		"message": "Открыть страницу проекта"
+	},
+	"content.filter.disabled": {
+		"message": "Выключено"
+	},
+	"app.instance.logs.copied": {
+		"message": "Скопировано"
+	},
+	"app.instance.logs.copy-hint": {
+		"message": "Скопировать лог"
+	},
+	"app.project.install-button.installed-hint": {
+		"message": "Нажмите, чтобы удалить из сборки"
+	},
+	"app.project.remove-from-instance": {
+		"message": "Удалить"
+	},
+	"app.project.removed-from-instance": {
+		"message": "Удалено из сборки"
+	},
+	"app.instance.info.sessions": {
+		"message": "Последние игры"
+	},
+	"app.instance.info.fps.live": {
+		"message": "Сейчас"
+	},
+	"app.instance.info.fps.range": {
+		"message": "{min}–{max} FPS"
+	},
+	"app.instance.info.playtime": {
+		"message": "Время игры"
+	},
+	"app.instance.info.playtime.last": {
+		"message": "Последняя игра"
+	},
+	"app.instance.info.playtime.total": {
+		"message": "Всего"
+	},
+	"app.instance.info.playtime.empty": {
+		"message": "Пока нет данных — запустите игру, и здесь появится график по дням"
+	},
+	"app.crash.use-ai": {
+		"message": "Использовать ИИ"
+	},
+	"app.crash.copy-file": {
+		"message": "Скопировать файл"
+	},
+	"app.crash.copied": {
+		"message": "Скопировано"
+	},
+	"console.actions.copy": {
+		"message": "Скопировать"
+	},
+	"app.project.install-context.back-to-browse": {
+		"message": "Назад в Discover"
+	},
+	"noctrinth.settings.java-provider.title": {
+		"message": "Откуда скачивать Java"
+	},
+	"noctrinth.settings.java-provider.description": {
+		"message": "Откуда лаунчер берёт Java, когда сборке нужна версия, которой нет на компьютере. Каждая загрузка сверяется с контрольной суммой, которую публикует источник."
+	},
+	"noctrinth.settings.java-provider.auto": {
+		"message": "Автоматически"
+	},
+	"noctrinth.settings.java-provider.auto-hint": {
+		"message": "Пробует по очереди Azul, затем Temurin, затем Temurin с GitHub, затем Mojang, затем Mojang через зеркало BMCLAPI — и останавливается на первом источнике, который отвечает. GitHub обычно доступен даже там, где другие источники заблокированы."
+	},
+	"noctrinth.settings.java-provider.azul": {
+		"message": "Azul Zulu"
+	},
+	"noctrinth.settings.java-provider.temurin": {
+		"message": "Eclipse Temurin"
+	},
+	"noctrinth.settings.java-provider.temurin-github": {
+		"message": "Eclipse Temurin с GitHub"
+	},
+	"noctrinth.settings.java-provider.mojang": {
+		"message": "Mojang"
+	},
+	"noctrinth.settings.java-provider.mojang-mirror": {
+		"message": "Mojang через BMCLAPI (стороннее зеркало)"
+	},
+	"app.nav.server-hosting": {
+		"message": "Server Hosting"
+	},
+	"app.server-hosting.back": {
+		"message": "К серверам"
+	},
+	"app.server-hosting.console.copied": {
+		"message": "Лог скопирован"
+	},
+	"app.server-hosting.console.copy": {
+		"message": "Скопировать лог"
+	},
+	"app.server-hosting.console.empty": {
+		"message": "Консоль пока пуста"
+	},
+	"app.server-hosting.console.offline-placeholder": {
+		"message": "Запустите сервер, чтобы отправлять команды"
+	},
+	"app.server-hosting.console.placeholder": {
+		"message": "Введите команду, например: say Привет"
+	},
+	"app.server-hosting.console.send": {
+		"message": "Отправить"
+	},
+	"app.server-hosting.content.datapacks": {
+		"message": "Датапаки"
+	},
+	"app.server-hosting.content.empty": {
+		"message": "Пока ничего не установлено"
+	},
+	"app.server-hosting.content.empty-hint": {
+		"message": "Добавьте файлы с компьютера — они заработают после перезапуска."
+	},
+	"app.server-hosting.content.import": {
+		"message": "Добавить из файла"
+	},
+	"app.server-hosting.content.mods": {
+		"message": "Моды"
+	},
+	"app.server-hosting.content.open-folder": {
+		"message": "Открыть папку"
+	},
+	"app.server-hosting.content.plugins": {
+		"message": "Плагины"
+	},
+	"app.server-hosting.content.remove": {
+		"message": "Удалить"
+	},
+	"app.server-hosting.content.restart-hint": {
+		"message": "Изменения вступят в силу после перезапуска сервера."
+	},
+	"app.server-hosting.copied": {
+		"message": "Адрес скопирован"
+	},
+	"app.server-hosting.copy-address": {
+		"message": "Скопировать адрес"
+	},
+	"app.server-hosting.crashed": {
+		"message": "Сервер остановился с ошибкой"
+	},
+	"app.server-hosting.create": {
+		"message": "Создать сервер"
+	},
+	"app.server-hosting.create.header": {
+		"message": "Новый сервер"
+	},
+	"app.server-hosting.create.name": {
+		"message": "Название"
+	},
+	"app.server-hosting.create.name-placeholder": {
+		"message": "Мой сервер"
+	},
+	"app.server-hosting.create.software": {
+		"message": "Ядро"
+	},
+	"app.server-hosting.create.submit": {
+		"message": "Создать"
+	},
+	"app.server-hosting.create.version": {
+		"message": "Версия Minecraft"
+	},
+	"app.server-hosting.create.version-placeholder": {
+		"message": "Выберите версию"
+	},
+	"app.server-hosting.create.versions-failed": {
+		"message": "Не удалось загрузить версии для этого ядра"
+	},
+	"app.server-hosting.create.versions-loading": {
+		"message": "Загружаю версии…"
+	},
+	"app.server-hosting.description": {
+		"message": "Запускайте сервер Minecraft на этом компьютере — друзья зайдут откуда угодно по публичному адресу."
+	},
+	"app.server-hosting.difficulty.easy": {
+		"message": "Лёгкая"
+	},
+	"app.server-hosting.difficulty.hard": {
+		"message": "Сложная"
+	},
+	"app.server-hosting.difficulty.normal": {
+		"message": "Нормальная"
+	},
+	"app.server-hosting.difficulty.peaceful": {
+		"message": "Мирная"
+	},
+	"app.server-hosting.edit": {
+		"message": "Настроить сервер"
+	},
+	"app.server-hosting.empty-description": {
+		"message": "Создайте сервер — он будет работать прямо на этом компьютере."
+	},
+	"app.server-hosting.empty-heading": {
+		"message": "Серверов пока нет"
+	},
+	"app.server-hosting.error-heading": {
+		"message": "Не удалось прочитать ваши серверы"
+	},
+	"app.server-hosting.eula.accept": {
+		"message": "Согласен"
+	},
+	"app.server-hosting.eula.description": {
+		"message": "Чтобы запустить сервер Minecraft, нужно принять лицензионное соглашение Minecraft (EULA)."
+	},
+	"app.server-hosting.eula.header": {
+		"message": "Minecraft EULA"
+	},
+	"app.server-hosting.eula.read": {
+		"message": "Прочитать соглашение"
+	},
+	"app.server-hosting.files.confirm-remove": {
+		"message": "Удалить навсегда"
+	},
+	"app.server-hosting.files.empty": {
+		"message": "Эта папка пуста"
+	},
+	"app.server-hosting.files.open-folder": {
+		"message": "Открыть папку"
+	},
+	"app.server-hosting.files.refresh": {
+		"message": "Обновить"
+	},
+	"app.server-hosting.files.remove": {
+		"message": "Удалить"
+	},
+	"app.server-hosting.files.root": {
+		"message": "Сервер"
+	},
+	"app.server-hosting.files.up": {
+		"message": "На уровень выше"
+	},
+	"app.server-hosting.files.upload": {
+		"message": "Загрузить файлы"
+	},
+	"app.server-hosting.gamemode.adventure": {
+		"message": "Приключение"
+	},
+	"app.server-hosting.gamemode.creative": {
+		"message": "Творческий"
+	},
+	"app.server-hosting.gamemode.spectator": {
+		"message": "Наблюдатель"
+	},
+	"app.server-hosting.gamemode.survival": {
+		"message": "Выживание"
+	},
+	"app.server-hosting.heading": {
+		"message": "Server Hosting"
+	},
+	"app.server-hosting.installing-hint": {
+		"message": "Скачиваю ядро и Java — первый запуск может занять несколько минут…"
+	},
+	"app.server-hosting.local-address": {
+		"message": "localhost:{port}"
+	},
+	"app.server-hosting.no-address": {
+		"message": "Публичный адрес появится, когда сервер будет онлайн"
+	},
+	"app.server-hosting.not-found": {
+		"message": "Сервер не найден"
+	},
+	"app.server-hosting.overview.average": {
+		"message": "Средний онлайн"
+	},
+	"app.server-hosting.overview.average-hint": {
+		"message": "за период"
+	},
+	"app.server-hosting.overview.cpu": {
+		"message": "CPU"
+	},
+	"app.server-hosting.overview.min": {
+		"message": "Минимальный онлайн"
+	},
+	"app.server-hosting.overview.no-data": {
+		"message": "Запустите сервер — график заполнится сам"
+	},
+	"app.server-hosting.overview.now": {
+		"message": "Сейчас онлайн"
+	},
+	"app.server-hosting.overview.online": {
+		"message": "Игроков онлайн"
+	},
+	"app.server-hosting.overview.peak": {
+		"message": "Пиковый онлайн"
+	},
+	"app.server-hosting.overview.ram": {
+		"message": "RAM"
+	},
+	"app.server-hosting.overview.ram-value": {
+		"message": "{used} / {total} МБ"
+	},
+	"app.server-hosting.overview.range-24h": {
+		"message": "24ч"
+	},
+	"app.server-hosting.overview.range-30d": {
+		"message": "30д"
+	},
+	"app.server-hosting.overview.range-7d": {
+		"message": "7д"
+	},
+	"app.server-hosting.overview.uptime": {
+		"message": "Аптайм"
+	},
+	"app.server-hosting.overview.uptime-hours": {
+		"message": "{hours} ч {minutes} мин"
+	},
+	"app.server-hosting.overview.uptime-minutes": {
+		"message": "{minutes} мин"
+	},
+	"app.server-hosting.overview.usage": {
+		"message": "Нагрузка сервера"
+	},
+	"app.server-hosting.players.add": {
+		"message": "Добавить"
+	},
+	"app.server-hosting.players.ban": {
+		"message": "Забанить"
+	},
+	"app.server-hosting.players.heading": {
+		"message": "Сейчас онлайн"
+	},
+	"app.server-hosting.players.kick": {
+		"message": "Кикнуть"
+	},
+	"app.server-hosting.players.none": {
+		"message": "На сервере пока никого"
+	},
+	"app.server-hosting.players.offline": {
+		"message": "Сервер не запущен — на нём никого нет"
+	},
+	"app.server-hosting.players.op": {
+		"message": "Сделать оператором"
+	},
+	"app.server-hosting.players.sent": {
+		"message": "Команда отправлена: {command}"
+	},
+	"app.server-hosting.players.whitelist": {
+		"message": "Белый список"
+	},
+	"app.server-hosting.players.whitelist-hint": {
+		"message": "Добавьте игрока по нику. Сам белый список включается в настройках."
+	},
+	"app.server-hosting.players.whitelist-placeholder": {
+		"message": "Ник игрока"
+	},
+	"app.server-hosting.private": {
+		"message": "Только локально"
+	},
+	"app.server-hosting.public": {
+		"message": "Публичный"
+	},
+	"app.server-hosting.relay-failed": {
+		"message": "Не удалось открыть публичный адрес"
+	},
+	"app.server-hosting.removed": {
+		"message": "Сервер удалён"
+	},
+	"app.server-hosting.republish": {
+		"message": "Переподключить публичный адрес"
+	},
+	"app.server-hosting.restart": {
+		"message": "Перезапустить"
+	},
+	"app.server-hosting.saved": {
+		"message": "Настройки сохранены"
+	},
+	"app.server-hosting.self-hosted": {
+		"message": "Self-hosted"
+	},
+	"app.server-hosting.server-subtitle": {
+		"message": "{software} {version}"
+	},
+	"app.server-hosting.settings.allow-flight": {
+		"message": "Разрешить полёт"
+	},
+	"app.server-hosting.settings.command-blocks": {
+		"message": "Командные блоки"
+	},
+	"app.server-hosting.settings.confirm-remove": {
+		"message": "Удалить навсегда"
+	},
+	"app.server-hosting.settings.core": {
+		"message": "Ядро"
+	},
+	"app.server-hosting.settings.core-hint": {
+		"message": "Смена ядра или версии скачает его заново при следующем запуске"
+	},
+	"app.server-hosting.settings.core-locked": {
+		"message": "Остановите сервер, чтобы сменить ядро или версию"
+	},
+	"app.server-hosting.settings.danger": {
+		"message": "Удалить сервер"
+	},
+	"app.server-hosting.settings.danger-hint": {
+		"message": "Сервер, его мир и все файлы будут удалены с этого компьютера."
+	},
+	"app.server-hosting.settings.difficulty": {
+		"message": "Сложность"
+	},
+	"app.server-hosting.settings.eula": {
+		"message": "Я принимаю Minecraft EULA"
+	},
+	"app.server-hosting.settings.game": {
+		"message": "Игра"
+	},
+	"app.server-hosting.settings.gamemode": {
+		"message": "Режим игры"
+	},
+	"app.server-hosting.settings.general": {
+		"message": "Основное"
+	},
+	"app.server-hosting.settings.hardcore": {
+		"message": "Хардкор"
+	},
+	"app.server-hosting.settings.install-core": {
+		"message": "Скачать ядро"
+	},
+	"app.server-hosting.settings.java-path": {
+		"message": "Путь к Java"
+	},
+	"app.server-hosting.settings.java-path-hint": {
+		"message": "Оставьте пустым — Java {version} подберётся или установится автоматически"
+	},
+	"app.server-hosting.settings.jvm-args": {
+		"message": "Аргументы JVM"
+	},
+	"app.server-hosting.settings.level-name": {
+		"message": "Папка мира"
+	},
+	"app.server-hosting.settings.max-players": {
+		"message": "Слотов для игроков"
+	},
+	"app.server-hosting.settings.memory": {
+		"message": "Память"
+	},
+	"app.server-hosting.settings.motd": {
+		"message": "Описание (MOTD)"
+	},
+	"app.server-hosting.settings.motd-hint": {
+		"message": "Показывается под названием сервера в списке «Сетевая игра»"
+	},
+	"app.server-hosting.settings.name": {
+		"message": "Название"
+	},
+	"app.server-hosting.settings.network": {
+		"message": "Сеть"
+	},
+	"app.server-hosting.settings.online-mode": {
+		"message": "Только лицензионные аккаунты"
+	},
+	"app.server-hosting.settings.online-mode-hint": {
+		"message": "Выключите, чтобы пускать игроков с офлайн- и Ely.by-аккаунтами"
+	},
+	"app.server-hosting.settings.performance": {
+		"message": "Производительность"
+	},
+	"app.server-hosting.settings.port": {
+		"message": "Локальный порт"
+	},
+	"app.server-hosting.settings.public-relay": {
+		"message": "Публичный адрес"
+	},
+	"app.server-hosting.settings.public-relay-hint": {
+		"message": "Друзья заходят по публичному адресу без проброса портов на роутере"
+	},
+	"app.server-hosting.settings.pvp": {
+		"message": "PvP"
+	},
+	"app.server-hosting.settings.reinstall-core": {
+		"message": "Скачать заново"
+	},
+	"app.server-hosting.settings.remove": {
+		"message": "Удалить"
+	},
+	"app.server-hosting.settings.reset": {
+		"message": "Сбросить"
+	},
+	"app.server-hosting.settings.rules": {
+		"message": "Правила"
+	},
+	"app.server-hosting.settings.save": {
+		"message": "Сохранить"
+	},
+	"app.server-hosting.settings.unsaved": {
+		"message": "Есть несохранённые изменения"
+	},
+	"app.server-hosting.settings.version": {
+		"message": "Версия Minecraft"
+	},
+	"app.server-hosting.settings.view-distance": {
+		"message": "Дальность прорисовки"
+	},
+	"app.server-hosting.settings.white-list": {
+		"message": "Белый список"
+	},
+	"app.server-hosting.start": {
+		"message": "Запустить"
+	},
+	"app.server-hosting.status.crashed": {
+		"message": "Крашнулся"
+	},
+	"app.server-hosting.status.installing": {
+		"message": "Установка"
+	},
+	"app.server-hosting.status.running": {
+		"message": "Онлайн"
+	},
+	"app.server-hosting.status.starting": {
+		"message": "Запускается"
+	},
+	"app.server-hosting.status.stopped": {
+		"message": "Остановлен"
+	},
+	"app.server-hosting.status.stopping": {
+		"message": "Останавливается"
+	},
+	"app.server-hosting.stop": {
+		"message": "Остановить"
+	},
+	"app.server-hosting.tab.console": {
+		"message": "Консоль"
+	},
+	"app.server-hosting.tab.dashboard": {
+		"message": "Дашборд"
+	},
+	"app.server-hosting.tab.files": {
+		"message": "Файлы"
+	},
+	"app.server-hosting.tab.players": {
+		"message": "Игроки"
+	},
+	"app.server-hosting.tab.settings": {
+		"message": "Настройки"
+	},
+	"app.server-hosting.view.grid": {
+		"message": "Сетка"
+	},
+	"app.server-hosting.view.list": {
+		"message": "Список"
+	},
+	"app.server-hosting.crash.bad-option.title": {
+		"message": "Ядро не поняло параметр запуска"
+	},
+	"app.server-hosting.crash.bad-option.hint": {
+		"message": "Старые ядра не принимают некоторые параметры. Лаунчер уже запускает этот сервер без них — просто нажмите «Запустить» ещё раз. Если вы добавляли свои аргументы Java, проверьте их в настройках."
+	},
+	"app.server-hosting.crash.java.title": {
+		"message": "Эта Java не подходит серверу"
+	},
+	"app.server-hosting.crash.java.hint": {
+		"message": "Minecraft {version} нужна Java {need}. Сбросьте свой путь к Java — лаунчер сам подберёт и скачает нужную."
+	},
+	"app.server-hosting.crash.memory.title": {
+		"message": "Не хватает памяти"
+	},
+	"app.server-hosting.crash.memory.hint": {
+		"message": "Java не смогла выделить столько памяти. Уменьшите память в настройках или закройте тяжёлые программы и попробуйте снова."
+	},
+	"app.server-hosting.crash.port.title": {
+		"message": "Порт {port} уже занят"
+	},
+	"app.server-hosting.crash.port.hint": {
+		"message": "Этот порт слушает другой сервер или программа. Остановите её или выберите другой порт в настройках."
+	},
+	"app.server-hosting.crash.eula.title": {
+		"message": "EULA Minecraft не принята"
+	},
+	"app.server-hosting.crash.eula.hint": {
+		"message": "Нажмите «Запустить» и примите EULA — без неё сервер не работает."
+	},
+	"app.server-hosting.crash.mods.title": {
+		"message": "Моды не уживаются"
+	},
+	"app.server-hosting.crash.mods.hint": {
+		"message": "Моду не хватает зависимости или он не подходит к этой версии. В строке ниже указано какой — удалите или обновите его."
+	},
+	"app.server-hosting.crash.plugin.title": {
+		"message": "Плагин не загрузился"
+	},
+	"app.server-hosting.crash.plugin.hint": {
+		"message": "Отключите плагин из строки ниже или поставьте сборку для этой версии сервера."
+	},
+	"app.server-hosting.crash.world.title": {
+		"message": "Мир не загрузился"
+	},
+	"app.server-hosting.crash.world.hint": {
+		"message": "Мир мог повредиться или создан более новой версией. Укажите другое имя мира в настройках, чтобы начать новый."
+	},
+	"app.server-hosting.crash.jvm.title": {
+		"message": "Java не запустилась"
+	},
+	"app.server-hosting.crash.jvm.hint": {
+		"message": "Проверьте аргументы Java и объём памяти в настройках."
+	},
+	"app.server-hosting.crash.launch.title": {
+		"message": "Сервер не удалось запустить"
+	},
+	"app.server-hosting.crash.launch.hint": {
+		"message": "Что-то пошло не так ещё до старта Minecraft. Проверьте интернет и попробуйте снова."
+	},
+	"app.server-hosting.crash.unknown.title": {
+		"message": "Сервер остановился с ошибкой"
+	},
+	"app.server-hosting.crash.unknown.hint": {
+		"message": "В консоли видно, что случилось перед остановкой. Откройте её, чтобы увидеть всё целиком."
+	},
+	"app.server-hosting.crash.what-happened": {
+		"message": "Что сказал сервер"
+	},
+	"app.server-hosting.crash.try-again": {
+		"message": "Запустить снова"
+	},
+	"app.server-hosting.crash.open-console": {
+		"message": "Открыть консоль"
+	},
+	"app.server-hosting.crash.open-settings": {
+		"message": "Настройки"
+	},
+	"app.server-hosting.crash.reset-java": {
+		"message": "Подобрать нужную Java"
+	},
+	"app.server-hosting.crash.copy-line": {
+		"message": "Копировать"
+	},
+	"app.server-hosting.boot.core": {
+		"message": "Ядро"
+	},
+	"app.server-hosting.boot.java": {
+		"message": "Java"
+	},
+	"app.server-hosting.boot.world": {
+		"message": "Мир"
+	},
+	"app.server-hosting.boot.done": {
+		"message": "В сети"
+	},
+	"app.server-hosting.boot.core-hint": {
+		"message": "Скачиваю ядро сервера, первый запуск займёт минуту-две…"
+	},
+	"app.server-hosting.boot.java-hint": {
+		"message": "Java прогревается и загружает сервер…"
+	},
+	"app.server-hosting.boot.world-hint": {
+		"message": "Готовлю мир…"
+	},
+	"app.server-hosting.boot.world-progress": {
+		"message": "Готовлю мир — {percent}%"
+	},
+	"app.creator.sign-in": {
+		"message": "Войдите в Modrinth"
+	},
+	"app.creator.sign-in.body": {
+		"message": "Эта страница работает с вашим аккаунтом Modrinth. Войдите, чтобы продолжить."
+	},
+	"app.creator.open-on-site": {
+		"message": "Открыть на Modrinth"
+	},
+	"app.creator.load-failed": {
+		"message": "Не удалось загрузить данные"
+	},
+	"app.creator.cancel": {
+		"message": "Отмена"
+	},
+	"app.creator.save": {
+		"message": "Сохранить"
+	},
+	"app.creator.saving": {
+		"message": "Сохранение..."
+	},
+	"app.creator.saved": {
+		"message": "Изменения сохранены"
+	},
+	"app.creator.delete": {
+		"message": "Удалить"
+	},
+	"app.creator.projects.search": {
+		"message": "Поиск проектов..."
+	},
+	"app.creator.projects.create": {
+		"message": "Создать проект"
+	},
+	"app.creator.projects.empty": {
+		"message": "У вас пока нет проектов"
+	},
+	"app.creator.projects.empty.body": {
+		"message": "Создайте проект, чтобы публиковать моды, сборки и плагины на Modrinth."
+	},
+	"app.creator.projects.no-match": {
+		"message": "Нет проектов по вашему запросу"
+	},
+	"app.creator.projects.column.name": {
+		"message": "Название"
+	},
+	"app.creator.projects.column.type": {
+		"message": "Тип"
+	},
+	"app.creator.projects.column.status": {
+		"message": "Статус"
+	},
+	"app.creator.projects.column.downloads": {
+		"message": "Загрузки"
+	},
+	"app.creator.projects.manage": {
+		"message": "Управление"
+	},
+	"app.creator.projects.total": {
+		"message": "Проекты"
+	},
+	"app.creator.projects.total-downloads": {
+		"message": "Всего загрузок"
+	},
+	"app.creator.projects.total-followers": {
+		"message": "Подписчики"
+	},
+	"app.creator.type.mod": {
+		"message": "Мод"
+	},
+	"app.creator.type.modpack": {
+		"message": "Сборка"
+	},
+	"app.creator.type.resourcepack": {
+		"message": "Ресурспак"
+	},
+	"app.creator.type.shader": {
+		"message": "Шейдер"
+	},
+	"app.creator.type.datapack": {
+		"message": "Датапак"
+	},
+	"app.creator.type.plugin": {
+		"message": "Плагин"
+	},
+	"app.creator.status.approved": {
+		"message": "Публичный"
+	},
+	"app.creator.status.unlisted": {
+		"message": "По ссылке"
+	},
+	"app.creator.status.private": {
+		"message": "Приватный"
+	},
+	"app.creator.status.draft": {
+		"message": "Черновик"
+	},
+	"app.creator.status.processing": {
+		"message": "На проверке"
+	},
+	"app.creator.status.rejected": {
+		"message": "Отклонён"
+	},
+	"app.creator.status.archived": {
+		"message": "В архиве"
+	},
+	"app.creator.status.withheld": {
+		"message": "Скрыт"
+	},
+	"app.creator.status.scheduled": {
+		"message": "Запланирован"
+	},
+	"app.creator.status.unknown": {
+		"message": "Неизвестно"
+	},
+	"app.creator.create.header": {
+		"message": "Создание проекта"
+	},
+	"app.creator.create.name": {
+		"message": "Название"
+	},
+	"app.creator.create.name.placeholder": {
+		"message": "Введите название проекта..."
+	},
+	"app.creator.create.url": {
+		"message": "Адрес"
+	},
+	"app.creator.create.url.hint": {
+		"message": "Латиница, цифры и дефисы, от 3 до 64 символов."
+	},
+	"app.creator.create.type": {
+		"message": "Тип проекта"
+	},
+	"app.creator.create.visibility": {
+		"message": "Видимость"
+	},
+	"app.creator.create.visibility.hint": {
+		"message": "Какая видимость будет у проекта после одобрения."
+	},
+	"app.creator.create.summary": {
+		"message": "Краткое описание"
+	},
+	"app.creator.create.summary.hint": {
+		"message": "Одно-два предложения о вашем проекте."
+	},
+	"app.creator.create.summary.placeholder": {
+		"message": "Этот проект добавляет..."
+	},
+	"app.creator.create.icon": {
+		"message": "Иконка"
+	},
+	"app.creator.create.icon.choose": {
+		"message": "Выбрать изображение"
+	},
+	"app.creator.create.icon.remove": {
+		"message": "Убрать"
+	},
+	"app.creator.create.submit": {
+		"message": "Создать проект"
+	},
+	"app.creator.create.submitting": {
+		"message": "Создание..."
+	},
+	"app.creator.create.created": {
+		"message": "Проект создан"
+	},
+	"app.creator.create.created.detail": {
+		"message": "«{name}» создан как черновик."
+	},
+	"app.creator.manage.back": {
+		"message": "Все проекты"
+	},
+	"app.creator.manage.tab.general": {
+		"message": "Основное"
+	},
+	"app.creator.manage.tab.versions": {
+		"message": "Версии"
+	},
+	"app.creator.manage.tab.links": {
+		"message": "Ссылки"
+	},
+	"app.creator.manage.description": {
+		"message": "Описание"
+	},
+	"app.creator.manage.description.hint": {
+		"message": "Полная страница проекта. Поддерживается Markdown."
+	},
+	"app.creator.manage.environment": {
+		"message": "Окружение"
+	},
+	"app.creator.manage.client": {
+		"message": "Клиент"
+	},
+	"app.creator.manage.server": {
+		"message": "Сервер"
+	},
+	"app.creator.side.required": {
+		"message": "Обязательно"
+	},
+	"app.creator.side.optional": {
+		"message": "Необязательно"
+	},
+	"app.creator.side.unsupported": {
+		"message": "Не поддерживается"
+	},
+	"app.creator.manage.icon.change": {
+		"message": "Сменить иконку"
+	},
+	"app.creator.manage.icon.updated": {
+		"message": "Иконка обновлена"
+	},
+	"app.creator.manage.links.source": {
+		"message": "Исходный код"
+	},
+	"app.creator.manage.links.issues": {
+		"message": "Баг-трекер"
+	},
+	"app.creator.manage.links.wiki": {
+		"message": "Вики"
+	},
+	"app.creator.manage.links.discord": {
+		"message": "Приглашение в Discord"
+	},
+	"app.creator.manage.links.hint": {
+		"message": "Ссылки на странице проекта. Оставьте поле пустым, чтобы скрыть его."
+	},
+	"app.creator.manage.submit": {
+		"message": "Отправить на проверку"
+	},
+	"app.creator.manage.submitted": {
+		"message": "Отправлено на проверку"
+	},
+	"app.creator.manage.submitted.detail": {
+		"message": "Модераторы скоро посмотрят ваш проект."
+	},
+	"app.creator.manage.draft-note": {
+		"message": "Это черновик. Загрузите хотя бы одну версию и отправьте проект на проверку, чтобы опубликовать его."
+	},
+	"app.creator.manage.processing-note": {
+		"message": "Проект ждёт проверки модераторами. Его можно продолжать редактировать."
+	},
+	"app.creator.manage.delete": {
+		"message": "Удалить проект"
+	},
+	"app.creator.manage.delete.title": {
+		"message": "Точно удалить этот проект?"
+	},
+	"app.creator.manage.delete.body": {
+		"message": "Проект, его версии и файлы будут навсегда удалены с Modrinth. Это нельзя отменить."
+	},
+	"app.creator.manage.deleted": {
+		"message": "Проект удалён"
+	},
+	"app.creator.versions.upload": {
+		"message": "Загрузить версию"
+	},
+	"app.creator.versions.empty": {
+		"message": "Версий пока нет"
+	},
+	"app.creator.versions.empty.body": {
+		"message": "Загрузите первый файл проекта, чтобы игроки могли его скачать."
+	},
+	"app.creator.versions.delete.title": {
+		"message": "Удалить эту версию?"
+	},
+	"app.creator.versions.delete.body": {
+		"message": "Её файлы больше нельзя будет скачать."
+	},
+	"app.creator.versions.deleted": {
+		"message": "Версия удалена"
+	},
+	"app.creator.version.header": {
+		"message": "Загрузка версии"
+	},
+	"app.creator.version.files": {
+		"message": "Файлы"
+	},
+	"app.creator.version.files.hint": {
+		"message": "Первый файл — основной. Подходят .jar, .zip и .mrpack."
+	},
+	"app.creator.version.files.primary": {
+		"message": "Основной"
+	},
+	"app.creator.version.files.choose": {
+		"message": "Выбрать файлы"
+	},
+	"app.creator.version.name": {
+		"message": "Название версии"
+	},
+	"app.creator.version.number": {
+		"message": "Номер версии"
+	},
+	"app.creator.version.channel": {
+		"message": "Канал выпуска"
+	},
+	"app.creator.version.channel.release": {
+		"message": "Релиз"
+	},
+	"app.creator.version.channel.beta": {
+		"message": "Бета"
+	},
+	"app.creator.version.channel.alpha": {
+		"message": "Альфа"
+	},
+	"app.creator.version.loaders": {
+		"message": "Загрузчики"
+	},
+	"app.creator.version.game-versions": {
+		"message": "Версии игры"
+	},
+	"app.creator.version.snapshots": {
+		"message": "Показать снапшоты"
+	},
+	"app.creator.version.game-versions.search": {
+		"message": "Поиск версий..."
+	},
+	"app.creator.version.changelog": {
+		"message": "Список изменений"
+	},
+	"app.creator.version.changelog.placeholder": {
+		"message": "Что изменилось в этой версии?"
+	},
+	"app.creator.version.featured": {
+		"message": "Рекомендуемая версия"
+	},
+	"app.creator.version.submit": {
+		"message": "Загрузить версию"
+	},
+	"app.creator.version.submitting": {
+		"message": "Загрузка..."
+	},
+	"app.creator.version.uploaded": {
+		"message": "Версия загружена"
+	},
+	"app.creator.version.selected": {
+		"message": "{count, plural, =0 {Ничего не выбрано} one {Выбрано: #} few {Выбрано: #} many {Выбрано: #} other {Выбрано: #}}"
+	},
+	"app.creator.orgs.title": {
+		"message": "Организации"
+	},
+	"app.creator.orgs.create": {
+		"message": "Создать организацию"
+	},
+	"app.creator.orgs.empty": {
+		"message": "Вы пока не состоите в организациях"
+	},
+	"app.creator.orgs.empty.body": {
+		"message": "Организации позволяют команде вместе публиковать проекты и управлять ими."
+	},
+	"app.creator.orgs.header": {
+		"message": "Создание организации"
+	},
+	"app.creator.orgs.name.placeholder": {
+		"message": "Введите название организации..."
+	},
+	"app.creator.orgs.summary.hint": {
+		"message": "Одно-два предложения о вашей организации."
+	},
+	"app.creator.orgs.created": {
+		"message": "Организация создана"
+	},
+	"app.creator.orgs.members": {
+		"message": "{count, plural, one {# участник} few {# участника} many {# участников} other {# участника}}"
+	},
+	"app.creator.analytics.title": {
+		"message": "Аналитика"
+	},
+	"app.creator.analytics.downloads": {
+		"message": "Загрузки"
+	},
+	"app.creator.analytics.views": {
+		"message": "Просмотры"
+	},
+	"app.creator.analytics.range.1": {
+		"message": "24 часа"
+	},
+	"app.creator.analytics.range.7": {
+		"message": "7 дней"
+	},
+	"app.creator.analytics.range.30": {
+		"message": "30 дней"
+	},
+	"app.creator.analytics.range.90": {
+		"message": "90 дней"
+	},
+	"app.creator.analytics.total": {
+		"message": "Всего за период"
+	},
+	"app.creator.analytics.top": {
+		"message": "По проектам"
+	},
+	"app.creator.analytics.empty": {
+		"message": "Аналитика появится, когда у вас будет опубликованный проект."
+	},
+	"app.creator.revenue.title": {
+		"message": "Доход"
+	},
+	"app.creator.revenue.available": {
+		"message": "Доступно сейчас"
+	},
+	"app.creator.revenue.pending": {
+		"message": "В ожидании"
+	},
+	"app.creator.revenue.pending.hint": {
+		"message": "Доход становится доступен примерно через 60 дней после конца месяца."
+	},
+	"app.creator.revenue.lifetime": {
+		"message": "Выведено всего"
+	},
+	"app.creator.revenue.ytd": {
+		"message": "Выведено за год"
+	},
+	"app.creator.revenue.withdraw": {
+		"message": "Вывести"
+	},
+	"app.creator.revenue.withdraw.hint": {
+		"message": "Вывод требует проверки личности, поэтому завершается на modrinth.com."
+	},
+	"app.creator.revenue.transactions": {
+		"message": "Операции"
+	},
+	"app.creator.revenue.transactions.empty": {
+		"message": "Операций пока нет"
+	},
+	"app.creator.revenue.tx.withdrawal": {
+		"message": "Вывод средств"
+	},
+	"app.creator.revenue.tx.income": {
+		"message": "Доход автора"
+	},
+	"app.creator.revenue.tx.fee": {
+		"message": "Комиссия {amount}"
+	},
+	"app.creator.revenue.tx.success": {
+		"message": "Выполнено"
+	},
+	"app.creator.revenue.tx.failed": {
+		"message": "Ошибка"
+	},
+	"app.creator.revenue.tx.pending": {
+		"message": "В обработке"
+	},
+	"app.creator.revenue.upcoming": {
+		"message": "Скоро станет доступно"
+	},
+	"app.creator.reports.title": {
+		"message": "Активные жалобы"
+	},
+	"app.creator.reports.empty": {
+		"message": "У вас нет активных жалоб"
+	},
+	"app.creator.reports.empty.body": {
+		"message": "Здесь появятся жалобы, которые вы отправили на проекты, версии или пользователей."
+	},
+	"app.creator.reports.open": {
+		"message": "Открыта"
+	},
+	"app.creator.reports.closed": {
+		"message": "Закрыта"
+	},
+	"app.creator.reports.on": {
+		"message": "Жалоба на {type}"
+	},
+	"app.creator.reports.item.project": {
+		"message": "проект"
+	},
+	"app.creator.reports.item.version": {
+		"message": "версию"
+	},
+	"app.creator.reports.item.user": {
+		"message": "пользователя"
+	},
+	"app.creator.reports.show-closed": {
+		"message": "Показать закрытые"
+	},
+	"app.account.profile": {
+		"message": "Профиль"
+	},
+	"app.account.modrinth-plus": {
+		"message": "Перейти на Modrinth+"
+	},
+	"app.account.servers": {
+		"message": "Мои серверы"
+	},
+	"app.account.settings": {
+		"message": "Настройки"
+	},
+	"app.account.reports": {
+		"message": "Активные жалобы"
+	},
+	"app.account.projects": {
+		"message": "Проекты"
+	},
+	"app.account.organizations": {
+		"message": "Организации"
+	},
+	"app.account.analytics": {
+		"message": "Аналитика"
+	},
+	"app.account.revenue": {
+		"message": "Доход"
+	},
+	"app.server-hosting.browse.title": {
+		"message": "Найти на Modrinth"
+	},
+	"app.server-hosting.browse.search": {
+		"message": "Поиск"
+	},
+	"app.server-hosting.browse.install": {
+		"message": "Установить"
+	},
+	"app.server-hosting.browse.installed": {
+		"message": "Установлено"
+	},
+	"app.server-hosting.browse.more": {
+		"message": "Показать ещё"
+	},
+	"app.server-hosting.browse.by": {
+		"message": "от {author}"
+	},
+	"app.server-hosting.browse.nothing": {
+		"message": "Ничего не найдено"
+	},
+	"app.server-hosting.browse.nothing-hint": {
+		"message": "Под {core} {version} ничего не подходит. Попробуйте другое слово."
+	},
+	"app.server-hosting.browse.failed": {
+		"message": "Не удалось связаться с Modrinth"
+	},
+	"app.server-hosting.browse.no-version": {
+		"message": "У {name} нет файла под этот сервер"
+	},
+	"app.server-hosting.browse.installed-toast": {
+		"message": "{name} установлен — перезапустите сервер, чтобы он загрузился"
+	},
+	"app.server-hosting.install-to.header": {
+		"message": "Установить на сервер"
+	},
+	"app.server-hosting.install-to.loading": {
+		"message": "Загрузка серверов…"
+	},
+	"app.server-hosting.install-to.none": {
+		"message": "Нет серверов для плагинов"
+	},
+	"app.server-hosting.install-to.none-hint": {
+		"message": "Сначала создайте сервер на Paper, Purpur или Folia в Self-Hosted."
+	},
+	"app.server-hosting.install-to.unsupported": {
+		"message": "Не поддерживается"
+	},
+	"app.server-hosting.install-to.unsupported-hint": {
+		"message": "У этого плагина нет сборки под это ядро"
+	},
+	"app.browse.install-on-hosted-server": {
+		"message": "Установить на сервер"
+	},
+	"app.settings.layouts.title": {
+		"message": "Компоненты"
+	},
+	"app.settings.layouts.description": {
+		"message": "Выберите вид проектов, профилей и скинов для каждой страницы."
+	},
+	"app.settings.layouts.button": {
+		"message": "Компоненты"
+	},
+	"app.settings.layouts.modal-header": {
+		"message": "Вид страниц"
+	},
+	"app.settings.layouts.modal-description": {
+		"message": "Выберите вид для каждой страницы с проектами."
+	},
+	"app.settings.layouts.list": {
+		"message": "Список"
+	},
+	"app.settings.layouts.grid": {
+		"message": "Сетка"
+	},
+	"app.settings.layouts.compact": {
+		"message": "Компактно"
+	},
+	"app.settings.layouts.large": {
+		"message": "Крупно"
+	},
+	"app.settings.layouts.page.mod": {
+		"message": "Страница модов"
+	},
+	"app.settings.layouts.page.plugin": {
+		"message": "Страница плагинов"
+	},
+	"app.settings.layouts.page.datapack": {
+		"message": "Страница наборов данных"
+	},
+	"app.settings.layouts.page.shader": {
+		"message": "Страница шейдеров"
+	},
+	"app.settings.layouts.page.resourcepack": {
+		"message": "Страница наборов ресурсов"
+	},
+	"app.settings.layouts.page.modpack": {
+		"message": "Страница сборок"
+	},
+	"app.settings.layouts.page.server": {
+		"message": "Страница серверов"
+	},
+	"app.settings.layouts.page.user": {
+		"message": "Страницы пользователей"
+	},
+	"app.settings.layouts.page.skins": {
+		"message": "Страница скинов"
+	},
+	"app.ai.attach": {
+		"message": "Прикрепить файлы"
+	},
+	"app.ai.builds": {
+		"message": "Сборка для работы"
+	},
+	"app.ai.builds.none": {
+		"message": "Без сборки"
+	},
+	"app.ai.builds.none-hint": {
+		"message": "Как со сборкой, но не только с ней — агент сам уточняет, куда ставить"
+	},
+	"app.ai.cards.skin-install": {
+		"message": "Поставить"
+	},
+	"app.ai.cards.skin-installed": {
+		"message": "Надет"
+	},
+	"app.ai.cards.skins": {
+		"message": "Скины"
+	},
+	"app.ai.catalog.name.auto": {
+		"message": "Авто"
+	},
+	"app.ai.catalog.name.custom": {
+		"message": "Свой сервер"
+	},
+	"app.ai.catalog.name.custom-model": {
+		"message": "Своя модель"
+	},
+	"app.ai.catalog.name.gpt-fast": {
+		"message": "GPT быстрый"
+	},
+	"app.ai.catalog.note.custom": {
+		"message": "Локальные модели (LM Studio, Ollama) — бесплатно, всё считается на твоём компьютере."
+	},
+	"app.ai.catalog.note.genapi": {
+		"message": "РФ-агрегатор в формате OpenAI: новый аккаунт получает бесплатные пробные генерации («Попробовать бесплатно»), дальше копейки за запрос. В списке — только бюджетные текстовые модели."
+	},
+	"app.ai.catalog.note.image-pollinations": {
+		"message": "Бесплатно и без ключа."
+	},
+	"app.ai.catalog.note.image-zai": {
+		"message": "CogView-3-Flash — бесплатный; подходит тот же ключ Z.AI, что и для чата."
+	},
+	"app.ai.catalog.note.kilo": {
+		"message": "Ключ не нужен — бесплатные модели работают сразу. Хороший запасной мозг, если у GLM час пик."
+	},
+	"app.ai.catalog.note.llm7": {
+		"message": "Ключ не нужен — бесплатный тариф «turbo» отвечает сразу (если сервис попросит токен, слово unused проходит как ключ). Запасной мозг без регистрации."
+	},
+	"app.ai.catalog.note.nvidia": {
+		"message": "DeepSeek, Kimi, GLM 5 и MiniMax бесплатно по ключу NVIDIA (build.nvidia.com). Регистрация из России может попросить VPN — сами запросы обычно проходят."
+	},
+	"app.ai.catalog.note.openrouter": {
+		"message": "Бесплатные модели под одним ключом — состав меняется, актуальные всегда с суффиксом :free. Обычно доступен из России."
+	},
+	"app.ai.catalog.note.ovh": {
+		"message": "Без ключа — анонимно, но с лимитом запросов в минуту; бесплатный токен OVH снимает лимит (необязательно)."
+	},
+	"app.ai.catalog.note.pollinations": {
+		"message": "Ключ не нужен — работает сразу. Анонимный лимит: 1 ответ в 30 секунд на IP, так что это запасной вариант, а не основной."
+	},
+	"app.ai.catalog.note.zai": {
+		"message": "Бесплатные GLM-модели, работают из России. У 4.5 Flash размышления отключены, 4.7 Flash думает всегда, но умнее; 4.6V Flash смотрит картинки (включается сама, когда ты прикрепил изображение). Ключ — бесплатно на z.ai/model-api."
+	},
+	"app.ai.catalog.tag.best-free": {
+		"message": "лучшая бесплатная"
+	},
+	"app.ai.catalog.tag.cheapest": {
+		"message": "самая дешёвая"
+	},
+	"app.ai.catalog.tag.code": {
+		"message": "код"
+	},
+	"app.ai.catalog.tag.context": {
+		"message": "контекст {size}"
+	},
+	"app.ai.catalog.tag.fast": {
+		"message": "быстрая"
+	},
+	"app.ai.catalog.tag.fastest": {
+		"message": "самая быстрая"
+	},
+	"app.ai.catalog.tag.no-key": {
+		"message": "без ключа"
+	},
+	"app.ai.catalog.tag.smart": {
+		"message": "умная"
+	},
+	"app.ai.catalog.tag.smarter": {
+		"message": "умнее"
+	},
+	"app.ai.catalog.tag.vision": {
+		"message": "видит картинки"
+	},
+	"app.ai.chat.delete": {
+		"message": "Удалить чат навсегда"
+	},
+	"app.ai.composer.attach": {
+		"message": "Файл"
+	},
+	"app.ai.composer.attach-hint": {
+		"message": "Картинка, лог, конфиг"
+	},
+	"app.ai.composer.commands": {
+		"message": "Команды"
+	},
+	"app.ai.composer.commands-hint": {
+		"message": "Задачи и навыки"
+	},
+	"app.ai.composer.deep": {
+		"message": "Глубокое мышление"
+	},
+	"app.ai.composer.deep-hint": {
+		"message": "Умнее и внимательнее, но дольше"
+	},
+	"app.ai.composer.effort": {
+		"message": "Раздумье"
+	},
+	"app.ai.composer.effort.high": {
+		"message": "Высокое"
+	},
+	"app.ai.composer.effort.low": {
+		"message": "Низкое"
+	},
+	"app.ai.composer.effort.medium": {
+		"message": "Среднее"
+	},
+	"app.ai.composer.focus": {
+		"message": "Где искать"
+	},
+	"app.ai.composer.mode.ask-hint": {
+		"message": "Только отвечает и ищет, ничего не меняет в лаунчере"
+	},
+	"app.ai.composer.mode.build-hint": {
+		"message": "Отвечает на вопросы и сам выполняет задачи в лаунчере"
+	},
+	"app.ai.composer.tools": {
+		"message": "Возможности"
+	},
+	"app.ai.composer.web": {
+		"message": "Веб-поиск"
+	},
+	"app.ai.composer.web-hint": {
+		"message": "Свежие данные из интернета"
+	},
+	"app.ai.picker.active": {
+		"message": "Сейчас отвечает"
+	},
+	"app.ai.picker.all-off": {
+		"message": "Все модели скрыты — включите нужные в управлении."
+	},
+	"app.ai.picker.custom-base": {
+		"message": "Адрес (OpenAI-совместимый)"
+	},
+	"app.ai.picker.custom-in-use": {
+		"message": "Используется"
+	},
+	"app.ai.picker.custom-model": {
+		"message": "Имя модели"
+	},
+	"app.ai.picker.custom-use": {
+		"message": "Использовать свой сервер"
+	},
+	"app.ai.picker.get-key": {
+		"message": "Получить на {domain}"
+	},
+	"app.ai.picker.hide-key": {
+		"message": "Скрыть ключ"
+	},
+	"app.ai.picker.key": {
+		"message": "API-ключ"
+	},
+	"app.ai.picker.key.missing": {
+		"message": "Без ключа модели этого провайдера не отвечают."
+	},
+	"app.ai.picker.key.placeholder": {
+		"message": "Вставьте ключ"
+	},
+	"app.ai.picker.manage": {
+		"message": "Управление"
+	},
+	"app.ai.picker.manage-done": {
+		"message": "Готово"
+	},
+	"app.ai.picker.manage-hint": {
+		"message": "Выключенные модели не показываются в выборе"
+	},
+	"app.ai.picker.models": {
+		"message": "Модели"
+	},
+	"app.ai.picker.need-key": {
+		"message": "нужен ключ"
+	},
+	"app.ai.picker.nothing": {
+		"message": "Ничего не нашлось"
+	},
+	"app.ai.picker.peak-busy": {
+		"message": "Z.AI: часы пик"
+	},
+	"app.ai.picker.peak-free": {
+		"message": "Z.AI: свободно"
+	},
+	"app.ai.picker.providers": {
+		"message": "Провайдеры"
+	},
+	"app.ai.picker.russia": {
+		"message": "РФ"
+	},
+	"app.ai.picker.search": {
+		"message": "Найти модель"
+	},
+	"app.ai.picker.show-key": {
+		"message": "Показать ключ"
+	},
+	"app.ai.picker.test": {
+		"message": "Проверить связь"
+	},
+	"app.ai.picker.test.fail": {
+		"message": "Не отвечает"
+	},
+	"app.ai.picker.test.running": {
+		"message": "Проверяю…"
+	},
+	"app.features.notes-popup.description": {
+		"message": "Заметка сборки всплывает при запуске игры. Включение возвращает и те, что были скрыты кнопкой «Больше не напоминать»."
+	},
+	"app.features.notes-popup.restore": {
+		"message": "Вернуть скрытые ({count})"
+	},
+	"app.features.notes-popup.title": {
+		"message": "Заметки перед запуском"
+	},
+	"app.settings.connections.clear": {
+		"message": "Очистить"
+	},
+	"app.settings.connections.copied": {
+		"message": "Скопировано!"
+	},
+	"app.settings.connections.copy": {
+		"message": "Скопировать список"
+	},
+	"app.settings.connections.description": {
+		"message": "Куда ходит лаунчер: каждый сетевой запрос — к какому серверу или CDN, когда, с каким ответом и за сколько. Список живёт с момента запуска."
+	},
+	"app.settings.connections.empty": {
+		"message": "Пока тихо — запросов ещё не было."
+	},
+	"app.settings.connections.title": {
+		"message": "Подключения"
+	},
+	"app.settings.resource-management.skin-services.nmsr": {
+		"message": "NMSR — эталонный рендер, принимает любой хеш"
+	},
+	"app.settings.resource-management.skin-services.skinrender": {
+		"message": "SkinRender.dev — свой 3D-движок, принимает любой хеш"
+	},
+	"app.settings.resource-management.skin-services.vzge": {
+		"message": "vzge.me — быстрый 3D-рендер с CDN, принимает любой хеш (по умолчанию)"
+	},
+	"app.skin-browse.profile-account": {
+		"message": "Учётная запись"
+	},
+	"noctrinth.settings.curseforge.cache.title": {
+		"message": "Кэш"
+	},
+	"noctrinth.settings.curseforge.check-updates": {
+		"message": "Проверять на CurseForge обновления его модов и сборок"
+	},
+	"noctrinth.settings.curseforge.check-updates.title": {
+		"message": "Проверять обновления"
+	},
+	"noctrinth.settings.curseforge.clear-cache": {
+		"message": "Сбросить ответы CurseForge"
+	},
+	"noctrinth.settings.curseforge.clear-cache-hint": {
+		"message": "Они хранятся пять минут; кнопка запросит заново прямо сейчас."
+	},
+	"noctrinth.settings.curseforge.cleared": {
+		"message": "Сброшено"
+	},
+	"noctrinth.settings.curseforge.default-source": {
+		"message": "Обзор открывается на"
+	},
+	"noctrinth.settings.curseforge.default-source.description": {
+		"message": "Какой каталог показывать первым. Переключатель над результатами меняет его в любой момент."
+	},
+	"noctrinth.settings.curseforge.description": {
+		"message": "Поиск и установка с CurseForge, распознавание его файлов в сборках и их обновление. Если выключено — лаунчер ничего не запрашивает у CurseForge."
+	},
+	"noctrinth.settings.curseforge.no-key": {
+		"message": "В этой сборке лаунчера нет ключа API CurseForge. Добавьте свой ниже, чтобы пользоваться CurseForge."
+	},
+	"noctrinth.settings.curseforge.own-key": {
+		"message": "Свой ключ API"
+	},
+	"noctrinth.settings.curseforge.own-key.check": {
+		"message": "Проверить"
+	},
+	"noctrinth.settings.curseforge.own-key.check-and-save": {
+		"message": "Проверить и сохранить"
+	},
+	"noctrinth.settings.curseforge.own-key.check-failed": {
+		"message": "Не удалось связаться с CurseForge для проверки ключа"
+	},
+	"noctrinth.settings.curseforge.own-key.forget": {
+		"message": "Забыть мой ключ"
+	},
+	"noctrinth.settings.curseforge.own-key.hint": {
+		"message": "Используется вместо встроенного и хранится только на этом компьютере. Войдите в консоль CurseForge и скопируйте ключ на странице API keys:"
+	},
+	"noctrinth.settings.curseforge.own-key.invalid": {
+		"message": "CurseForge не принимает этот ключ"
+	},
+	"noctrinth.settings.curseforge.own-key.ok": {
+		"message": "CurseForge принимает ключ"
+	},
+	"noctrinth.settings.curseforge.own-key.placeholder": {
+		"message": "Ваш ключ сохранён"
+	},
+	"noctrinth.settings.curseforge.own-key.saved": {
+		"message": "CurseForge принимает ключ, он сохранён"
+	},
+	"noctrinth.settings.curseforge.recognize-files": {
+		"message": "Узнавать моды, добавленные вручную или из других лаунчеров, по отпечатку файла"
+	},
+	"noctrinth.settings.curseforge.recognize-files.title": {
+		"message": "Распознавать файлы"
+	},
+	"noctrinth.settings.curseforge.release-type": {
+		"message": "Обновлять до"
+	},
+	"noctrinth.settings.curseforge.release-type.alpha": {
+		"message": "Любые файлы, включая альфы"
+	},
+	"noctrinth.settings.curseforge.release-type.beta": {
+		"message": "Релизы и беты"
+	},
+	"noctrinth.settings.curseforge.release-type.description": {
+		"message": "Какие файлы считать обновлением."
+	},
+	"noctrinth.settings.curseforge.release-type.release": {
+		"message": "Только релизы"
+	},
+	"noctrinth.settings.curseforge.search-other-launchers": {
+		"message": "Искать недоступные лаунчерам файлы в сборках других лаунчеров, а не только в «Загрузках»"
+	},
+	"noctrinth.settings.curseforge.search-other-launchers.title": {
+		"message": "Искать в других лаунчерах"
+	},
+	"noctrinth.settings.curseforge.section.discover": {
+		"message": "Обзор"
+	},
+	"noctrinth.settings.curseforge.section.files": {
+		"message": "Файлы и обновления"
+	},
+	"noctrinth.settings.curseforge.section.restricted": {
+		"message": "Файлы, недоступные лаунчерам"
+	},
+	"app.ai.composer.mode.ask": {
+		"message": "Ask"
+	},
+	"app.ai.composer.mode.build": {
+		"message": "Build"
+	},
+	"app.ai.picker.free": {
+		"message": "бесплатно"
+	},
+	"app.appearance-settings.accent.blood": {
+		"message": "Кровавый"
+	},
+	"app.appearance-settings.accent.crimson": {
+		"message": "Багровый"
+	},
+	"app.appearance-settings.accent.custom.brightness": {
+		"message": "Яркость"
+	},
+	"app.appearance-settings.accent.custom.hex": {
+		"message": "HEX-цвет"
+	},
+	"app.appearance-settings.accent.custom.wheel": {
+		"message": "Оттенок и насыщенность"
+	},
+	"app.appearance-settings.accent.moss": {
+		"message": "Мох"
+	},
+	"app.appearance-settings.accent.sunset": {
+		"message": "Закат"
+	},
+	"app.clock.action-close": {
+		"message": "Закрыть игру"
+	},
+	"app.clock.action-none": {
+		"message": "Ничего"
+	},
+	"app.clock.action-open": {
+		"message": "Открыть игру"
+	},
+	"app.clock.stopwatch": {
+		"message": "Секундомер"
+	},
+	"app.clock.time": {
+		"message": "Время"
+	},
+	"app.clock.timer": {
+		"message": "Таймер"
+	},
+	"app.content-install.curseforge.missing-dependencies.text": {
+		"message": "Для этой сборки у них нет версии, их нужно добавить другим способом: {names}"
+	},
+	"app.content-install.curseforge.missing-dependencies.title": {
+		"message": "Установлено без части зависимостей"
+	},
+	"app.curseforge.pending.all-done": {
+		"message": "Всё установлено"
+	},
+	"app.curseforge.pending.description": {
+		"message": "{count, plural, one {Автор этого файла не разрешает} other {Авторы этих файлов не разрешают}} лаунчерам скачивать {count, plural, one {его} other {их}}. Скачайте {count, plural, one {его} other {каждый}} с CurseForge — лаунчер сам подхватит {count, plural, one {файл} other {файлы}} из папки «Загрузки»."
+	},
+	"app.curseforge.pending.done": {
+		"message": "Готово"
+	},
+	"app.curseforge.pending.found": {
+		"message": "Установлен"
+	},
+	"app.curseforge.pending.header": {
+		"message": "Скачать вручную"
+	},
+	"app.curseforge.pending.open-all": {
+		"message": "Открыть страницы загрузки"
+	},
+	"app.curseforge.pending.open-downloads": {
+		"message": "Открыть папку «Загрузки»"
+	},
+	"app.curseforge.pending.open-page": {
+		"message": "Скачать"
+	},
+	"app.curseforge.pending.skip": {
+		"message": "Обойтись без него"
+	},
+	"app.curseforge.pending.waiting": {
+		"message": "Слежу за папкой «Загрузки»…"
+	},
+	"app.curseforge.project.add-favorite": {
+		"message": "В избранное"
+	},
+	"app.curseforge.project.load-error": {
+		"message": "Не удалось загрузить этот проект CurseForge."
+	},
+	"app.curseforge.project.open-on-curseforge": {
+		"message": "Открыть на CurseForge"
+	},
+	"app.curseforge.project.remove-favorite": {
+		"message": "Убрать из избранного"
+	},
+	"app.download-manager.rate-limited": {
+		"message": "Modrinth просит притормозить, продолжим через {seconds, plural, one {# секунду} few {# секунды} many {# секунд} other {# секунды}}"
+	},
+	"app.features.ai-links.description": {
+		"message": "Внешние ссылки из чата Порталуса открываются в окне лаунчера, а не в системном браузере (по умолчанию выключено)."
+	},
+	"app.features.ai-links.title": {
+		"message": "Ссылки ИИ во встроенном браузере"
+	},
+	"app.instance.content.curseforge-pending.action": {
+		"message": "Скачать"
+	},
+	"app.instance.content.curseforge-pending.body": {
+		"message": "Их авторы не разрешают лаунчерам скачивать их, и на этом компьютере они не нашлись."
+	},
+	"app.instance.content.curseforge-pending.header": {
+		"message": "{count, plural, one {# файл нужно} few {# файла нужно} many {# файлов нужно} other {# файла нужно}} скачать вручную"
+	},
+	"app.settings.browser.clear": {
+		"message": "Очистить историю"
+	},
+	"app.settings.browser.error": {
+		"message": "Поиск не ответил"
+	},
+	"app.settings.browser.history": {
+		"message": "Недавние запросы"
+	},
+	"app.settings.browser.note": {
+		"message": "Страницы открываются в отдельном окне лаунчера — настоящий браузер, только внутри Portalrinth."
+	},
+	"app.settings.browser.nothing": {
+		"message": "Ничего не нашлось — попробуйте другой запрос"
+	},
+	"app.settings.browser.open": {
+		"message": "Открыть"
+	},
+	"app.settings.browser.opening": {
+		"message": "Открываю…"
+	},
+	"app.settings.browser.placeholder": {
+		"message": "Поиск в интернете или адрес…"
+	},
+	"app.settings.browser.search": {
+		"message": "Найти"
+	},
+	"app.settings.browser.searching": {
+		"message": "Ищу…"
+	},
+	"app.settings.browser.title": {
+		"message": "Браузер"
+	},
+	"app.settings.tabs.browser": {
+		"message": "Браузер"
+	},
+	"app.settings.tabs.curseforge": {
+		"message": "CurseForge"
+	},
+	"app.settings.tabs.updates": {
+		"message": "Обновления"
+	},
+	"app.settings.updates.available": {
+		"message": "Доступно обновление"
+	},
+	"app.settings.updates.current": {
+		"message": "Установленная версия"
+	},
+	"app.settings.updates.downloading": {
+		"message": "Скачиваю…"
+	},
+	"app.settings.updates.fail": {
+		"message": "Не отвечает"
+	},
+	"app.settings.updates.launcher": {
+		"message": "Лаунчер"
+	},
+	"app.settings.updates.no-releases": {
+		"message": "Релизов нет или они недоступны"
+	},
+	"app.settings.updates.note": {
+		"message": "Свежие заметки о выпусках Modrinth App, Noctrinth и Portalrinth — с переводом на ваш язык."
+	},
+	"app.settings.updates.refresh": {
+		"message": "Обновить"
+	},
+	"app.settings.updates.release-page": {
+		"message": "Страница релиза"
+	},
+	"app.settings.updates.running": {
+		"message": "Установщик запущен — дальше он сам"
+	},
+	"app.settings.updates.title": {
+		"message": "Обновления"
+	},
+	"app.settings.updates.translate": {
+		"message": "Перевести"
+	},
+	"app.settings.updates.translated": {
+		"message": "Оригинал"
+	},
+	"app.settings.updates.translated-note": {
+		"message": "Переведено встроенным переводчиком Google"
+	},
+	"app.settings.updates.up-to-date": {
+		"message": "У вас последняя версия"
+	},
+	"app.settings.updates.update": {
+		"message": "Обновить (.exe)"
+	},
+	"app.sidebar.friends": {
+		"message": "Друзья"
+	},
+	"button.switch-version": {
+		"message": "Сменить версию"
+	},
+	"noctrinth.settings.curseforge.source.curseforge": {
+		"message": "CurseForge"
+	},
+	"noctrinth.settings.curseforge.source.modrinth": {
+		"message": "Modrinth"
+	},
+	"noctrinth.settings.curseforge.title": {
+		"message": "CurseForge"
+	},
+	"pack-manifest.all": {
+		"message": "Все"
+	},
+	"pack-manifest.cancel": {
+		"message": "Отмена"
+	},
+	"pack-manifest.confirm": {
+		"message": "Установить выбранное"
+	},
+	"pack-manifest.counts": {
+		"message": "Будет установлено {kept} из {total}"
+	},
+	"pack-manifest.empty": {
+		"message": "В этой сборке ничего не подходит."
+	},
+	"pack-manifest.enable": {
+		"message": "Установить"
+	},
+	"pack-manifest.install-all": {
+		"message": "Установить всё"
+	},
+	"pack-manifest.install-none": {
+		"message": "Ничего не ставить"
+	},
+	"pack-manifest.kind.data-pack": {
+		"message": "Наборы данных"
+	},
+	"pack-manifest.kind.mod": {
+		"message": "Моды"
+	},
+	"pack-manifest.kind.other": {
+		"message": "Другие файлы"
+	},
+	"pack-manifest.kind.resource-pack": {
+		"message": "Наборы ресурсов"
+	},
+	"pack-manifest.kind.shader": {
+		"message": "Шейдеры"
+	},
+	"pack-manifest.open-page": {
+		"message": "Открыть страницу проекта"
+	},
+	"pack-manifest.reading": {
+		"message": "Читаю манифест"
+	},
+	"pack-manifest.remove": {
+		"message": "Убрать"
+	},
+	"pack-manifest.search": {
+		"message": "Поиск по названию, автору или версии"
+	},
+	"pack-manifest.search-label": {
+		"message": "Поиск по содержимому"
+	},
+	"pack-manifest.title": {
+		"message": "Что внутри сборки"
+	},
+	"app.project.load-error.title": {
+		"message": "Страница проекта недоступна"
+	},
+	"app.project.load-error.retry": {
+		"message": "Повторить"
+	}
+}

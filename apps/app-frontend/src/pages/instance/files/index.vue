@@ -1,0 +1,561 @@
+<script setup lang="ts">
+import type {
+	ContentItem,
+	EditingFile,
+	FileItem,
+	FileItemDescription,
+	UploadState,
+} from '@modrinth/ui'
+import {
+	commonMessages,
+	defineMessages,
+	FilePageLayout,
+	formatLoader,
+	injectNotificationManager,
+	provideFileManager,
+	ReadyTransition,
+	useDebugLogger,
+	useVIntl,
+} from '@modrinth/ui'
+import { useQuery } from '@tanstack/vue-query'
+import { invoke } from '@tauri-apps/api/core'
+import { openUrl } from '@tauri-apps/plugin-opener'
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { useAppEvent } from '@/composables/use-app-event'
+import { curseforgeIdOf, isCurseforgeContent } from '@/helpers/curseforge'
+import { get_full_path, get_linked_modpack_content } from '@/helpers/instance'
+import { highlightInFolder } from '@/helpers/utils'
+
+import { injectInstancePage } from '../instance-context'
+import {
+	instanceContentQueryOptions,
+	instanceKeys,
+	instanceListQueryOptions,
+} from '../query-options'
+
+const instancePage = injectInstancePage()
+const instanceId = instancePage.instanceId
+
+const { formatMessage } = useVIntl()
+const { addNotification } = injectNotificationManager()
+const debug = useDebugLogger('Files')
+
+const messages = defineMessages({
+	readOnly: {
+		id: 'instance.files.managed-content-read-only',
+		defaultMessage: 'Manage your installed content via the Content tab',
+	},
+	saveAs: {
+		id: 'instance.files.save-as',
+		defaultMessage: 'Save as...',
+	},
+	addingFiles: {
+		id: 'instance.files.adding-files',
+		defaultMessage: 'Adding files ({completed}/{total})',
+	},
+	moveFailedTitle: {
+		id: 'instance.files.move-bulk-failed',
+		defaultMessage: 'Could not move some items',
+	},
+})
+
+const instanceRootQuery = useQuery(
+	computed(() => ({
+		queryKey: instanceKeys.rootPath(instancePage.instanceId.value),
+		queryFn: () => get_full_path(instancePage.instanceId.value),
+		enabled: !!instancePage.instanceId.value,
+		staleTime: Infinity,
+	})),
+)
+const instanceRoot = computed(() => instanceRootQuery.data.value ?? '')
+const items = ref<FileItem[]>([])
+/** True until the first directory read for the current instance path finishes (initial load only). */
+const firstPaintPending = ref(true)
+const loading = ref(true)
+const error = ref<Error | null>(null)
+const currentPath = ref('')
+const editingFile = ref<EditingFile | null>(null)
+
+debug('setup: start, instance.id =', instanceId.value)
+
+// Noctrinth's own: inside a content folder, a file the Content tab knows is
+// drawn as that project — icon, name, version and author, each opening its
+// page — from the same listing the Content tab reads, not a second one.
+const CONTENT_FOLDERS = ['mods', 'resourcepacks', 'shaderpacks']
+const router = useRouter()
+const inContentFolder = computed(() =>
+	CONTENT_FOLDERS.includes(currentPath.value.replace(/^\/+/, '').split('/')[0]),
+)
+const contentQuery = useQuery(
+	computed(() => ({
+		...instanceContentQueryOptions(instanceId.value),
+		enabled: !!instanceId.value && inContentFolder.value,
+	})),
+)
+const linkedContentQuery = useQuery(
+	computed(() => ({
+		queryKey: instanceKeys.linkedContent(instanceId.value),
+		networkMode: 'always' as const,
+		queryFn: () => get_linked_modpack_content(instanceId.value),
+		enabled: !!instanceId.value && inContentFolder.value && !!instancePage.instance.value?.link,
+	})),
+)
+const contentByPath = computed(() => {
+	const byPath = new Map<string, ContentItem>()
+	for (const item of [
+		...(linkedContentQuery.data.value ?? []),
+		...(contentQuery.data.value?.contentItems ?? []),
+	]) {
+		if (item.file_path && item.project) byPath.set(normalizePath(item.file_path), item)
+	}
+	return byPath
+})
+
+function normalizePath(path: string) {
+	return path.replace(/\\/g, '/').replace(/^\/+/, '')
+}
+
+// Pictures show themselves, as on the Screenshots tab. A row asks for its
+// thumbnail when first drawn; the list only draws the rows in view.
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|webp|gif|bmp)$/i
+const thumbnails = ref(new Map<string, string>())
+const thumbnailsAsked = new Set<string>()
+let thumbnailQueue: Promise<void> = Promise.resolve()
+
+function thumbnailOf(file: FileItem): string | undefined {
+	const path = `${instanceRoot.value}/${normalizePath(file.path)}`
+	const known = thumbnails.value.get(path)
+	if (known || thumbnailsAsked.has(path)) return known
+	thumbnailsAsked.add(path)
+	thumbnailQueue = thumbnailQueue.then(async () => {
+		const url = await invoke<string>('plugin:utils|get_image_thumbnail', { path, size: 64 }).catch(
+			() => null,
+		)
+		if (url) thumbnails.value = new Map(thumbnails.value).set(path, url)
+	})
+	return undefined
+}
+
+function describeItem(file: FileItem): FileItemDescription | undefined {
+	if (file.type === 'file' && IMAGE_EXTENSIONS.test(file.name)) {
+		const iconUrl = thumbnailOf(file)
+		return iconUrl ? { iconUrl } : undefined
+	}
+	if (file.type !== 'file' || !inContentFolder.value) return undefined
+	const item = contentByPath.value.get(normalizePath(file.path))
+	const project = item?.project
+	if (!item || !project) return undefined
+	const query = { i: instanceId.value }
+	const owner = item.owner
+	return {
+		title: project.title,
+		iconUrl: project.icon_url,
+		version: item.version?.version_number,
+		open: () => {
+			if (isCurseforgeContent(item)) {
+				void router.push({ path: `/curseforge/${curseforgeIdOf(project.id)}`, query })
+			} else if (project.external_url) {
+				void openUrl(project.external_url)
+			} else {
+				void router.push({ path: `/project/${project.id}`, query })
+			}
+		},
+		author: owner
+			? {
+					name: owner.name,
+					open: () => {
+						if (owner.external_url) void openUrl(owner.external_url)
+						else if (owner.type === 'user')
+							void router.push(`/user/${encodeURIComponent(owner.id)}`)
+						else void router.push(`/organization/${encodeURIComponent(owner.id)}`)
+					},
+				}
+			: null,
+	}
+}
+
+async function listDirectory(dirPath: string): Promise<FileItem[]> {
+	return invoke('plugin:files|file_list', { instanceId: instanceId.value, path: dirPath })
+}
+
+function isReadOnly(path: string): boolean {
+	const normalized = path.startsWith('/') ? path.slice(1) : path
+	return (
+		normalized.split('/')[0].toLowerCase() === 'mods' ||
+		items.value.some((item) => item.path === normalized && item.readOnly === true)
+	)
+}
+
+async function writeBytes(path: string, bytes: Uint8Array, createOnly = false) {
+	await invoke('plugin:files|file_write', {
+		instanceId: instanceId.value,
+		path,
+		bytes: Array.from(bytes),
+		createOnly,
+	})
+}
+
+const directoryQuery = useQuery(
+	computed(() => ({
+		queryKey: instanceKeys.files(instancePage.instanceId.value, currentPath.value),
+		queryFn: () => listDirectory(currentPath.value),
+		enabled: !!instanceRoot.value,
+		staleTime: 30_000,
+	})),
+)
+
+watch(
+	directoryQuery.data,
+	(data) => {
+		if (!data) return
+		items.value = data
+		firstPaintPending.value = false
+	},
+	{ immediate: true },
+)
+watch(directoryQuery.isFetching, (fetching) => {
+	loading.value = fetching
+})
+watch(directoryQuery.error, (queryError) => {
+	error.value = queryError
+	if (queryError) items.value = []
+})
+
+await instanceRootQuery.suspense()
+await directoryQuery.refetch()
+firstPaintPending.value = false
+
+async function refresh() {
+	debug('refresh: called, currentPath =', currentPath.value, 'instanceRoot =', instanceRoot.value)
+	await directoryQuery.refetch()
+}
+
+function navigateTo(path: string) {
+	debug('navigateTo:', path)
+	currentPath.value = path.startsWith('/') ? path.slice(1) : path
+	refresh()
+}
+
+function startEditing(file: EditingFile) {
+	editingFile.value = file
+}
+
+function stopEditing() {
+	editingFile.value = null
+}
+
+async function handleCreateItem(name: string, type: 'file' | 'directory') {
+	const targetPath = currentPath.value ? `${currentPath.value}/${name}` : name
+	try {
+		if (type === 'directory') {
+			await invoke('plugin:files|file_create_directory', {
+				instanceId: instanceId.value,
+				path: targetPath,
+			})
+		} else {
+			await writeBytes(targetPath, new Uint8Array(), true)
+		}
+		await refresh()
+	} catch (e) {
+		addNotification({
+			title: formatMessage(commonMessages.createFailedLabel),
+			text: e instanceof Error ? e.message : '',
+			type: 'error',
+		})
+	}
+}
+
+async function handleRenameItem(path: string, newName: string) {
+	const parentDir = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : ''
+	const newPath = parentDir ? `${parentDir}/${newName}` : newName
+	try {
+		await invoke('plugin:files|file_rename', {
+			instanceId: instanceId.value,
+			source: path,
+			destination: newPath,
+		})
+		await refresh()
+	} catch (e) {
+		addNotification({
+			title: formatMessage(commonMessages.renameFailedLabel),
+			text: e instanceof Error ? e.message : '',
+			type: 'error',
+		})
+	}
+}
+
+async function handleMoveItem(source: string, destination: string) {
+	try {
+		await invoke('plugin:files|file_rename', { instanceId: instanceId.value, source, destination })
+		await refresh()
+	} catch (e) {
+		addNotification({
+			title: formatMessage(commonMessages.moveFailedLabel),
+			text: e instanceof Error ? e.message : '',
+			type: 'error',
+		})
+	}
+}
+
+// Many items — files and folders alike — go into one folder of this instance;
+// a failure on one item does not stop the rest.
+async function handleMoveItems(
+	sources: { name: string; path: string; type: string }[],
+	destinationFolder: string,
+) {
+	const failures: string[] = []
+	for (const source of sources) {
+		const destination = `${destinationFolder}/${source.name}`.replace('//', '/')
+		try {
+			await invoke('plugin:files|file_rename', {
+				instanceId: instanceId.value,
+				source: source.path,
+				destination,
+			})
+		} catch (e) {
+			failures.push(`${source.name}: ${e instanceof Error ? e.message : ''}`)
+		}
+	}
+	await refresh()
+	if (failures.length > 0) {
+		addNotification({
+			title: formatMessage(messages.moveFailedTitle),
+			text: failures.join('\n'),
+			type: 'error',
+		})
+	}
+}
+
+// Other instances, for «Переместить в другую сборку» and «Заменить файл».
+const instancesQuery = useQuery(instanceListQueryOptions())
+const transferInstances = computed(() =>
+	(instancesQuery.data.value ?? [])
+		.filter((candidate) => candidate.id !== instanceId.value)
+		.map((candidate) => ({
+			id: candidate.id,
+			name: candidate.name,
+			subtitle: `${formatLoader(formatMessage, candidate.loader)} ${candidate.game_version}`,
+		})),
+)
+
+async function handleMoveItemsToInstance(
+	sources: { name: string; path: string }[],
+	targetInstanceId: string,
+) {
+	const failures: string[] = []
+	for (const source of sources) {
+		const parentDirectory = source.path.includes('/')
+			? source.path.slice(0, source.path.lastIndexOf('/'))
+			: ''
+		const destination = parentDirectory ? `${parentDirectory}/${source.name}` : source.name
+		try {
+			await invoke('plugin:files|file_move_cross', {
+				sourceInstanceId: instanceId.value,
+				source: source.path,
+				destinationInstanceId: targetInstanceId,
+				destination,
+				replace: false,
+			})
+		} catch (e) {
+			failures.push(`${source.name}: ${e instanceof Error ? e.message : ''}`)
+		}
+	}
+	await refresh()
+	if (failures.length > 0) {
+		addNotification({
+			title: formatMessage(messages.moveFailedTitle),
+			text: failures.join('\n'),
+			type: 'error',
+		})
+	}
+}
+
+async function handleReplaceFiles(
+	replacements: {
+		sourceInstanceId: string
+		sourcePath: string
+		targetInstanceId: string
+		targetPath: string
+	}[],
+) {
+	let lastError: unknown = null
+	for (const replacement of replacements) {
+		try {
+			await invoke('plugin:files|file_move_cross', {
+				sourceInstanceId: replacement.sourceInstanceId,
+				source: replacement.sourcePath,
+				destinationInstanceId: replacement.targetInstanceId,
+				destination: replacement.targetPath,
+				replace: true,
+			})
+		} catch (e) {
+			lastError = e
+		}
+	}
+	await refresh()
+	if (lastError) throw lastError
+}
+
+async function handleDeleteItem(path: string, recursive: boolean) {
+	try {
+		await invoke('plugin:files|file_delete', { instanceId: instanceId.value, path, recursive })
+		await refresh()
+	} catch (e) {
+		addNotification({
+			title: formatMessage(commonMessages.deleteFailedLabel),
+			text: e instanceof Error ? e.message : '',
+			type: 'error',
+		})
+	}
+}
+
+async function handleReadFile(path: string): Promise<string> {
+	const bytes = await invoke<number[]>('plugin:files|file_read', {
+		instanceId: instanceId.value,
+		path,
+	})
+	return new TextDecoder().decode(new Uint8Array(bytes))
+}
+
+async function handleReadFileAsBlob(path: string): Promise<Blob> {
+	const bytes = await invoke<number[]>('plugin:files|file_read', {
+		instanceId: instanceId.value,
+		path,
+	})
+	return new Blob([new Uint8Array(bytes)])
+}
+
+async function handleWriteFile(path: string, content: string) {
+	await writeBytes(path, new TextEncoder().encode(content))
+}
+
+async function handleDownloadFile(path: string, _fileName: string) {
+	await invoke('plugin:files|file_save_as', {
+		instanceId: instanceId.value,
+		filePath: path,
+	})
+}
+
+const uploadState = ref<UploadState>({
+	isUploading: false,
+	currentFileName: null,
+	currentFileProgress: 0,
+	uploadedBytes: 0,
+	totalBytes: 0,
+	completedFiles: 0,
+	totalFiles: 0,
+})
+
+async function handleUploadFiles(files: File[]) {
+	if (files.length === 0) return
+
+	uploadState.value = {
+		isUploading: true,
+		currentFileName: '',
+		currentFileProgress: 0,
+		uploadedBytes: 0,
+		totalBytes: files.reduce((sum, f) => sum + f.size, 0),
+		completedFiles: 0,
+		totalFiles: files.length,
+	}
+	try {
+		for (const file of files) {
+			uploadState.value.currentFileName = file.name
+			const buffer = await file.arrayBuffer()
+			const targetPath = currentPath.value ? `${currentPath.value}/${file.name}` : file.name
+			await writeBytes(targetPath, new Uint8Array(buffer))
+			uploadState.value.completedFiles++
+			uploadState.value.uploadedBytes += file.size
+			uploadState.value.currentFileProgress = 1
+		}
+	} catch (e) {
+		addNotification({
+			title: formatMessage(commonMessages.uploadFailedLabel),
+			text: e instanceof Error ? e.message : '',
+			type: 'error',
+		})
+	} finally {
+		uploadState.value.isUploading = false
+		await refresh()
+	}
+}
+
+async function handleExtractFile(path: string, override: boolean, dry: boolean) {
+	try {
+		return await invoke('plugin:files|file_extract_zip', {
+			instanceId: instanceId.value,
+			filePath: path,
+			overrideConflicts: override,
+			dryRun: dry,
+		})
+	} catch (e) {
+		addNotification({
+			title: formatMessage(commonMessages.extractFailedLabel),
+			text: e instanceof Error ? e.message : '',
+			type: 'error',
+		})
+	}
+}
+
+useAppEvent('instance', async (event) => {
+	debug('app event: instance =', event.event, 'path =', event.instance_id)
+	if (event.instance_id === instanceId.value && event.event === 'synced') {
+		debug('app event: synced instance matched, calling refresh')
+		await refresh()
+	}
+})
+
+watch(instanceId, async () => {
+	debug('watch instance.id: changed to', instanceId.value)
+	firstPaintPending.value = true
+	currentPath.value = ''
+	await instanceRootQuery.refetch()
+	await refresh()
+})
+
+provideFileManager({
+	isReadOnly,
+	describeItem,
+	readOnlyReason: computed(() => formatMessage(messages.readOnly)),
+	items,
+	loading,
+	error,
+	currentPath,
+	navigateTo,
+	editingFile,
+	startEditing,
+	stopEditing,
+	createItem: handleCreateItem,
+	renameItem: handleRenameItem,
+	moveItem: handleMoveItem,
+	moveItems: handleMoveItems,
+	instanceId,
+	transferInstances,
+	moveItemsToInstance: handleMoveItemsToInstance,
+	replaceFiles: handleReplaceFiles,
+	deleteItem: handleDeleteItem,
+	readFile: handleReadFile,
+	readFileAsBlob: handleReadFileAsBlob,
+	writeFile: handleWriteFile,
+	downloadFile: handleDownloadFile,
+	uploadFiles: handleUploadFiles,
+	uploadState,
+	extractFile: handleExtractFile,
+	refresh,
+	basePath: instanceRoot,
+	openInFolder: (path: string) => highlightInFolder(path),
+	downloadButtonLabel: formatMessage(messages.saveAs),
+	uploadingLabel: (completed: number, total: number) =>
+		formatMessage(messages.addingFiles, { completed, total }),
+})
+</script>
+
+<template>
+	<ReadyTransition :pending="firstPaintPending">
+		<div>
+			<FilePageLayout :show-refresh-button="true" />
+		</div>
+	</ReadyTransition>
+</template>

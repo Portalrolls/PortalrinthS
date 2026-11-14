@@ -1,0 +1,814 @@
+use std::fmt::Write as _;
+use std::io::{BufRead, Seek, SeekFrom};
+use std::time::SystemTime;
+
+use anyhow::bail;
+use futures::TryFutureExt;
+use serde::{Deserialize, Serialize};
+use tokio::{
+    fs::File,
+    io::{AsyncReadExt, AsyncSeekExt},
+};
+
+use crate::{
+    ErrorKind, State,
+    prelude::Credentials,
+    state::ElyCredentials,
+    util::io::{self, IOError},
+};
+
+#[derive(Serialize, Debug)]
+pub struct Logs {
+    pub log_type: LogType,
+    pub filename: String,
+    pub age: u64,
+    pub output: Option<CensoredString>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Eq, PartialEq)]
+pub enum LogType {
+    InfoLog,
+    CrashReport,
+}
+
+const LOG_COMPACTION_THRESHOLD: usize = 20;
+
+#[derive(Serialize, Debug)]
+pub struct LatestLogCursor {
+    pub cursor: u64,
+    pub output: CensoredString,
+    pub new_file: bool,
+}
+
+/// Blanks out the session line the game writes at startup.
+///
+/// Minecraft logs `(Session ID is token:<token>:<uuid>)` itself, before anything
+/// here gets a say, and that line is a working credential for as long as the
+/// session lasts. Matching on the text rather than on a token this launcher
+/// happens to have on file covers an account that has since been removed, one
+/// signed in elsewhere, and account systems nobody has thought of yet.
+pub(crate) fn censor_session_ids(s: String) -> String {
+    const MARKER: &str = "Session ID is ";
+
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s.as_str();
+
+    while let Some(at) = rest.find(MARKER) {
+        let (before, after) = rest.split_at(at + MARKER.len());
+        out.push_str(before);
+        out.push_str("{MINECRAFT_SESSION_ID}");
+
+        // To the end of the line, or of whatever it was written inside.
+        let end = after
+            .find(|c: char| c == ')' || c == '\n' || c == '\r')
+            .unwrap_or(after.len());
+        rest = &after[end..];
+    }
+
+    out.push_str(rest);
+    out
+}
+
+/// Replaces a secret with its placeholder, unless there is nothing to replace.
+///
+/// An Ely.by account signed in through OAuth has no client token, and
+/// `str::replace` with an empty pattern matches between every two characters:
+/// every line of every log came out with the placeholder after each letter.
+/// Anything shorter than three characters is skipped for the same reason a
+/// one-letter nickname would be: it would redact half the log.
+fn redact(s: String, secret: &str, placeholder: &str) -> String {
+    if secret.trim().chars().count() < 3 {
+        return s;
+    }
+    s.replace(secret, placeholder)
+}
+
+#[derive(Serialize, Debug)] // Not deserialize
+#[serde(transparent)]
+pub struct CensoredString(String);
+impl CensoredString {
+    pub fn censor(s: String, credentials_list: &[Credentials]) -> Self {
+        Self::censor_all(s, credentials_list, &[])
+    }
+
+    /// The same, for a launcher that knows more than one account system.
+    ///
+    /// Ely.by's tokens live in a table of their own and were covered by none of
+    /// this: an Ely.by session token stood in the log in full, and went out with
+    /// it whenever a log was shared.
+    pub fn censor_all(
+        mut s: String,
+        credentials_list: &[Credentials],
+        ely_credentials: &[ElyCredentials],
+    ) -> Self {
+        // Whoever it belongs to and whichever account system issued it: the
+        // game writes this line itself on every launch, and a token nobody here
+        // has on file is still a token.
+        s = censor_session_ids(s);
+
+        for credentials in ely_credentials {
+            s = redact(
+                s,
+                &credentials.access_token,
+                "{MINECRAFT_ACCESS_TOKEN}",
+            );
+            s = redact(
+                s,
+                &credentials.client_token,
+                "{MINECRAFT_CLIENT_TOKEN}",
+            );
+            s = redact(s, &credentials.username, "{MINECRAFT_USERNAME}");
+            s = redact(
+                s,
+                &credentials.uuid.as_simple().to_string(),
+                "{MINECRAFT_UUID}",
+            );
+            s = redact(
+                s,
+                &credentials.uuid.as_hyphenated().to_string(),
+                "{MINECRAFT_UUID}",
+            );
+        }
+
+        let username = whoami::username();
+        s = redact(s, &format!("/{username}/"), "/{COMPUTER_USERNAME}/");
+        s = redact(s, &format!("\\{username}\\"), "\\{COMPUTER_USERNAME}\\");
+        for credentials in credentials_list {
+            // Use the offline profile to guarantee that this function does not cause
+            // Mojang API request, and is never delayed by a network request. The offline
+            // profile is optimistically updated on upsert from time to time anyway
+            s = redact(
+                s,
+                &credentials.access_token,
+                "{MINECRAFT_ACCESS_TOKEN}",
+            );
+            s = redact(
+                s,
+                &credentials.offline_profile.name,
+                "{MINECRAFT_USERNAME}",
+            );
+            s = redact(
+                s,
+                &credentials.offline_profile.id.as_simple().to_string(),
+                "{MINECRAFT_UUID}",
+            );
+            s = redact(
+                s,
+                &credentials.offline_profile.id.as_hyphenated().to_string(),
+                "{MINECRAFT_UUID}",
+            );
+        }
+
+        Self(s)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct LogCompactionStats {
+    compacted_runs: usize,
+    compacted_lines: usize,
+}
+
+struct CompactedLog {
+    output: String,
+    stats: LogCompactionStats,
+}
+
+async fn resolve_instance_path(
+    instance: &str,
+    state: &State,
+) -> crate::Result<String> {
+    sqlx::query_scalar!(
+        "
+        SELECT path
+        FROM instances
+        WHERE id = ? OR path = ?
+        ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
+        LIMIT 1
+        ",
+        instance,
+        instance,
+        instance,
+    )
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or(
+        ErrorKind::InputError(format!(
+            "unknown instance id or path {instance}"
+        ))
+        .into(),
+    )
+}
+
+fn split_line_ending(line: &str) -> (&str, &str) {
+    if let Some(line) = line.strip_suffix("\r\n") {
+        (line, "\r\n")
+    } else if let Some(line) = line.strip_suffix('\n') {
+        (line, "\n")
+    } else if let Some(line) = line.strip_suffix('\r') {
+        (line, "\r")
+    } else {
+        (line, "")
+    }
+}
+
+fn push_compacted_log_run(
+    output: &mut String,
+    stats: &mut LogCompactionStats,
+    line: &str,
+    line_ending: &str,
+    count: usize,
+) {
+    if count >= LOG_COMPACTION_THRESHOLD {
+        output.push_str(line);
+        let _ = write!(output, " (x{count} times - compacted by Portalrinth)");
+        output.push_str(line_ending);
+        stats.compacted_runs += 1;
+        stats.compacted_lines += count;
+    } else {
+        for _ in 0..count {
+            output.push_str(line);
+            output.push_str(line_ending);
+        }
+    }
+}
+
+fn read_compacted_log<R: BufRead>(
+    reader: &mut R,
+) -> std::io::Result<CompactedLog> {
+    let mut output = String::new();
+    let mut stats = LogCompactionStats::default();
+    let mut buffer = Vec::new();
+    let mut current_line: Option<String> = None;
+    let mut current_line_ending = String::new();
+    let mut current_count = 0usize;
+
+    loop {
+        buffer.clear();
+        let bytes_read = reader.read_until(b'\n', &mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+
+        let line = String::from_utf8_lossy(&buffer);
+        let (line, line_ending) = split_line_ending(&line);
+
+        match current_line.as_deref() {
+            Some(current) if current == line => {
+                current_count += 1;
+                if current_line_ending.is_empty() && !line_ending.is_empty() {
+                    current_line_ending = line_ending.to_string();
+                }
+            }
+            _ => {
+                if let Some(current) = current_line.take() {
+                    push_compacted_log_run(
+                        &mut output,
+                        &mut stats,
+                        &current,
+                        &current_line_ending,
+                        current_count,
+                    );
+                }
+
+                current_line = Some(line.to_string());
+                current_line_ending = line_ending.to_string();
+                current_count = 1;
+            }
+        }
+    }
+
+    if let Some(current) = current_line {
+        push_compacted_log_run(
+            &mut output,
+            &mut stats,
+            &current,
+            &current_line_ending,
+            current_count,
+        );
+    }
+
+    Ok(CompactedLog { output, stats })
+}
+
+fn compact_duplicate_lines(input: &str) -> CompactedLog {
+    let mut reader = std::io::Cursor::new(input.as_bytes());
+    read_compacted_log(&mut reader)
+        .expect("compacting an in-memory log should not fail")
+}
+
+fn format_count(count: usize) -> String {
+    let raw = count.to_string();
+    let mut formatted = String::with_capacity(raw.len() + raw.len() / 3);
+    for (index, character) in raw.chars().enumerate() {
+        if index > 0 && (raw.len() - index).is_multiple_of(3) {
+            formatted.push(',');
+        }
+        formatted.push(character);
+    }
+    formatted
+}
+
+async fn maybe_emit_log_compaction_warning(
+    file_name: &str,
+    stats: LogCompactionStats,
+) {
+    if stats.compacted_runs == 0 {
+        return;
+    }
+
+    let _ = crate::event::emit::emit_warning(&format!(
+        "Portalrinth has compacted {} repeated log lines in {} before displaying it for performance reasons.",
+        format_count(stats.compacted_lines),
+        file_name,
+    ))
+    .await;
+}
+
+impl Logs {
+    async fn build(
+        log_type: LogType,
+        age: SystemTime,
+        instance_path: &str,
+        filename: String,
+        clear_contents: Option<bool>,
+    ) -> crate::Result<Self> {
+        Ok(Self {
+            log_type,
+            age: age
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_else(|_| std::time::Duration::from_secs(0))
+                .as_secs(),
+            output: if clear_contents.unwrap_or(false) {
+                None
+            } else {
+                let state = State::get().await?;
+                Some(
+                    get_output_by_filename_from_path(
+                        &state,
+                        instance_path,
+                        log_type,
+                        &filename,
+                    )
+                    .await?,
+                )
+            },
+            filename,
+        })
+    }
+}
+
+#[tracing::instrument]
+pub async fn get_logs_from_type(
+    instance_id: &str,
+    log_type: LogType,
+    clear_contents: Option<bool>,
+    logs: &mut Vec<crate::Result<Logs>>,
+) -> crate::Result<()> {
+    let state = State::get().await?;
+    let instance_path = resolve_instance_path(instance_id, &state).await?;
+
+    let logs_folder = match log_type {
+        LogType::InfoLog => state.directories.instance_logs_dir(&instance_path),
+        LogType::CrashReport => {
+            state.directories.crash_reports_dir(&instance_path)
+        }
+    };
+
+    if logs_folder.exists() {
+        for entry in std::fs::read_dir(&logs_folder)
+            .map_err(|e| IOError::with_path(e, &logs_folder))?
+        {
+            let entry: std::fs::DirEntry =
+                entry.map_err(|e| IOError::with_path(e, &logs_folder))?;
+            let age = entry
+                .metadata()?
+                .created()
+                .unwrap_or(SystemTime::UNIX_EPOCH);
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            if let Some(file_name) = path.file_name() {
+                let file_name = file_name.to_string_lossy().to_string();
+                logs.push(
+                    Logs::build(
+                        log_type,
+                        age,
+                        &instance_path,
+                        file_name,
+                        clear_contents,
+                    )
+                    .await,
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tracing::instrument]
+pub async fn get_logs(
+    instance_id: &str,
+    clear_contents: Option<bool>,
+) -> crate::Result<Vec<Logs>> {
+    let mut logs = Vec::new();
+    get_logs_from_type(
+        instance_id,
+        LogType::InfoLog,
+        clear_contents,
+        &mut logs,
+    )
+    .await?;
+    get_logs_from_type(
+        instance_id,
+        LogType::CrashReport,
+        clear_contents,
+        &mut logs,
+    )
+    .await?;
+
+    let mut logs = logs.into_iter().collect::<crate::Result<Vec<Logs>>>()?;
+    logs.sort_by(|a, b| b.age.cmp(&a.age).then(b.filename.cmp(&a.filename)));
+    Ok(logs)
+}
+
+#[tracing::instrument]
+pub async fn get_logs_by_filename(
+    instance_id: &str,
+    log_type: LogType,
+    filename: String,
+) -> crate::Result<Logs> {
+    let state = State::get().await?;
+    let instance_path = resolve_instance_path(instance_id, &state).await?;
+
+    let path = match log_type {
+        LogType::InfoLog => state.directories.instance_logs_dir(&instance_path),
+        LogType::CrashReport => {
+            state.directories.crash_reports_dir(&instance_path)
+        }
+    }
+    .join(&filename);
+
+    let metadata = std::fs::metadata(&path)?;
+    let age = metadata.created().unwrap_or(SystemTime::UNIX_EPOCH);
+
+    Logs::build(log_type, age, &instance_path, filename, Some(true)).await
+}
+
+async fn get_output_by_filename_from_path(
+    state: &State,
+    instance_path: &str,
+    log_type: LogType,
+    file_name: &str,
+) -> crate::Result<CensoredString> {
+    let logs_folder = match log_type {
+        LogType::InfoLog => state.directories.instance_logs_dir(instance_path),
+        LogType::CrashReport => {
+            state.directories.crash_reports_dir(instance_path)
+        }
+    };
+
+    let path = logs_folder.join(file_name);
+
+    let credentials = Credentials::get_all(&state.pool)
+        .await?
+        .into_iter()
+        .map(|x| x.1)
+        .collect::<Vec<_>>();
+    let ely_credentials = ElyCredentials::get_all(&state.pool)
+        .await
+        .unwrap_or_default();
+
+    if let Some(ext) = path.extension() {
+        if ext == "gz" {
+            let file = std::fs::File::open(&path)
+                .map_err(|e| IOError::with_path(e, &path))?;
+            let gz =
+                flate2::read::GzDecoder::new(std::io::BufReader::new(file));
+            let mut reader = std::io::BufReader::new(gz);
+            let compacted = read_compacted_log(&mut reader)
+                .map_err(|e| IOError::with_path(e, &path))?;
+            maybe_emit_log_compaction_warning(file_name, compacted.stats).await;
+            return Ok(CensoredString::censor_all(
+                compacted.output,
+                &credentials,
+                &ely_credentials,
+            ));
+        } else if ext == "log" || ext == "txt" {
+            let file = std::fs::File::open(&path)
+                .map_err(|e| IOError::with_path(e, &path))?;
+            let mut reader = std::io::BufReader::new(file);
+            let compacted = read_compacted_log(&mut reader)
+                .map_err(|e| IOError::with_path(e, &path))?;
+            maybe_emit_log_compaction_warning(file_name, compacted.stats).await;
+            return Ok(CensoredString::censor_all(
+                compacted.output,
+                &credentials,
+                &ely_credentials,
+            ));
+        }
+    }
+    bail!("file extension not supported {}", path.display())
+}
+
+#[tracing::instrument]
+pub async fn get_output_by_filename(
+    instance_id: &str,
+    log_type: LogType,
+    file_name: &str,
+) -> crate::Result<CensoredString> {
+    let state = State::get().await?;
+    let instance_path = resolve_instance_path(instance_id, &state).await?;
+    get_output_by_filename_from_path(
+        &state,
+        &instance_path,
+        log_type,
+        file_name,
+    )
+    .await
+}
+
+/// Reads the last `max_bytes` of a plain-text log, aligned to a line start.
+///
+/// The agent's log lookups only need the end of the file - that is where
+/// errors and crashes live - and reading a many-megabyte `latest.log` whole
+/// (compaction, censoring, IPC) turned every AI log question into a wait.
+/// A bounded tail keeps the same output quality for a fraction of the work;
+/// gzipped logs and everything else fall back to the full read.
+pub async fn get_output_tail_by_filename(
+    instance_id: &str,
+    log_type: LogType,
+    file_name: &str,
+    max_bytes: Option<u64>,
+) -> crate::Result<CensoredString> {
+    let state = State::get().await?;
+    let instance_path = resolve_instance_path(instance_id, &state).await?;
+    let logs_folder = match log_type {
+        LogType::InfoLog => state.directories.instance_logs_dir(&instance_path),
+        LogType::CrashReport => {
+            state.directories.crash_reports_dir(&instance_path)
+        }
+    };
+    let path = logs_folder.join(file_name);
+
+    if let Some(ext) = path.extension() {
+        if ext == "log" || ext == "txt" {
+            let metadata = std::fs::metadata(&path)
+                .map_err(|e| IOError::with_path(e, &path))?;
+            let max = max_bytes.unwrap_or(512 * 1024).clamp(4096, 4 * 1024 * 1024);
+            if metadata.len() > max {
+                let mut reader = std::io::BufReader::new(
+                    std::fs::File::open(&path).map_err(|e| IOError::with_path(e, &path))?,
+                );
+                reader
+                    .seek(SeekFrom::Start(metadata.len() - max))
+                    .map_err(|e| IOError::with_path(e, &path))?;
+                // Drop the partial line the seek landed in the middle of, so
+                // the compaction sees whole lines only.
+                let mut scratch = Vec::new();
+                reader
+                    .read_until(b'\n', &mut scratch)
+                    .map_err(|e| IOError::with_path(e, &path))?;
+                let compacted = read_compacted_log(&mut reader)
+                    .map_err(|e| IOError::with_path(e, &path))?;
+                maybe_emit_log_compaction_warning(file_name, compacted.stats).await;
+                let credentials = Credentials::get_all(&state.pool)
+                    .await?
+                    .into_iter()
+                    .map(|x| x.1)
+                    .collect::<Vec<_>>();
+                let ely_credentials = ElyCredentials::get_all(&state.pool)
+                    .await
+                    .unwrap_or_default();
+                return Ok(CensoredString::censor_all(
+                    compacted.output,
+                    &credentials,
+                    &ely_credentials,
+                ));
+            }
+        }
+    }
+
+    // Small files, gz archives and unknown extensions: the full read.
+    get_output_by_filename_from_path(&state, &instance_path, log_type, file_name)
+        .await
+}
+
+#[tracing::instrument]
+pub async fn delete_logs(instance_id: &str) -> crate::Result<()> {
+    let state = State::get().await?;
+    let instance_path = resolve_instance_path(instance_id, &state).await?;
+
+    let logs_folder = state.directories.instance_logs_dir(&instance_path);
+    for entry in std::fs::read_dir(&logs_folder)
+        .map_err(|e| IOError::with_path(e, &logs_folder))?
+    {
+        let entry = entry.map_err(|e| IOError::with_path(e, &logs_folder))?;
+        let path = entry.path();
+        if path.is_dir() {
+            io::remove_dir_all(&path).await?;
+        }
+    }
+    Ok(())
+}
+
+#[tracing::instrument]
+pub async fn delete_logs_by_filename(
+    instance_id: &str,
+    log_type: LogType,
+    filename: &str,
+) -> crate::Result<()> {
+    let state = State::get().await?;
+    let instance_path = resolve_instance_path(instance_id, &state).await?;
+
+    let logs_folder = match log_type {
+        LogType::InfoLog => state.directories.instance_logs_dir(&instance_path),
+        LogType::CrashReport => {
+            state.directories.crash_reports_dir(&instance_path)
+        }
+    };
+
+    let path = logs_folder.join(filename);
+    io::remove_file(&path).await?;
+    Ok(())
+}
+
+#[tracing::instrument]
+pub async fn get_live_log_buffer(
+    instance_id: &str,
+) -> crate::Result<CensoredString> {
+    censor_lines(crate::state::get_instance_log_buffer(instance_id)).await
+}
+
+/// The live output of one copy of an instance, for a page showing each copy of
+/// it on its own.
+#[tracing::instrument]
+pub async fn get_live_log_buffer_for_process(
+    process_uuid: &str,
+) -> crate::Result<CensoredString> {
+    censor_lines(crate::state::get_log_buffer(process_uuid)).await
+}
+
+async fn censor_lines(lines: Vec<String>) -> crate::Result<CensoredString> {
+    let state = State::get().await?;
+    let joined = lines.join("\n");
+    let compacted = compact_duplicate_lines(&joined);
+
+    let credentials = Credentials::get_all(&state.pool)
+        .await?
+        .into_iter()
+        .map(|x| x.1)
+        .collect::<Vec<_>>();
+    let ely_credentials = ElyCredentials::get_all(&state.pool)
+        .await
+        .unwrap_or_default();
+    maybe_emit_log_compaction_warning("live log", compacted.stats).await;
+    Ok(CensoredString::censor_all(
+        compacted.output,
+        &credentials,
+        &ely_credentials,
+    ))
+}
+
+pub fn clear_live_log_buffer(instance_id: &str) {
+    crate::state::remove_instance_log_buffers(instance_id);
+}
+
+/// Forgets the live output of one copy of an instance.
+pub fn clear_live_log_buffer_for_process(process_uuid: &str) {
+    crate::state::remove_log_buffer(process_uuid);
+}
+
+#[tracing::instrument]
+pub async fn get_latest_log_cursor(
+    instance_id: &str,
+    cursor: u64, // 0 to start at beginning of file
+) -> crate::Result<LatestLogCursor> {
+    get_generic_live_log_cursor(instance_id, "launcher_log.txt", cursor).await
+}
+
+#[tracing::instrument]
+pub async fn get_generic_live_log_cursor(
+    instance_id: &str,
+    log_file_name: &str,
+    mut cursor: u64, // 0 to start at beginning of file
+) -> crate::Result<LatestLogCursor> {
+    let state = State::get().await?;
+    let instance_path = resolve_instance_path(instance_id, &state).await?;
+    let logs_folder = state.directories.instance_logs_dir(&instance_path);
+    let path = logs_folder.join(log_file_name);
+    if !path.exists() {
+        // Allow silent failure if latest.log doesn't exist (as the instance may have been launched, but not yet created the file)
+        return Ok(LatestLogCursor {
+            cursor: 0,
+            new_file: false,
+            output: CensoredString("".to_string()),
+        });
+    }
+
+    let mut file = File::open(&path)
+        .await
+        .map_err(|e| IOError::with_path(e, &path))?;
+    let metadata = file
+        .metadata()
+        .await
+        .map_err(|e| IOError::with_path(e, &path))?;
+
+    let mut new_file = false;
+    if cursor > metadata.len() {
+        // Cursor is greater than file length, reset cursor to 0
+        // Likely cause is that the file was rotated while the log was being read
+        cursor = 0;
+        new_file = true;
+    }
+
+    let mut buffer = Vec::new();
+    file.seek(SeekFrom::Start(cursor))
+        .map_err(|e| IOError::with_path(e, &path))
+        .await?; // Seek to cursor
+    let bytes_read = file
+        .read_to_end(&mut buffer)
+        .map_err(|e| IOError::with_path(e, &path))
+        .await?; // Read to end of file
+    let output = String::from_utf8_lossy(&buffer); // Convert to String
+    let compacted = compact_duplicate_lines(&output);
+    let cursor = cursor + bytes_read as u64; // Update cursor
+
+    let credentials = Credentials::get_all(&state.pool)
+        .await?
+        .into_iter()
+        .map(|x| x.1)
+        .collect::<Vec<_>>();
+    let ely_credentials = ElyCredentials::get_all(&state.pool)
+        .await
+        .unwrap_or_default();
+    maybe_emit_log_compaction_warning(log_file_name, compacted.stats).await;
+    let output = CensoredString::censor_all(
+        compacted.output,
+        &credentials,
+        &ely_credentials,
+    );
+    Ok(LatestLogCursor {
+        cursor,
+        new_file,
+        output,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{censor_session_ids, redact};
+
+    /// An Ely.by OAuth account has no client token, and replacing "" put the
+    /// placeholder between every two characters of every log line.
+    #[test]
+    fn an_empty_secret_leaves_the_log_alone() {
+        let line = "[17:04:43] [main/INFO]: Loading tweak class".to_string();
+
+        assert_eq!(redact(line.clone(), "", "{MINECRAFT_CLIENT_TOKEN}"), line);
+        assert_eq!(
+            redact(line.clone(), "  ", "{MINECRAFT_CLIENT_TOKEN}"),
+            line
+        );
+        assert_eq!(
+            redact("token abc123 here".to_string(), "abc123", "{T}"),
+            "token {T} here"
+        );
+    }
+
+    /// The line the game writes for itself, which is a working credential.
+    #[test]
+    fn blanks_out_the_session_id_the_game_logs() {
+        let log = concat!(
+            "[16:43:27] [main/INFO]: Setting user: Everesu\n",
+            "[16:43:27] [main/INFO]: (Session ID is token:eyJ0eXAiOiJKV1Qi.payload.sig:8dbaa676e1ab)\n",
+            "[16:43:27] [Client thread/INFO]: LWJGL Version: 2.9.1\n"
+        );
+
+        let censored = censor_session_ids(log.to_string());
+
+        assert!(
+            !censored.contains("eyJ0eXAiOiJKV1Qi"),
+            "the token is still there: {censored}"
+        );
+        assert!(
+            !censored.contains("8dbaa676e1ab"),
+            "the rest of the session id is still there: {censored}"
+        );
+        assert!(censored.contains("MINECRAFT_SESSION_ID"));
+        assert!(
+            censored.contains("Setting user: Everesu")
+                && censored.contains("LWJGL Version: 2.9.1"),
+            "the log around it must survive: {censored}"
+        );
+    }
+
+    /// Nothing to blank out, nothing changed.
+    #[test]
+    fn leaves_a_log_without_one_alone() {
+        let log = "[16:43:27] [main/INFO]: LWJGL Version: 2.9.1\n".to_string();
+
+        assert_eq!(log.clone(), censor_session_ids(log).as_str());
+    }
+}

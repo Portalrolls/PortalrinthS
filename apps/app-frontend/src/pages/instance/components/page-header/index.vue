@@ -1,0 +1,464 @@
+<template>
+	<PageHeader :title="instance.name">
+		<template #leading>
+			<Avatar
+				:src="iconSrc"
+				:alt="instance.name"
+				size="64px"
+				:tint-by="instance.id"
+				pad-transparent-corners
+			/>
+		</template>
+
+		<template v-if="instance.shared_instance || instance.quarantined" #badges>
+			<PageHeaderBadgeItem
+				v-if="instance.quarantined"
+				:icon="LockIcon"
+				:aria-label="formatMessage(messages.lockedBadgeLabel)"
+				class="!border-orange !bg-highlight-orange !text-orange"
+			>
+				{{ formatMessage(messages.lockedBadge) }}
+			</PageHeaderBadgeItem>
+			<PageHeaderBadgeItem
+				v-else
+				:tooltip="sharedInstanceTooltip"
+				:aria-label="formatMessage(messages.sharedBadgeLabel)"
+				class="!border-blue !bg-highlight-blue !text-blue"
+			>
+				{{ formatMessage(messages.sharedBadge) }}
+				<UnknownIcon class="block size-4 shrink-0 text-current" aria-hidden="true" />
+			</PageHeaderBadgeItem>
+		</template>
+
+		<template #metadata>
+			<InstanceHeaderServerMetadata
+				v-if="isServerInstance"
+				:loading-server-ping="loadingServerPing"
+				:players-online="playersOnline"
+				:status-online="statusOnline"
+				:ping="ping"
+				:minecraft-server="minecraftServer"
+				:show-instance-play-time="showInstancePlayTime"
+				:playtime-label="playtimeLabel ?? formatMessage(messages.neverPlayed)"
+			/>
+			<PageHeaderMetadata v-else>
+				<PageHeaderMetadataItem
+					:icon="TagIcon"
+					:icon-props="{ tag: loaderDisplayName, enforceType: 'loader' }"
+					:tooltip="formatMessage(messages.loaderTooltip)"
+				>
+					{{ loaderLabel }}
+				</PageHeaderMetadataItem>
+				<PageHeaderMetadataItem
+					v-if="showInstancePlayTime && playtimeLabel"
+					:icon="TimerIcon"
+					:tooltip="formatMessage(messages.totalPlaytime)"
+				>
+					{{ playtimeLabel }}
+				</PageHeaderMetadataItem>
+				<PageHeaderMetadataTimeItem
+					v-if="instance.last_played"
+					:icon="ClockIcon"
+					:date="instance.last_played"
+					:label="formatMessage(messages.lastPlayed)"
+				/>
+				<PageHeaderMetadataItem
+					v-else
+					:icon="ClockIcon"
+					:tooltip="formatMessage(messages.lastPlayed)"
+				>
+					{{ formatMessage(messages.neverPlayed) }}
+				</PageHeaderMetadataItem>
+			</PageHeaderMetadata>
+		</template>
+
+		<template #actions>
+			<PageHeaderActions>
+				<!--
+					Play, Starting, Installing and Stop are one shape that flows between
+					them, with the second copy's button running out of it; see
+					PortalrinthLaunchButton. What it does not cover keeps upstream's buttons.
+				-->
+				<PortalrinthLaunchButton
+					v-if="launchState"
+					:state="launchState"
+					:again-visible="playing && !isInstalling"
+					:again-disabled="loading"
+					:again-busy="playing && loading"
+					:labels="launchLabels"
+					@play="emit('play')"
+					@stop="(event) => emit('stop', event)"
+					@again="emit('playAgain')"
+				/>
+				<Transition v-else name="nm-swap-seq" mode="out-in">
+					<Button
+						v-if="instance.quarantined"
+						v-tooltip="formatMessage(messages.lockedPlayTooltip)"
+						type="colored"
+						color="brand"
+						size="xl"
+						native-type="button"
+						disabled
+					>
+						<PlayIcon />
+						{{ formatMessage(commonMessages.playButton) }}
+					</Button>
+					<Button
+						v-else-if="instance.install_stage !== 'installed'"
+						type="colored"
+						color="brand"
+						size="xl"
+						native-type="button"
+						@click="emit('repair')"
+					>
+						<DownloadIcon />
+						{{ formatMessage(messages.repair) }}
+					</Button>
+					<SplitButton
+						v-else
+						type="colored"
+						color="brand"
+						size="xl"
+						:options="serverPlayOptions"
+						:menu-label="formatMessage(messages.launchInstance)"
+						@click="emit('playServer')"
+					>
+						<PlayIcon />
+						{{ formatMessage(commonMessages.playButton) }}
+					</SplitButton>
+				</Transition>
+
+				<IconButton
+					v-tooltip="formatMessage(messages.instanceSettings)"
+					size="xl"
+					:label="formatMessage(messages.instanceSettings)"
+					native-type="button"
+					@click="emit('settings')"
+				>
+					<SettingsIcon />
+				</IconButton>
+				<TeleportOverflowMenu
+					type="quiet"
+					size="xl"
+					:label="formatMessage(messages.moreActions)"
+					:tooltip="formatMessage(messages.moreActions)"
+					:options="moreActions"
+				>
+					<MoreVerticalIcon />
+				</TeleportOverflowMenu>
+			</PageHeaderActions>
+		</template>
+	</PageHeader>
+</template>
+
+<script setup lang="ts">
+import type { Labrinth } from '@modrinth/api-client'
+import {
+	ClockIcon,
+	DownloadIcon,
+	ExternalIcon,
+	FolderOpenIcon,
+	LockIcon,
+	MoreVerticalIcon,
+	PackageIcon,
+	PlayIcon,
+	ReportIcon,
+	RocketIcon,
+	SettingsIcon,
+	TimerIcon,
+	UnknownIcon,
+} from '@modrinth/assets'
+import { Button, IconButton, SplitButton, TeleportOverflowMenu } from '@modrinth/ui'
+import {
+	Avatar,
+	type ButtonMenuOption,
+	commonMessages,
+	defineMessages,
+	formatLoaderLabel,
+	PageHeader,
+	PageHeaderActions,
+	PageHeaderBadgeItem,
+	PageHeaderMetadata,
+	PageHeaderMetadataItem,
+	PageHeaderMetadataTimeItem,
+	type ServerLoader,
+	TagIcon,
+	useVIntl,
+} from '@modrinth/ui'
+import { computed } from 'vue'
+
+import PortalrinthLaunchButton, {
+	type LaunchState,
+} from '@/components/ui/PortalrinthLaunchButton.vue'
+import type { GameInstance } from '@/helpers/types'
+
+import InstanceHeaderServerMetadata from './instance-page-header-server-metadata.vue'
+
+const messages = defineMessages({
+	createShortcut: {
+		id: 'instance.action.create-shortcut',
+		defaultMessage: 'Create shortcut',
+	},
+	exportModpack: {
+		id: 'instance.action.export-modpack',
+		defaultMessage: 'Export modpack',
+	},
+	instanceSettings: {
+		id: 'instance.action.settings',
+		defaultMessage: 'Instance settings',
+	},
+	launchInstance: {
+		id: 'instance.action.launch-instance',
+		defaultMessage: 'Launch instance',
+	},
+	moreActions: {
+		id: 'instance.action.more-actions',
+		defaultMessage: 'More actions',
+	},
+	cleanLaunch: {
+		id: 'instance.action.clean-launch',
+		defaultMessage: 'Clean launch (without mods)',
+	},
+	neverPlayed: {
+		id: 'instance.playtime.never-played',
+		defaultMessage: 'Never played',
+	},
+	lastPlayed: {
+		id: 'instance.last-played',
+		defaultMessage: 'Last played',
+	},
+	openFolder: {
+		id: 'instance.action.open-folder',
+		defaultMessage: 'Open folder',
+	},
+	repair: {
+		id: 'instance.action.repair',
+		defaultMessage: 'Repair',
+	},
+	lockedPlayTooltip: {
+		id: 'instance.locked.play-tooltip',
+		defaultMessage: 'This instance has been locked',
+	},
+	starting: {
+		id: 'instance.action.starting',
+		defaultMessage: 'Starting...',
+	},
+	stopping: {
+		id: 'instance.action.stopping',
+		defaultMessage: 'Stopping...',
+	},
+	playAgain: {
+		id: 'instance.action.play-again',
+		defaultMessage: 'Launch another copy',
+	},
+	lockedBadge: {
+		id: 'instance.badge.locked',
+		defaultMessage: 'Locked',
+	},
+	lockedBadgeLabel: {
+		id: 'instance.badge.locked.label',
+		defaultMessage: 'Locked instance information',
+	},
+	sharedBadge: {
+		id: 'instance.badge.shared',
+		defaultMessage: 'Shared',
+	},
+	sharedBadgeLabel: {
+		id: 'instance.badge.shared.label',
+		defaultMessage: 'Shared instance information',
+	},
+	loaderTooltip: {
+		id: 'instance.metadata.loader-tooltip',
+		defaultMessage: 'Mod loader and Minecraft version',
+	},
+	totalPlaytime: {
+		id: 'instance.metadata.total-playtime',
+		defaultMessage: 'Total playtime',
+	},
+	playtimeHours: {
+		id: 'instance.playtime.hours',
+		defaultMessage: '{hours, plural, one {# hour} other {# hours}}',
+	},
+	playtimeMinutes: {
+		id: 'instance.playtime.minutes',
+		defaultMessage: '{minutes, plural, one {# minute} other {# minutes}}',
+	},
+	playtimeSeconds: {
+		id: 'instance.playtime.seconds',
+		defaultMessage: '{seconds, plural, one {# second} other {# seconds}}',
+	},
+	sharedInstanceTooltip: {
+		id: 'instance.shared-instance.tooltip',
+		defaultMessage: "This instance's content is being managed by someone else.",
+	},
+	sharedInstanceOwnerTooltip: {
+		id: 'instance.shared-instance.owner-tooltip',
+		defaultMessage: "This instance's content is being shared to other users.",
+	},
+})
+
+const props = withDefaults(
+	defineProps<{
+		instance: GameInstance
+		iconSrc?: string | null
+		isServerInstance?: boolean
+		showInstancePlayTime?: boolean
+		timePlayed?: number
+		playing?: boolean
+		loading?: boolean
+		stopping?: boolean
+		loadingServerPing?: boolean
+		playersOnline?: number
+		statusOnline?: boolean
+		ping?: number
+		minecraftServer?: Labrinth.Projects.v3.Project['minecraft_server']
+	}>(),
+	{
+		iconSrc: null,
+		isServerInstance: false,
+		showInstancePlayTime: false,
+		timePlayed: 0,
+		playing: false,
+		loading: false,
+		stopping: false,
+		loadingServerPing: false,
+		playersOnline: undefined,
+		statusOnline: false,
+		ping: undefined,
+		minecraftServer: undefined,
+	},
+)
+
+const emit = defineEmits<{
+	repair: []
+	stop: [event?: MouseEvent]
+	play: []
+	playAgain: []
+	playServer: []
+	settings: []
+	openFolder: []
+	export: []
+	createShortcut: []
+	cleanLaunch: []
+	report: [event?: MouseEvent]
+}>()
+
+const installingStages = ['installing', 'pack_installing', 'minecraft_installing']
+
+const { formatMessage } = useVIntl()
+
+const isInstalling = computed(() => installingStages.includes(props.instance.install_stage))
+
+const loaderDisplayName = computed(() => formatLoaderLabel(props.instance.loader) as ServerLoader)
+const loaderLabel = computed(() =>
+	[loaderDisplayName.value, props.instance.game_version].filter(Boolean).join(' '),
+)
+const sharedInstanceTooltip = computed(() =>
+	formatMessage(
+		props.instance.shared_instance?.role === 'owner'
+			? messages.sharedInstanceOwnerTooltip
+			: messages.sharedInstanceTooltip,
+	),
+)
+const playtimeLabel = computed(() => {
+	const seconds = Math.floor(props.timePlayed)
+	if (seconds <= 0) {
+		return undefined
+	}
+
+	// Through the message catalogue rather than an English suffix, so that a
+	// language with more than one plural form gets them all.
+	const hours = Math.floor(seconds / 3600)
+	if (hours >= 1) {
+		return formatMessage(messages.playtimeHours, { hours })
+	}
+
+	const minutes = Math.floor(seconds / 60)
+	if (minutes >= 1) {
+		return formatMessage(messages.playtimeMinutes, { minutes })
+	}
+
+	return formatMessage(messages.playtimeSeconds, { seconds })
+})
+/**
+ * Which state the launch button is in, or null where an upstream button stands
+ * instead: a locked instance, one to repair, and a server's split button.
+ */
+const launchState = computed<LaunchState | null>(() => {
+	if (props.playing) return props.stopping ? 'stopping' : 'stop'
+	if (isInstalling.value) return 'installing'
+	if (props.instance.quarantined || props.instance.install_stage !== 'installed') return null
+	if (props.loading) return 'starting'
+	if (props.isServerInstance) return null
+	return 'play'
+})
+
+const launchLabels = computed(() => ({
+	play: formatMessage(commonMessages.playButton),
+	starting: formatMessage(messages.starting),
+	installing: formatMessage(commonMessages.installingLabel),
+	stop: formatMessage(commonMessages.stopButton),
+	stopping: formatMessage(messages.stopping),
+	again: formatMessage(messages.playAgain),
+}))
+
+const serverPlayOptions = computed<ButtonMenuOption[]>(() => [
+	{
+		id: 'launch_instance',
+		label: formatMessage(messages.launchInstance),
+		icon: PlayIcon,
+		action: () => emit('play'),
+	},
+])
+const moreActions = computed<ButtonMenuOption[]>(() => {
+	const actions: ButtonMenuOption[] = [
+		{
+			id: 'open-folder',
+			label: formatMessage(messages.openFolder),
+			icon: FolderOpenIcon,
+			action: () => emit('openFolder'),
+		},
+	]
+
+	if (!props.instance.quarantined && props.instance.install_stage === 'installed') {
+		actions.unshift({
+			id: 'clean-launch',
+			label: formatMessage(messages.cleanLaunch),
+			icon: RocketIcon,
+			action: () => emit('cleanLaunch'),
+		})
+	}
+
+	if (!props.instance.quarantined) {
+		actions.push(
+			{
+				id: 'export-mrpack',
+				label: formatMessage(messages.exportModpack),
+				icon: PackageIcon,
+				action: () => emit('export'),
+			},
+			{
+				id: 'create-shortcut',
+				label: formatMessage(messages.createShortcut),
+				icon: ExternalIcon,
+				action: () => emit('createShortcut'),
+			},
+		)
+	}
+
+	if (props.instance.shared_instance?.role === 'member') {
+		actions.push(
+			{ type: 'divider' },
+			{
+				id: 'report-shared-instance',
+				label: formatMessage(commonMessages.reportButton),
+				icon: ReportIcon,
+				tone: 'red',
+				action: (event) => emit('report', event),
+			},
+		)
+	}
+
+	return actions
+})
+</script>

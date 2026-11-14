@@ -1,0 +1,228 @@
+name: Portalrinth CI
+
+# Fork-tailored continuous integration.
+#
+# WHEN IT RUNS
+#   • Pull requests targeting `main`
+#   • Pushes to `main` (including the merge commits from upstream syncs)
+#   • Manually, via the "Run workflow" button (workflow_dispatch)
+#
+# WHAT IT CHECKS — only what the Portalrinth desktop app actually ships:
+#   • frontend : lint + typecheck of the app frontend and the shared UI/libs
+#                it depends on (`pnpm prepr`)
+#   • rust     : the app-lib crate (`theseus`) and the Tauri app crate
+#                (`theseus_gui`) compile, plus app-lib unit tests
+#
+# WHAT IT DELIBERATELY DOES NOT DO
+#   The fork does not ship the Modrinth backend (labrinth), the website, or
+#   daedalus, so this workflow never spins up Postgres/Clickhouse, never needs
+#   Blacksmith runners, and never touches organisation secrets. That is why
+#   the heavy upstream `CI` workflow (turbo-ci.yml) was removed — it was built
+#   for the Modrinth monorepo's infrastructure, not a desktop-app fork, and
+#   would queue forever on runners this repo doesn't have.
+#
+#   The same goes for every other workflow upstream ships: they deploy
+#   Modrinth's own services from Modrinth's own runners and secrets. A sync
+#   brings them back whenever upstream touches one, so this directory holds
+#   only `portalrinth-*` and `pages.yml`, and anything else that turns up is
+#   upstream's to run, not ours.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # One run per ref; a newer push to a branch cancels the older run, but never
+  # cancels a run on `main` (so a merge to main always completes).
+  group: portalrinth-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend lint & typecheck
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # prepr = the project's own lint + typecheck pass (see root CLAUDE.md).
+      # Libs first because the app frontend type-checks against them.
+      - name: Check shared frontend libraries
+        run: pnpm prepr:frontend:lib
+
+      - name: Check app frontend
+        run: pnpm prepr:frontend:app
+
+  rust:
+    name: App Rust check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Tauri build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            build-essential \
+            libssl-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: '. -> target'
+
+      # app-lib reads Modrinth's endpoint URLs at compile time through env!(),
+      # which fails the build if one is not declared. The staging template
+      # declares every one of them, and points them at staging, which is where
+      # a build that is only ever type-checked should be pointed anyway.
+      - name: Prepare app-lib environment
+        run: cp packages/app-lib/.env.staging packages/app-lib/.env
+
+      # Tauri's build.rs requires the frontendDist directory to exist. A stub
+      # index.html satisfies it so the Rust can be type-checked without first
+      # doing a full frontend build (the frontend job already covers that).
+      - name: Stub frontend dist for Tauri build.rs
+        run: |
+          mkdir -p apps/app-frontend/dist
+          printf '<!doctype html><title>ci</title>' > apps/app-frontend/dist/index.html
+
+      # The Gradle wrapper fetches its distribution from GitHub's release
+      # CDN, which sometimes answers 504 for a long while. Caching the
+      # unpacked distributions keeps most runs from downloading at all.
+      - name: Cache the Gradle distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dists-${{ runner.os }}-${{ hashFiles('packages/app-lib/java/gradle/wrapper/gradle-wrapper.properties') }}
+      # The one cargo invocation in this job is a single shot: when the
+      # Gradle build script inside build.rs hits a 504 from the release CDN
+      # the whole run fails before the compiler even starts. Warming the
+      # wrapper up here — with retries — puts the distribution into
+      # GRADLE_USER_HOME once, so that shot never depends on the CDN
+      # cooperating on the first try.
+      - name: Warm up the Gradle distribution
+        shell: bash
+        run: |
+          cd packages/app-lib/java
+          log="$RUNNER_TEMP/gradle-warmup.log"
+          for attempt in 1 2 3; do
+            ok=0
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              cmd //c "gradlew.bat --version" > "$log" 2>&1 && ok=1
+            else
+              sh ./gradlew --version > "$log" 2>&1 && ok=1
+            fi
+            if [ "$ok" = "1" ]; then
+              echo "Gradle distribution ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "attempt $attempt failed:"
+            tail -8 "$log"
+            sleep 30
+          done
+          # The wrapper does not retry on 5xx, and the GitHub release CDN
+          # serving the distribution has been answering 504 for hours.
+          # Fetch the zip the hard way (curl retries 5xx; fall back to the
+          # Tencent mirror of the same official artifact) and seed the
+          # wrapper cache with it, so the wrapper finds the distribution
+          # already installed and never talks to the CDN at all.
+          GRADLE_DIST_URL="https://services.gradle.org/distributions/gradle-9.1.0-bin.zip"
+          MIRROR_URL="https://mirrors.cloud.tencent.com/gradle/gradle-9.1.0-bin.zip"
+          # $HOME is a bash-style path on both OSes, unlike $RUNNER_TEMP on
+          # Windows, which curl inside git-bash cannot write to.
+          zip="$HOME/gradle-9.1.0-bin.zip"
+          curl -fsSL --retry 10 --retry-delay 5 --retry-all-errors -o "$zip" "$GRADLE_DIST_URL" \
+            || curl -fsSL --retry 10 --retry-delay 5 --retry-all-errors -o "$zip" "$MIRROR_URL" \
+            || { echo "could not download the Gradle distribution"; exit 1; }
+          HASH="$(node -e "console.log(BigInt('0x'+require('crypto').createHash('md5').update(process.argv[1]).digest('hex')).toString(36))" "$GRADLE_DIST_URL")"
+          seed="$HOME/.gradle/wrapper/dists/gradle-9.1.0-bin/$HASH"
+          mkdir -p "$seed"
+          cp "$zip" "$seed/gradle-9.1.0-bin.zip"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            zip_win="$(cygpath -w "$zip")"
+            seed_win="$(cygpath -w "$seed")"
+            powershell -NoProfile -Command "Expand-Archive -Force '$zip_win' '$seed_win'"
+          else
+            unzip -qo "$zip" -d "$seed"
+          fi
+          # Layout per gradle wrapper PathAssembler/Install (v9.1.0):
+          # dists/gradle-9.1.0-bin/<MD5-base36 of url>/  contains the zip,
+          # the unpacked dist and the reuse marker <zipname>.ok.
+          touch "$seed/gradle-9.1.0-bin.zip.ok"
+          echo "seeded $seed (hash $HASH)"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cmd //c "gradlew.bat --version" || { echo "seeding did not satisfy the wrapper"; exit 1; }
+          else
+            sh ./gradlew --version || { echo "seeding did not satisfy the wrapper"; exit 1; }
+          fi
+      - name: Check app-lib and app crates
+        run: cargo check -p theseus -p theseus_gui --all-targets
+
+      # The logs of a failed step need an account to read, so a red run here says
+      # only that something did not compile. This puts the compiler's own words
+      # where anyone can see them.
+      - name: Report what cargo said
+        if: failure()
+        run: |
+          set +e
+          cargo check --message-format=short -p theseus -p theseus_gui --all-targets \
+            > "$RUNNER_TEMP/cargo.log" 2>&1
+          code=$?
+          # Colour codes count towards the annotation's length and stop it being
+          # readable, and one error per line is all an annotation can hold.
+          sed -e 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/cargo.log" | grep -E "error|warning: unused|cannot find|^ *-->" \
+            | tail -n 30 \
+            | sed -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/\n/%0A/g' \
+            > "$RUNNER_TEMP/cargo-tail.txt"
+          echo "::error title=cargo check failed::$(cat "$RUNNER_TEMP/cargo-tail.txt")"
+          exit $code
+
+      - name: Run app-lib unit tests
+        run: |
+          cargo test -p theseus 2>&1 | tee "$RUNNER_TEMP/theseus-tests.log"
+          exit ${PIPESTATUS[0]}
+
+      # A failing test says nothing at all in the log by default, which is the
+      # same blind spot the step above exists to close for the compiler.
+      - name: Report which tests failed
+        if: failure()
+        run: |
+          set +e
+          grep -E "^(test |failures:|    [a-z_]+::)" "$RUNNER_TEMP/theseus-tests.log" \
+            | tail -n 40 \
+            | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+            > "$RUNNER_TEMP/test-tail.txt"
+          echo "::error title=unit tests failed::$(cat "$RUNNER_TEMP/test-tail.txt")"
+          exit 0
+
+      # The app crate carries a few of its own — how an error is classified on
+      # its way to the interface, for one — and the check above already builds
+      # its test target, so running them costs a link and nothing else.
+      - name: Run app unit tests
+        run: cargo test -p theseus_gui

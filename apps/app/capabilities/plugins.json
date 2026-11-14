@@ -1,0 +1,238 @@
+{
+	"identifier": "plugins",
+	"description": "",
+	"local": true,
+	"windows": ["main"],
+	"permissions": [
+		"dialog:allow-open",
+		"dialog:allow-confirm",
+		"opener:default",
+		{
+			"identifier": "opener:allow-open-url",
+			"allow": [{ "url": "https://*/*" }, { "url": "http://*/*" }]
+		},
+		{
+			"identifier": "opener:allow-open-path",
+			"allow": [{ "path": "$APPDATA/Portalrinth-Update.exe" }, { "path": "$APPDATA/*.exe" }]
+		},
+		"os:allow-platform",
+		"os:allow-version",
+		"os:allow-os-type",
+		"os:allow-family",
+		"os:allow-arch",
+		"os:allow-exe-extension",
+		"os:allow-locale",
+		"os:allow-hostname",
+		"deep-link:default",
+		"window-state:default",
+		"window-state:allow-restore-state",
+		"window-state:allow-save-window-state",
+		{
+			"identifier": "http:default",
+			"allow": [
+				{
+					"url": "https://modrinth.com/*"
+				},
+				{
+					"url": "https://*.modrinth.com/*"
+				},
+				{
+					"url": "https://*.nodes.modrinth.com/*"
+				},
+				{
+					"url": "https://api.mclo.gs/*"
+				},
+				{
+					"url": "https://laby.net/*"
+				},
+				{
+					"url": "https://texture.laby.net/*"
+				},
+				{
+					"url": "https://everelsu.github.io/Portalrinth/*"
+				},
+				{
+					"url": "https://translate.googleapis.com/*"
+				},
+				{
+					"url": "https://api-free.deepl.com/*"
+				},
+				{
+					"url": "https://api.deepl.com/*"
+				},
+				{
+					"url": "https://fill.papermc.io/*"
+				},
+				{
+					"url": "https://media.forgecdn.net/*"
+				},
+				{
+					"url": "https://api.purpurmc.org/*"
+				},
+				{
+					"url": "https://*/*"
+				},
+				{
+					"url": "http://*/*"
+				},
+				{
+					"url": "https://text.pollinations.ai/*"
+				},
+				{
+					"url": "https://openrouter.ai/*"
+				},
+				{
+					"url": "https://api.groq.com/*"
+				},
+				{
+					"url": "https://api.cerebras.ai/*"
+				},
+				{
+					"url": "https://api.mistral.ai/*"
+				},
+				{
+					"url": "https://generativelanguage.googleapis.com/*"
+				},
+				{
+					"url": "https://api.z.ai/*"
+				},
+				{
+					"url": "https://openai.api.yandex.net/*"
+				},
+				{
+					"url": "https://gigachat.devices.sberbank.ru/*"
+				},
+				{
+					"url": "https://api.deepseek.com/*"
+				},
+				{
+					"url": "http://localhost:*/*"
+				},
+				{
+					"url": "http://127.0.0.1:*/*"
+				},
+				{
+					"url": "http://localhost:8000/*"
+				},
+				{
+					"url": "http://127.0.0.1:8000/*"
+				},
+				{
+					"url": "http://*.taila228c5.ts.net/*"
+				},
+				{
+					"url": "https://*.taila228c5.ts.net/*"
+				}
+			]
+		},
+		"dialog:allow-save",
+		"fs:allow-read-dir",
+		"fs:allow-read-file",
+		"fs:allow-read-text-file",
+		"fs:allow-stat",
+		"fs:allow-exists",
+		"fs:allow-mkdir",
+		"fs:allow-write-file",
+		"fs:allow-write-text-file",
+		"fs:allow-remove",
+		"fs:allow-rename",
+		"fs:allow-copy-file",
+		{
+			"identifier": "fs:scope",
+			"allow": [
+				{
+					"path": "$APPDATA/profiles"
+				},
+				{
+					"path": "$APPDATA/profiles/**"
+				},
+				{
+					"path": "$APPCONFIG/profiles"
+				},
+				{
+					"path": "$APPCONFIG/profiles/**"
+				},
+				{
+					"path": "$CONFIG/profiles"
+				},
+				{
+					"path": "$CONFIG/profiles/**"
+				},
+				{
+					"path": "$CONFIG/profiles/**"
+				},
+				{
+					"path": "$APPDATA/portalrinth-sandbox"
+				},
+				{
+					"path": "$APPDATA/portalrinth-sandbox/**"
+				},
+				{
+					"path": "$APPDATA/ai-sessions"
+				},
+				{
+					"path": "$APPDATA/ai-sessions/**"
+				},
+				{
+					"path": "$APPDATA/**"
+				},
+				{
+					"path": "$APPCONFIG/**"
+				},
+				{
+					"path": "$CONFIG/**"
+				},
+				{
+					"path": "$DOWNLOAD/**"
+				},
+				{
+					"path": "$DOCUMENT/**"
+				},
+				{
+					"path": "$PICTURE/**"
+				},
+				{
+					"path": "$DESKTOP/**"
+				}
+			]
+		},
+		"auth:default",
+		"import:default",
+		"jre:default",
+		"logs:default",
+		"metadata:default",
+		"minecraft-skins:default",
+		"mr-auth:default",
+		"onboarding-checklist:default",
+		"instance:default",
+		"install:default",
+		"process:default",
+		"reports:default",
+		"cache:default",
+		"files:default",
+		"settings:default",
+		"shortcuts:default",
+		"tags:default",
+		"users:default",
+		"utils:default",
+		"ads:default",
+		"friends:default",
+		"worlds:default",
+		"ely-auth:default",
+		"window-icon:default",
+		"portalrinth-offline-auth:default",
+		"portalrinth-background:default",
+		"portalrinth-music:default",
+		"portalrinth-clipboard:default",
+		"portalrinth-crash:default",
+		"portalrinth-recovery:default",
+		"portalrinth-curseforge:default",
+		"portalrinth-lan:default",
+		"portalrinth-hosting:default",
+		"portalrinth-bedrock:default",
+		"portalrinth-archiver:default",
+		"portalrinth-gradle:default",
+		"portalrinth-bridge:default",
+		"portalrinth-fonts:default"
+	]
+}

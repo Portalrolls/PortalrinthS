@@ -1,0 +1,196 @@
+/**
+ * All theseus API calls return serialized values (both return values and errors);
+ * So, for example, addDefaultInstance creates a blank instance object, where the Rust struct is serialized,
+ *  and deserialized into a usable JS object.
+ */
+import { queryOptions } from '@tanstack/vue-query'
+import { invoke } from '@tauri-apps/api/core'
+
+import type { FeatureFlag } from '@/composables/use-app-settings.ts'
+import type { ColorTheme } from '@/composables/use-theme.ts'
+import type { Hooks, MemorySettings, WindowSize } from '@/helpers/types'
+
+// Settings object
+/*
+
+Settings {
+    "memory": MemorySettings,
+    "game_resolution": [int int],
+    "custom_java_args": [String ...],
+    "custom_env_args" : [(string, string) ... ]>,
+    "java_globals": Hash of (string, Path),
+    "default_user": Uuid string (can be null),
+    "hooks": Hooks,
+    "max_concurrent_downloads": uint,
+    "version": u32,
+    "collapsed_navigation": bool,
+}
+
+Memorysettings {
+    "min": u32, can be null,
+    "max": u32,
+}
+
+*/
+
+export type AppSettings = {
+	max_concurrent_downloads: number
+	max_concurrent_writes: number
+
+	theme: ColorTheme
+	locale: string
+	default_page: 'Home' | 'Library'
+	collapsed_navigation: boolean
+	hide_nametag_skins_page: boolean
+	advanced_rendering: boolean
+	native_decorations: boolean
+	toggle_sidebar: boolean
+	sync_theme_across_devices: boolean
+	sync_behavior_across_devices: boolean
+	sync_features_across_devices: boolean
+	show_files_tab_in_instances: boolean
+	show_worlds_tab_in_instances: boolean
+	show_screenshots_tab_in_instances: boolean
+	show_skin_selector_in_sidebar: boolean
+
+	telemetry: boolean
+	discord_rpc: boolean
+	personalized_ads: boolean
+
+	extra_launch_args: string[]
+	custom_env_vars: [string, string][]
+	memory: MemorySettings
+	force_fullscreen: boolean
+	game_resolution: WindowSize
+	hide_on_process_start: boolean
+	show_jump_in: boolean
+	always_show_copy_details: boolean
+	hide_installed_modpacks: boolean
+	advanced_filters_collapsed: boolean
+	dismissed_photosensitivity_filter_warning: boolean
+	friends_active_collapsed: boolean
+	friends_online_collapsed: boolean
+	friends_offline_collapsed: boolean
+	friends_pending_collapsed: boolean
+	refocus_on_game_close: boolean
+	compact_instance_cards: boolean
+	show_play_time: boolean
+	warn_on_unknown_modpacks: boolean
+	skip_non_essential_warnings: boolean
+	hooks: Hooks
+
+	custom_dir?: string | null
+	prev_custom_dir?: string | null
+	migrated: boolean
+
+	developer_mode: boolean
+	feature_flags: Record<FeatureFlag, boolean>
+
+	skipped_update: string | null
+	pending_update_toast_for_version: string | null
+	auto_download_updates: boolean | null
+
+	/** Minecraft `options.txt` values written to every instance at launch. */
+
+	/**
+	 * Whether the game looks a player's skin up by name when the server sent
+	 * none, which is every player on an offline-mode server.
+	 */
+	universal_skins: boolean
+
+	/**
+	 * Which accent the interface paints with: the id of one of its presets, or
+	 * `theme` for whatever the theme itself defines.
+	 */
+	accent_preset: string
+
+	/** Whether that preset also tints the backgrounds it is drawn on. */
+	accent_tint_background: boolean
+
+	/** The colour of the accent when `accent_preset` is `custom`. */
+	accent_custom_color: string | null
+
+	/** Which cube the splash screen shows; see `portalrinth-splash-cube.ts`. */
+	splash_cube: string
+
+	/**
+	 * Where Java is downloaded from: `auto`, or one of `azul`, `temurin`,
+	 * `mojang` and `mojang-mirror` pinned.
+	 */
+	java_provider: string
+
+	/**
+	 * The typeface the interface is set in: empty for Inter, `system`,
+	 * `minecraft`, or the family name of an installed font.
+	 */
+	interface_font: string
+
+	/** Whether the background picture chosen in Appearance is blurred. */
+	background_blur: boolean
+
+	/** How far the background picture is darkened, from 0 to 100. */
+	background_dim: number
+
+	/**
+	 * The CurseForge key this launcher asks with.
+	 *
+	 * Without one, everything CurseForge does is unavailable — searching,
+	 * listing files, downloading. A build can ship with one compiled in, and
+	 * when it does, this stays empty; anything set here is used instead.
+	 */
+	curseforge_api_key?: string | null
+
+	/**
+	 * Whether browse results arrive by scrolling instead of by turning pages.
+	 */
+	browse_infinite_scroll?: boolean
+
+	version: number
+}
+
+export const appSettingsKeys = {
+	all: ['app-settings'] as const,
+	update: ['app-settings', 'update'] as const,
+}
+
+export function appSettingsQueryOptions() {
+	return queryOptions({
+		queryKey: appSettingsKeys.all,
+		queryFn: get,
+		staleTime: 0,
+	})
+}
+
+export function serializeEnvVars(vars: [string, string][] | undefined | null): string {
+	return (vars ?? []).map(([key, value]) => `${key}=${value}`).join(' ')
+}
+
+export function parseEnvVars(input: string | undefined | null): [string, string][] {
+	if (!input?.trim()) {
+		return []
+	}
+
+	const vars: [string, string][] = []
+	for (const entry of input.trim().split(/\s+/)) {
+		const separator = entry.indexOf('=')
+		if (separator <= 0) {
+			continue
+		}
+		vars.push([entry.slice(0, separator), entry.slice(separator + 1)])
+	}
+	return vars
+}
+
+// Get full settings object
+export async function get() {
+	return (await invoke('plugin:settings|settings_get')) as AppSettings
+}
+
+// Set full settings object
+export async function set(settings: AppSettings) {
+	return await invoke('plugin:settings|settings_set', { settings })
+}
+
+export async function cancel_directory_change(): Promise<void> {
+	return await invoke('plugin:settings|cancel_directory_change')
+}

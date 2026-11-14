@@ -1,0 +1,457 @@
+<template>
+	<li
+		role="button"
+		:class="[containerClasses, isDragSource ? 'opacity-50' : '']"
+		tabindex="0"
+		:data-file-path="path"
+		:data-file-type="type"
+		@click="selectItem"
+		@contextmenu="openContextMenu"
+		@keydown="(e) => e.key === 'Enter' && selectItem()"
+		@mouseenter="handleMouseEnter"
+		@pointerdown="handlePointerDown"
+	>
+		<div class="pointer-events-none flex flex-1 items-center gap-3 truncate">
+			<div v-if="replaceMode" class="relative flex items-center">
+				<button
+					v-if="replaceMarkNumber"
+					v-tooltip="replaceExecutable ? undefined : formatMessage(messages.replaceNoSource)"
+					class="pointer-events-auto grid size-4.5 cursor-pointer place-items-center rounded-[4px] bg-red text-[var(--color-accent-contrast)]"
+					:aria-label="formatMessage(messages.replaceMarkedLabel)"
+					@click.stop="emit('replace-toggle')"
+					@contextmenu.prevent.stop="emit('replace-toggle')"
+				>
+					<XIcon class="size-3.5" />
+					<span
+						class="absolute -top-1.5 -right-2 grid size-4 place-items-center rounded-full bg-brand text-[10px] font-bold text-[var(--color-accent-contrast)] tabular-nums"
+					>
+						{{ replaceMarkNumber }}
+					</span>
+				</button>
+				<Checkbox
+					v-else
+					class="pointer-events-auto"
+					:model-value="false"
+					@click.stop
+					@contextmenu.prevent.stop="emit('replace-toggle')"
+					@update:model-value="emit('toggle-select')"
+				/>
+			</div>
+			<Checkbox
+				v-else
+				class="pointer-events-auto"
+				:model-value="selected"
+				@click.stop
+				@update:model-value="emit('toggle-select')"
+			/>
+			<Avatar
+				v-if="description?.title || description?.iconUrl"
+				:src="description.iconUrl ?? undefined"
+				:alt="description.title ?? name"
+				size="2rem"
+				class="pointer-events-none shrink-0"
+			/>
+			<div v-else class="pointer-events-none flex size-5 items-center justify-center">
+				<component
+					:is="iconComponent"
+					class="size-5 group-hover:text-contrast group-focus:text-contrast"
+				/>
+			</div>
+			<div v-if="description?.title" class="flex flex-col truncate leading-tight">
+				<span class="truncate">
+					<button
+						v-if="description.open"
+						class="description-link font-semibold text-contrast"
+						@click.stop="description.open()"
+						@pointerdown.stop
+					>
+						{{ description.title }}
+					</button>
+					<span v-else class="font-semibold text-contrast">{{ description.title }}</span>
+				</span>
+				<span class="truncate text-xs text-secondary">
+					<template v-if="description.version">{{ description.version }} · </template>
+					<template v-if="description.author">
+						<button
+							v-if="description.author.open"
+							class="description-link"
+							@click.stop="description.author.open()"
+							@pointerdown.stop
+						>
+							{{ description.author.name }}
+						</button>
+						<span v-else>{{ description.author.name }}</span>
+						·
+					</template>
+					{{ name }}
+				</span>
+			</div>
+			<div v-else class="pointer-events-none flex flex-col truncate">
+				<span
+					class="pointer-events-none truncate group-hover:text-contrast group-focus:text-contrast"
+				>
+					{{ name }}
+				</span>
+			</div>
+		</div>
+		<div class="pointer-events-auto flex w-fit flex-shrink-0 items-center gap-4 @[800px]:gap-12">
+			<span class="hidden w-[100px] text-nowrap text-sm text-secondary @[800px]:block">
+				{{ formattedSize }}
+			</span>
+			<span class="hidden w-[160px] text-nowrap text-sm text-secondary @[800px]:block">
+				{{ formattedCreationDate }}
+			</span>
+			<span class="hidden w-[160px] text-nowrap text-sm text-secondary @[800px]:block">
+				{{ formattedModifiedDate }}
+			</span>
+			<div class="grid min-w-[51px] shrink-0 items-center justify-items-end">
+				<span
+					aria-hidden="true"
+					class="invisible col-start-1 row-start-1 text-nowrap font-semibold"
+				>
+					{{ formatMessage(commonMessages.actionsLabel) }}
+				</span>
+				<div
+					class="col-start-1 row-start-1 flex justify-end"
+					@click.stop
+					@contextmenu.stop
+					@keydown.stop
+					@pointerdown.stop
+				>
+					<TeleportOverflowMenu
+						type="quiet"
+						:label="formatMessage(commonMessages.actionsLabel)"
+						:options="menuOptions"
+					>
+						<MoreHorizontalIcon class="h-5 w-5 bg-transparent" />
+					</TeleportOverflowMenu>
+				</div>
+			</div>
+		</div>
+	</li>
+</template>
+
+<script setup lang="ts">
+import {
+	BoxIcon,
+	BracesIcon,
+	ClipboardCopyIcon,
+	DownloadIcon,
+	EditIcon,
+	FolderArchiveIcon,
+	FolderCogIcon,
+	FolderOpenIcon,
+	GlassesIcon,
+	GlobeIcon,
+	MoreHorizontalIcon,
+	PackageOpenIcon,
+	PaintbrushIcon,
+	RightArrowIcon,
+	TrashIcon,
+	XIcon,
+} from '@modrinth/assets'
+import { computed, ref } from 'vue'
+
+import Avatar from '#ui/components/base/Avatar.vue'
+import type { ButtonMenuOption } from '#ui/components/base/buttons'
+import { TeleportOverflowMenu } from '#ui/components/base/buttons'
+import Checkbox from '#ui/components/base/Checkbox.vue'
+import { useFormatBytes } from '#ui/composables'
+import { useFormatDateTime } from '#ui/composables/format-date-time'
+import { defineMessages, useVIntl } from '#ui/composables/i18n'
+import { injectNotificationManager } from '#ui/providers/web-notifications'
+import { getFileExtensionIcon } from '#ui/utils/auto-icons'
+import { commonMessages } from '#ui/utils/common-messages'
+import { canOpenInFileEditor, getFileExtension } from '#ui/utils/file-extensions'
+
+import {
+	fileDragActive,
+	fileDragData,
+	fileDragTarget,
+	startFileDrag,
+	wasRecentDrag,
+} from '../composables/file-drag-state'
+import { injectFileManager } from '../providers/file-manager'
+import type { FileItem, FileItemDescription } from '../types'
+import { joinDisplayPath } from '../utils'
+
+const { formatMessage } = useVIntl()
+const { addNotification } = injectNotificationManager()
+const ctx = injectFileManager()
+
+const messages = defineMessages({
+	itemCount: {
+		id: 'files.row.item-count',
+		defaultMessage: '{count, plural, one {# item} other {# items}}',
+	},
+	createZip: {
+		id: 'files.row.create-zip',
+		defaultMessage: 'Create ZIP',
+	},
+	replaceMarkedLabel: {
+		id: 'files.row.replace-marked',
+		defaultMessage: 'Marked for replacement — press again to replace',
+	},
+	replaceNoSource: {
+		id: 'files.row.replace-no-source',
+		defaultMessage: 'No file with this number is selected for the replacement',
+	},
+})
+
+const props = defineProps<
+	FileItem & {
+		description?: FileItemDescription
+		index: number
+		isLast: boolean
+		selected: boolean
+		writeDisabled?: boolean
+		writeDisabledTooltip?: string
+		replaceMode?: boolean
+		replaceMarkNumber?: number | null
+		replaceExecutable?: boolean
+	}
+>()
+
+const emit = defineEmits<{
+	(
+		e:
+			'rename' | 'move' | 'download' | 'zip' | 'delete' | 'edit' | 'extract' | 'hover' | 'navigate',
+		item: Pick<FileItem, 'name' | 'type' | 'path'>,
+	): void
+	(
+		e: 'moveDirectTo',
+		item: Pick<FileItem, 'name' | 'type' | 'path'> & { destination: string },
+	): void
+	(e: 'contextmenu', event: MouseEvent, options: ButtonMenuOption[]): void
+	(e: 'toggle-select' | 'replace-toggle'): void
+}>()
+
+const isDropTarget = computed(
+	() => fileDragActive.value && fileDragTarget.value === props.path && props.type === 'directory',
+)
+const isDragSource = computed(() => fileDragActive.value && fileDragData.value?.path === props.path)
+
+const formatDateTime = useFormatDateTime({
+	year: '2-digit',
+	month: '2-digit',
+	day: '2-digit',
+	hour: 'numeric',
+	minute: 'numeric',
+})
+const formatBytes = useFormatBytes()
+
+const containerClasses = computed(() => {
+	const dropTarget = isDropTarget.value
+	return [
+		'group m-0 flex w-full select-none items-center justify-between overflow-hidden border-0 border-t border-solid border-surface-4 pl-3 pr-4 py-3 focus:!outline-none',
+		dropTarget
+			? '!bg-brand-highlight'
+			: props.selected
+				? 'bg-surface-2.5'
+				: props.index % 2 === 0
+					? 'bg-surface-2'
+					: 'bg-surface-1.5',
+		props.isLast ? 'rounded-b-[20px]' : '',
+		isEditableFile.value || props.type === 'directory' ? 'cursor-pointer hover:bg-surface-2.5' : '',
+		'transition-colors duration-100 focus:!outline-none',
+	]
+})
+
+const fileExtension = computed(() => getFileExtension(props.name))
+
+const canExtract = computed(() => fileExtension.value === 'zip' && !!ctx.extractFile)
+
+function getFullPath() {
+	return joinDisplayPath(ctx.basePath?.value, props.path)
+}
+
+const menuOptions = computed<ButtonMenuOption[]>(() => {
+	const item = { name: props.name, type: props.type, path: props.path }
+	const wd = props.writeDisabled
+	const wdTooltip = props.writeDisabledTooltip
+	return [
+		{
+			id: 'copy-filename',
+			label: formatMessage(commonMessages.copyFilenameButton),
+			icon: ClipboardCopyIcon,
+			action: () => {
+				navigator.clipboard.writeText(props.name)
+				addNotification({
+					title: formatMessage(commonMessages.copiedFilenameLabel),
+					type: 'success',
+				})
+			},
+		},
+		{
+			id: 'copy-full-path',
+			label: formatMessage(commonMessages.copyFullPathButton),
+			icon: ClipboardCopyIcon,
+			action: () => {
+				navigator.clipboard.writeText(getFullPath())
+				addNotification({ title: formatMessage(commonMessages.copiedPathLabel), type: 'success' })
+			},
+		},
+		{
+			id: 'open-in-folder',
+			label: formatMessage(commonMessages.openInFolderButton),
+			icon: FolderOpenIcon,
+			shown: !!ctx.openInFolder,
+			action: () => ctx.openInFolder?.(getFullPath()),
+		},
+		{ type: 'divider' },
+		{
+			id: 'extract',
+			label: formatMessage(commonMessages.extractButton),
+			icon: PackageOpenIcon,
+			shown: canExtract.value,
+			disabled: wd,
+			tooltip: wd ? wdTooltip : undefined,
+			action: () => emit('extract', item),
+		},
+		{ type: 'divider', shown: canExtract.value },
+		{
+			id: 'zip',
+			label: formatMessage(messages.createZip),
+			icon: FolderArchiveIcon,
+			shown: props.type === 'directory' && !!ctx.zipFolder,
+			disabled: wd,
+			tooltip: wd ? wdTooltip : undefined,
+			action: () => emit('zip', item),
+		},
+		{ type: 'divider', shown: props.type === 'directory' && !!ctx.zipFolder },
+		{
+			id: 'rename',
+			label: formatMessage(commonMessages.renameButton),
+			icon: EditIcon,
+			disabled: wd,
+			tooltip: wd ? wdTooltip : undefined,
+			action: () => emit('rename', item),
+		},
+		{
+			id: 'move',
+			label: formatMessage(commonMessages.moveButton),
+			icon: RightArrowIcon,
+			disabled: wd,
+			tooltip: wd ? wdTooltip : undefined,
+			action: () => emit('move', item),
+		},
+		{
+			id: 'download',
+			label: ctx.downloadButtonLabel ?? formatMessage(commonMessages.downloadButton),
+			icon: DownloadIcon,
+			action: () => emit('download', item),
+			shown: props.type !== 'directory',
+		},
+		{
+			id: 'delete',
+			label: formatMessage(commonMessages.deleteLabel),
+			icon: TrashIcon,
+			disabled: wd,
+			tooltip: wd ? wdTooltip : undefined,
+			action: () => emit('delete', item),
+			tone: 'red',
+		},
+	]
+})
+
+const iconComponent = computed(() => {
+	if (props.type === 'directory') {
+		if (props.name === 'config') return FolderCogIcon
+		if (props.name === 'world' || props.name === 'saves') return GlobeIcon
+		if (props.name === 'mods') return BoxIcon
+		if (props.name === 'resourcepacks') return PaintbrushIcon
+		if (props.name === 'shaderpacks') return GlassesIcon
+		if (props.name === 'datapacks') return BracesIcon
+		return FolderOpenIcon
+	}
+
+	return getFileExtensionIcon(fileExtension.value)
+})
+
+const formattedModifiedDate = computed(() => {
+	const date = new Date(props.modified * 1000)
+	return formatDateTime(date)
+})
+
+const formattedCreationDate = computed(() => {
+	const date = new Date(props.created * 1000)
+	return formatDateTime(date)
+})
+
+const isEditableFile = computed(() => {
+	if (props.type === 'file') {
+		return canOpenInFileEditor(props.name)
+	}
+	return false
+})
+
+const formattedSize = computed(() => {
+	if (props.type === 'directory') {
+		return formatMessage(messages.itemCount, { count: props.count ?? 0 })
+	}
+
+	if (props.size == null) return ''
+	return formatBytes(props.size)
+})
+
+function openContextMenu(event: MouseEvent) {
+	event.preventDefault()
+	emit('contextmenu', event, menuOptions.value)
+}
+
+function handleMouseEnter() {
+	emit('hover', { name: props.name, type: props.type, path: props.path })
+}
+
+const isNavigating = ref(false)
+
+function selectItem() {
+	if (isNavigating.value || wasRecentDrag()) return
+	isNavigating.value = true
+
+	const item = { name: props.name, type: props.type, path: props.path }
+	if (props.type === 'directory') {
+		emit('navigate', item)
+	} else if (props.type === 'file' && isEditableFile.value) {
+		emit('edit', item)
+	}
+
+	setTimeout(() => {
+		isNavigating.value = false
+	}, 500)
+}
+
+function handlePointerDown(e: PointerEvent) {
+	if (e.button !== 0) return
+	startFileDrag(
+		{ name: props.name, type: props.type, path: props.path },
+		e,
+		(source, destination) => {
+			emit('moveDirectTo', {
+				name: source.name,
+				type: source.type as FileItem['type'],
+				path: source.path,
+				destination,
+			})
+		},
+	)
+}
+</script>
+
+<style scoped>
+.description-link {
+	pointer-events: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+
+.description-link:hover,
+.description-link:focus-visible {
+	text-decoration: underline;
+}
+</style>

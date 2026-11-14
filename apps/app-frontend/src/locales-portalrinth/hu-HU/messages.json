@@ -1,0 +1,62 @@
+{
+	"app.lan.action.publish": {
+		"message": "LAN megnyitása"
+	},
+	"app.lan.action.unpublish": {
+		"message": "Leállítás"
+	},
+	"app.lan.copied": {
+		"message": "Cím másolva"
+	},
+	"app.lan.description": {
+		"message": "Nyisd meg a világot LAN-ra a Minecraftben, majd publikáld innen."
+	},
+	"app.lan.empty-description": {
+		"message": "Indíts egy példányt, és megjelenik itt."
+	},
+	"app.lan.empty-heading": {
+		"message": "Nincs futó példány"
+	},
+	"app.lan.error-heading": {
+		"message": "Nem sikerült beolvasni a futó példányokat"
+	},
+	"app.lan.heading": {
+		"message": "LAN"
+	},
+	"app.lan.published": {
+		"message": "Publikálva itt: {address}"
+	},
+	"app.lan.state.closed": {
+		"message": "Nincs világ megnyitva a hálózatra"
+	},
+	"app.lan.state.lost": {
+		"message": "A relay megszakította a játékosokat"
+	},
+	"app.lan.state.ready": {
+		"message": "A Minecraft a(z) {port} porton hallgat"
+	},
+	"app.lan.stopped": {
+		"message": "Már nincs publikálva"
+	},
+	"app.nav.lan": {
+		"message": "LAN"
+	},
+	"app.settings.app-version": {
+		"message": "Portalrinth {version}"
+	},
+	"app.settings.privacy.discord-rich-presence.description": {
+		"message": "A Portalrinth megjelenítése aktuális tevékenységként a Discordon. Ez nem érinti a modok által a példányokhoz hozzáadott Rich Presence-t. Az alkalmazás újraindítását igényli."
+	},
+	"app.settings.resource-management.app-directory.description": {
+		"message": "A Portalrinth ebben a mappában tárolja a példányokat és az egyéb fájlokat. A módosítások az alkalmazás újraindítása után lépnek érvénybe."
+	},
+	"app.update-popup.body.download-complete": {
+		"message": "A Portalrinth v{version} letöltése befejeződött. Válaszd a Frissítés lehetőséget a frissítéshez, vagy az alkalmazás bezárásakor automatikusan frissül."
+	},
+	"app.update-popup.body.linux": {
+		"message": "A Portalrinth v{version} elérhető. A legújabb funkciókért és javításokért frissíts a csomagkezelőddel!"
+	},
+	"app.update-popup.body.metered": {
+		"message": "A Portalrinth v{version} már elérhető! Mivel korlátozott adatforgalmú hálózaton vagy, nem töltöttük le automatikusan."
+	}
+}

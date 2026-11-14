@@ -1,0 +1,3411 @@
+{
+	"app.library.group.pinned": {
+		"message": "Pinned"
+	},
+	"app.library.instance.action.pin": {
+		"message": "Pin to top"
+	},
+	"app.library.instance.action.unpin": {
+		"message": "Unpin"
+	},
+	"app.news.view-all": {
+		"message": "Changelog"
+	},
+	"app.settings.search": {
+		"message": "Search settings"
+	},
+	"app.settings.search.clear": {
+		"message": "Clear search"
+	},
+	"app.settings.search.no-results": {
+		"message": "No matches"
+	},
+	"app.account-provider.description": {
+		"message": "Which account do you play with?"
+	},
+	"app.account-provider.ely": {
+		"message": "Ely.by account"
+	},
+	"app.account-provider.ely-hint": {
+		"message": "Plays on servers that accept Ely.by."
+	},
+	"app.account-provider.header": {
+		"message": "Add an account"
+	},
+	"app.account-provider.microsoft": {
+		"message": "Microsoft account"
+	},
+	"app.account-provider.microsoft-hint": {
+		"message": "A Minecraft account bought from Mojang."
+	},
+	"app.account.collections": {
+		"message": "Collections"
+	},
+	"app.account.notifications": {
+		"message": "Notifications"
+	},
+	"app.appearance-settings.accent-tint.description": {
+		"message": "Gives the app's greys — its backgrounds and its panels — a faint cast of the same colour. The accent, the sidebar and the loading bar follow the preset either way."
+	},
+	"app.appearance-settings.accent-tint.title": {
+		"message": "Tint the background too"
+	},
+	"app.appearance-settings.accent.amethyst": {
+		"message": "Amethyst"
+	},
+	"app.appearance-settings.accent.description": {
+		"message": "The colour the interface is picked out in. Each one is drawn deeper on light themes and brighter on dark ones."
+	},
+	"app.appearance-settings.accent.ember": {
+		"message": "Ember"
+	},
+	"app.appearance-settings.accent.glacier": {
+		"message": "Glacier"
+	},
+	"app.appearance-settings.accent.lantern": {
+		"message": "Lantern"
+	},
+	"app.appearance-settings.accent.midnight": {
+		"message": "Midnight"
+	},
+	"app.appearance-settings.accent.nightshade": {
+		"message": "Nightshade"
+	},
+	"app.appearance-settings.accent.rose": {
+		"message": "Rose"
+	},
+	"app.appearance-settings.accent.theme": {
+		"message": "Theme"
+	},
+	"app.appearance-settings.accent.title": {
+		"message": "Accent colour"
+	},
+	"app.appearance-settings.accent.verdant": {
+		"message": "Verdant"
+	},
+	"app.appearance-settings.minimize-launcher.description": {
+		"message": "Minimize Portalrinth when Minecraft starts."
+	},
+	"app.changelog.author": {
+		"message": "Author"
+	},
+	"app.changelog.modrinth-note": {
+		"message": "Showing recent releases. The full Modrinth App changelog is available on their website."
+	},
+	"app.changelog.portalrinth-note": {
+		"message": "The full Portalrinth changelog is also available online."
+	},
+	"app.changelog.open-modrinth": {
+		"message": "Open Modrinth changelog"
+	},
+	"app.changelog.open-portalrinth": {
+		"message": "Open Portalrinth changelog"
+	},
+	"app.changelog.source.modrinth": {
+		"message": "Modrinth"
+	},
+	"app.changelog.source.portalrinth": {
+		"message": "Portalrinth"
+	},
+	"app.collection.create.created": {
+		"message": "Collection created"
+	},
+	"app.collection.create.created.detail": {
+		"message": "Created “{name}”."
+	},
+	"app.collection.create.header": {
+		"message": "Creating a collection"
+	},
+	"app.collection.create.name": {
+		"message": "Name"
+	},
+	"app.collection.create.name.placeholder": {
+		"message": "Enter collection name..."
+	},
+	"app.collection.create.submit": {
+		"message": "Create collection"
+	},
+	"app.collection.create.submitting": {
+		"message": "Creating..."
+	},
+	"app.collection.create.summary": {
+		"message": "Summary"
+	},
+	"app.collection.create.summary.hint": {
+		"message": "A sentence or two that describes your collection."
+	},
+	"app.collection.create.summary.placeholder": {
+		"message": "This is a collection of..."
+	},
+	"app.collection.create.visibility-note": {
+		"message": "Your new collection will be created as a public collection with {count, plural, =0 {no projects} one {# project} other {# projects}}."
+	},
+	"app.collection.delete-modal.description": {
+		"message": "This will permanently delete this collection. This action cannot be undone."
+	},
+	"app.collection.delete-modal.title": {
+		"message": "Are you sure you want to delete this collection?"
+	},
+	"app.collection.edit.description": {
+		"message": "Description"
+	},
+	"app.collection.edit.header": {
+		"message": "Editing collection"
+	},
+	"app.collection.edit.saving": {
+		"message": "Saving..."
+	},
+	"app.collection.edit.title": {
+		"message": "Title"
+	},
+	"app.collection.edit.visibility": {
+		"message": "Visibility"
+	},
+	"app.collection.save-button.create": {
+		"message": "Create new collection"
+	},
+	"app.collection.save-button.empty": {
+		"message": "You don't have any collections yet."
+	},
+	"app.collection.save-button.loading": {
+		"message": "Loading collections..."
+	},
+	"app.collection.save-button.no-matches": {
+		"message": "No collections match your search."
+	},
+	"app.collection.save-button.save": {
+		"message": "Save to collection"
+	},
+	"app.collection.save-button.save-tooltip": {
+		"message": "Save"
+	},
+	"app.collection.save-button.saved": {
+		"message": "Saved to a collection"
+	},
+	"app.collection.save-button.saved-tooltip": {
+		"message": "Saved"
+	},
+	"app.collection.save-button.search": {
+		"message": "Search..."
+	},
+	"app.collection.save-button.sign-in": {
+		"message": "Sign in to Modrinth to save projects."
+	},
+	"app.collection.visibility.listed": {
+		"message": "Public"
+	},
+	"app.collection.visibility.private": {
+		"message": "Private"
+	},
+	"app.collection.visibility.unlisted": {
+		"message": "Unlisted"
+	},
+	"app.error-modal.copy-debug-info": {
+		"message": "Copy debug info"
+	},
+	"app.error-modal.debug-information": {
+		"message": "Debug information"
+	},
+	"app.error-modal.directory.cancel": {
+		"message": "Cancel directory change"
+	},
+	"app.error-modal.directory.generic.body": {
+		"message": "Portalrinth is unable to migrate to the new directory you selected. Please contact support for help or cancel the directory change."
+	},
+	"app.error-modal.directory.no-space.body": {
+		"message": "It looks like there is not enough space on the disk containing the directory you selected. Please free up some space and try again or cancel the directory change."
+	},
+	"app.error-modal.directory.no-space.heading": {
+		"message": "Not enough space"
+	},
+	"app.error-modal.directory.read-only.body": {
+		"message": "It looks like Portalrinth is unable to write to the directory you selected. Please adjust the permissions of the directory and try again or cancel the directory change."
+	},
+	"app.error-modal.directory.read-only.heading": {
+		"message": "Change directory permissions"
+	},
+	"app.error-modal.directory.retry": {
+		"message": "Retry directory change"
+	},
+	"app.error-modal.game-pass.body": {
+		"message": "Try signing in with the <launcher-link>official Minecraft Launcher</launcher-link> first. Once you’re done, come back here and sign in!"
+	},
+	"app.error-modal.game-pass.heading": {
+		"message": "Using PC Game Pass, coming from Bedrock, or just bought the game?"
+	},
+	"app.error-modal.get-support": {
+		"message": "Get support"
+	},
+	"app.error-modal.hosts-file.body": {
+		"message": "Portalrinth tried to connect to Microsoft / Xbox / Minecraft services, but the remote server rejected the connection. This may indicate that these services are blocked by the hosts file. Please visit <support-article>our support article</support-article> for steps on how to fix the issue."
+	},
+	"app.error-modal.network.body": {
+		"message": "It looks like there were issues with Portalrinth connecting to Microsoft's servers. This is often the result of a poor connection, so we recommend trying again to see if it works. If issues continue to persist, follow the steps in <support-article>our support article</support-article> to troubleshoot."
+	},
+	"app.error-modal.network.heading": {
+		"message": "Network issues"
+	},
+	"app.error-modal.no-error-message": {
+		"message": "No error message."
+	},
+	"app.error-modal.no-loader.body": {
+		"message": "Portalrinth failed to find the loader version for this instance."
+	},
+	"app.error-modal.no-loader.fix": {
+		"message": "To resolve this, you need to repair the instance. Click the button below to do so."
+	},
+	"app.error-modal.no-loader.repair": {
+		"message": "Repair instance"
+	},
+	"app.error-modal.other-account.body": {
+		"message": "Double check you’ve signed in with the right account. You may own Minecraft on a different Microsoft account."
+	},
+	"app.error-modal.other-account.button": {
+		"message": "Try another account"
+	},
+	"app.error-modal.other-account.heading": {
+		"message": "Try another Microsoft account"
+	},
+	"app.error-modal.state-init.body": {
+		"message": "Portalrinth failed to load correctly. This may be because of a corrupted file, or because the app is missing crucial files."
+	},
+	"app.error-modal.state-init.fix-internet": {
+		"message": "Ensuring you are connected to the internet, then try restarting the app."
+	},
+	"app.error-modal.state-init.fix-redownload": {
+		"message": "Redownloading the app."
+	},
+	"app.error-modal.state-init.fixes": {
+		"message": "You may be able to fix it through one of the following ways:"
+	},
+	"app.error-modal.support-prompt": {
+		"message": "If nothing is working and you need help, visit <support-page>our support page</support-page> and start a chat using the widget in the bottom right and we will be more than happy to assist! Make sure to provide the following debug information to the agent:"
+	},
+	"app.error-modal.title.directory-move": {
+		"message": "Could not change app directory"
+	},
+	"app.error-modal.title.minecraft-auth": {
+		"message": "Unable to sign in to Minecraft"
+	},
+	"app.error-modal.title.no-loader": {
+		"message": "No loader selected"
+	},
+	"app.error-modal.title.state-init": {
+		"message": "Error initializing Portalrinth"
+	},
+	"app.error-modal.title.unknown": {
+		"message": "An error occurred"
+	},
+	"app.error-modal.try-signing-in-again": {
+		"message": "Try signing in again"
+	},
+	"app.hosting.title": {
+		"message": "Hosting"
+	},
+	"app.hosting.update-required.description": {
+		"message": "You need to update to use Modrinth Hosting through Portalrinth"
+	},
+	"app.hosting.update-required.title": {
+		"message": "Portalrinth update required"
+	},
+	"app.instance.add-content.from-file": {
+		"message": "Add from file"
+	},
+	"app.instance.add-content.install": {
+		"message": "Install content"
+	},
+	"app.instance.logs.live": {
+		"message": "Live Log"
+	},
+	"app.instance.logs.unknown-file": {
+		"message": "Unknown"
+	},
+	"app.instance.share.members.column.joined": {
+		"message": "Joined"
+	},
+	"app.instance.share.members.column.method": {
+		"message": "Method"
+	},
+	"app.instance.share.members.never-played": {
+		"message": "Never"
+	},
+	"app.instance.share.members.search": {
+		"message": "Search {count, plural, one {# user} other {# users}}..."
+	},
+	"app.instance.share.method.direct": {
+		"message": "Direct invite"
+	},
+	"app.instance.share.method.link": {
+		"message": "Share link"
+	},
+	"app.library.search.hint": {
+		"message": "↑↓ to pick · Tab to insert · terms combine, and - flips one around"
+	},
+	"app.library.search.pending": {
+		"message": "Still reading what is installed…"
+	},
+	"app.library.search.placeholder": {
+		"message": "Search instances, or type @ # ! to filter"
+	},
+	"app.library.search.sigil.mod": {
+		"message": "by mod"
+	},
+	"app.library.search.sigil.mod.hint": {
+		"message": "Instances that have a given mod, resource pack or shader"
+	},
+	"app.library.search.sigil.state": {
+		"message": "by state"
+	},
+	"app.library.search.sigil.state.hint": {
+		"message": "Instances with something outdated, disabled or broken"
+	},
+	"app.library.search.sigil.type": {
+		"message": "by type"
+	},
+	"app.library.search.sigil.type.hint": {
+		"message": "Instances that have any mod, shader, resource pack or data pack"
+	},
+	"app.library.search.state.broken": {
+		"message": "The instance itself needs repairing"
+	},
+	"app.library.search.state.disabled": {
+		"message": "Something is installed but switched off"
+	},
+	"app.library.search.state.outdated": {
+		"message": "Something installed has an update"
+	},
+	"app.library.search.type.datapack": {
+		"message": "Has data packs"
+	},
+	"app.library.search.type.mod": {
+		"message": "Has mods"
+	},
+	"app.library.search.type.resourcepack": {
+		"message": "Has resource packs"
+	},
+	"app.library.search.type.shader": {
+		"message": "Has shader packs"
+	},
+	"app.lan.action.publish": {
+		"message": "Open LAN"
+	},
+	"app.lan.action.unpublish": {
+		"message": "Stop"
+	},
+	"app.lan.copied": {
+		"message": "Address copied"
+	},
+	"app.lan.description": {
+		"message": "Open a world to LAN in Minecraft, then publish it from here."
+	},
+	"app.lan.empty-description": {
+		"message": "Start an instance and it will show up here."
+	},
+	"app.lan.empty-heading": {
+		"message": "Nothing is running"
+	},
+	"app.lan.error-heading": {
+		"message": "Failed to read running instances"
+	},
+	"app.lan.heading": {
+		"message": "LAN"
+	},
+	"app.lan.published": {
+		"message": "Published at {address}"
+	},
+	"app.lan.state.closed": {
+		"message": "No world is open to the network"
+	},
+	"app.lan.state.lost": {
+		"message": "The relay stopped carrying players"
+	},
+	"app.lan.state.ready": {
+		"message": "The world is open to the network, on port {port}"
+	},
+	"app.lan.stopped": {
+		"message": "No longer published"
+	},
+	"app.migration.modrinth.action.choose": {
+		"message": "Choose instances"
+	},
+	"app.migration.modrinth.action.dismiss": {
+		"message": "Dismiss"
+	},
+	"app.migration.modrinth.action.import-all": {
+		"message": "Import all"
+	},
+	"app.migration.modrinth.action.importing": {
+		"message": "Importing..."
+	},
+	"app.migration.modrinth.description": {
+		"message": "{count, plural, one {# instance was} other {# instances were}} found in your Modrinth App installation. Importing copies them here — your Modrinth App stays untouched."
+	},
+	"app.migration.modrinth.title": {
+		"message": "Bring your instances over from Modrinth App"
+	},
+	"app.minecraft-auth-error.contact-support": {
+		"message": "Contact support"
+	},
+	"app.minecraft-auth-error.copy-debug-info": {
+		"message": "Copy debug info"
+	},
+	"app.minecraft-auth-error.debug-information": {
+		"message": "Debug information"
+	},
+	"app.minecraft-auth-error.header": {
+		"message": "Sign in Failed"
+	},
+	"app.minecraft-auth-error.how-to-fix": {
+		"message": "How to fix it"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.step-1": {
+		"message": "Visit <link>Xbox</link> and sign in"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.step-2": {
+		"message": "Complete the identity verification process"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.step-3": {
+		"message": "Once finished, try signing in again"
+	},
+	"app.minecraft-auth-error.korea-adult-verification-alt.what": {
+		"message": "This account requires adult verification under South Korean regulations."
+	},
+	"app.minecraft-auth-error.korea-adult-verification.step-1": {
+		"message": "Visit <link>Xbox</link> and sign in"
+	},
+	"app.minecraft-auth-error.korea-adult-verification.step-2": {
+		"message": "Complete the identity verification process"
+	},
+	"app.minecraft-auth-error.korea-adult-verification.step-3": {
+		"message": "Once finished, try signing in again"
+	},
+	"app.minecraft-auth-error.korea-adult-verification.what": {
+		"message": "This account requires adult verification under South Korean regulations."
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-1": {
+		"message": "Wait a few minutes and try signing in again"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-2": {
+		"message": "Check <link>Xbox Status</link> for current service issues"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-3": {
+		"message": "Try signing in with the <link>official Minecraft Launcher</link> to confirm whether Minecraft sign-in is also affected there"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.step-4": {
+		"message": "If the service is healthy and this keeps happening, contact support with the debug information below"
+	},
+	"app.minecraft-auth-error.minecraft-server-error.what": {
+		"message": "Minecraft's authentication service is returning a server error, so Portalrinth cannot finish signing you in right now."
+	},
+	"app.minecraft-auth-error.network.step-1": {
+		"message": "Restart Portalrinth and try signing in again"
+	},
+	"app.minecraft-auth-error.network.step-2": {
+		"message": "Check that your internet connection is working"
+	},
+	"app.minecraft-auth-error.network.step-3": {
+		"message": "Allow Portalrinth through your firewall, antivirus, proxy, VPN, and hosts file rules"
+	},
+	"app.minecraft-auth-error.network.step-4": {
+		"message": "Try a different network or temporarily disable VPN/proxy software if you use one"
+	},
+	"app.minecraft-auth-error.network.step-5": {
+		"message": "If routing or DNS is the issue, a service like Cloudflare WARP can sometimes help"
+	},
+	"app.minecraft-auth-error.network.what": {
+		"message": "Portalrinth could not connect to a Microsoft, Xbox, or Minecraft service needed for sign-in. This is usually caused by a local network, DNS, proxy, firewall, hosts file, VPN, or antivirus issue."
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-1": {
+		"message": "Make sure Minecraft is purchased on this account"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-2": {
+		"message": "Visit <link>Minecraft Login</link> and sign in"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-3": {
+		"message": "Complete Xbox profile setup if prompted"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.step-4": {
+		"message": "Once finished, try signing in again"
+	},
+	"app.minecraft-auth-error.no-xbox-profile.what": {
+		"message": "This account doesn't have an Xbox profile set up or doesn't own Minecraft."
+	},
+	"app.minecraft-auth-error.player-profile.step-1": {
+		"message": "Sign in with the <link>official Minecraft Launcher</link>"
+	},
+	"app.minecraft-auth-error.player-profile.step-2": {
+		"message": "Launch Minecraft: Java Edition once from the official launcher"
+	},
+	"app.minecraft-auth-error.player-profile.step-3": {
+		"message": "Wait up to an hour if the purchase or profile setup was recent"
+	},
+	"app.minecraft-auth-error.player-profile.step-4": {
+		"message": "Make sure you are using the Microsoft account that owns Minecraft. See <link>Finding the right Xbox account</link> for help"
+	},
+	"app.minecraft-auth-error.player-profile.step-5": {
+		"message": "Try signing in to Portalrinth again"
+	},
+	"app.minecraft-auth-error.player-profile.what": {
+		"message": "Minecraft services could not return a Java Edition profile for this account. This most often happens when the game was purchased recently, the Java profile has not finished being created, or the wrong Microsoft account is being used."
+	},
+	"app.minecraft-auth-error.refresh-token.step-1": {
+		"message": "Sign out of the affected Minecraft account in Portalrinth"
+	},
+	"app.minecraft-auth-error.refresh-token.step-2": {
+		"message": "Sign in to the account again"
+	},
+	"app.minecraft-auth-error.refresh-token.step-3": {
+		"message": "Once the new sign-in finishes, try launching Minecraft again"
+	},
+	"app.minecraft-auth-error.refresh-token.what": {
+		"message": "Your saved Microsoft sign-in token has expired or was revoked, so Portalrinth cannot refresh your Minecraft session."
+	},
+	"app.minecraft-auth-error.region-unavailable.step-1": {
+		"message": "Xbox services must be supported in your country before you can sign in"
+	},
+	"app.minecraft-auth-error.region-unavailable.step-2": {
+		"message": "Check <link>Xbox Availability</link> for supported regions"
+	},
+	"app.minecraft-auth-error.region-unavailable.what": {
+		"message": "Xbox Live isn't available in your region, so sign-in is blocked."
+	},
+	"app.minecraft-auth-error.restricted-online-play.step-1": {
+		"message": "Have a guardian sign in to <link>Microsoft Family</link>"
+	},
+	"app.minecraft-auth-error.restricted-online-play.step-2": {
+		"message": "Update online play permissions"
+	},
+	"app.minecraft-auth-error.restricted-online-play.step-3": {
+		"message": "Once finished, try signing in again"
+	},
+	"app.minecraft-auth-error.restricted-online-play.what": {
+		"message": "This account is restricted and doesn't have permission to play online."
+	},
+	"app.minecraft-auth-error.sign-in-again": {
+		"message": "Sign in again"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-1": {
+		"message": "Open your system date and time settings"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-2": {
+		"message": "Turn on automatic time zone and automatic time, if available"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-3": {
+		"message": "Use the sync option in your system settings to synchronize the clock"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-4": {
+		"message": "Restart Portalrinth"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.step-5": {
+		"message": "Try signing in again"
+	},
+	"app.minecraft-auth-error.sisu-authenticate.what": {
+		"message": "Xbox services rejected the first sign-in response. This is most often caused by your system clock or time zone being out of sync."
+	},
+	"app.minecraft-auth-error.summary": {
+		"message": "We couldn't sign you into your Microsoft account. This may be due to account restrictions or regional limitations."
+	},
+	"app.minecraft-auth-error.suspended.step-1": {
+		"message": "Visit <link>Xbox Support</link> and review the enforcement details"
+	},
+	"app.minecraft-auth-error.suspended.step-2": {
+		"message": "Submit an appeal if one is available"
+	},
+	"app.minecraft-auth-error.suspended.what": {
+		"message": "This account was suspended for violating Xbox Community Standards."
+	},
+	"app.minecraft-auth-error.terms-not-accepted.step-1": {
+		"message": "Visit <link>Xbox</link> and sign in"
+	},
+	"app.minecraft-auth-error.terms-not-accepted.step-2": {
+		"message": "Accept the Terms if prompted"
+	},
+	"app.minecraft-auth-error.terms-not-accepted.step-3": {
+		"message": "Once finished, try signing in again"
+	},
+	"app.minecraft-auth-error.terms-not-accepted.what": {
+		"message": "This account hasn't accepted Xbox's Terms of Service."
+	},
+	"app.minecraft-auth-error.too-many-requests.step-1": {
+		"message": "Wait about an hour before trying again"
+	},
+	"app.minecraft-auth-error.too-many-requests.step-2": {
+		"message": "Restart Portalrinth after waiting"
+	},
+	"app.minecraft-auth-error.too-many-requests.step-3": {
+		"message": "Try signing in once more"
+	},
+	"app.minecraft-auth-error.too-many-requests.step-4": {
+		"message": "If the same message appears, wait longer before retrying so the temporary limit can clear"
+	},
+	"app.minecraft-auth-error.too-many-requests.what": {
+		"message": "Microsoft or Minecraft temporarily blocked the sign-in request because there were too many recent attempts."
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-1": {
+		"message": "Go to the <link>Minecraft Login</link> page and sign in"
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-2": {
+		"message": "Follow the instructions to verify your age"
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-3": {
+		"message": "Once verified, try signing in again"
+	},
+	"app.minecraft-auth-error.uk-age-verification.step-4": {
+		"message": "For additional help, visit <link>UK age verification on Xbox</link>"
+	},
+	"app.minecraft-auth-error.uk-age-verification.what": {
+		"message": "Your Minecraft/Xbox Live account requires age verification to comply with UK regulations. You must complete this before signing in."
+	},
+	"app.minecraft-auth-error.underage-no-family.step-1": {
+		"message": "Review the <link>Family Setup Guide</link>"
+	},
+	"app.minecraft-auth-error.underage-no-family.step-2": {
+		"message": "Join or create a family group as instructed"
+	},
+	"app.minecraft-auth-error.underage-no-family.step-3": {
+		"message": "Once finished, try signing in again"
+	},
+	"app.minecraft-auth-error.underage-no-family.what": {
+		"message": "This account is underage and not linked to a Microsoft family group."
+	},
+	"app.minecraft-auth-error.unknown": {
+		"message": "Unknown error"
+	},
+	"app.minecraft-auth-error.unknown-advice": {
+		"message": "Try visiting <login-link>Minecraft Login</login-link> and signing in, as it may prompt you with the necessary steps. You can also contact support and we can look into it further."
+	},
+	"app.minecraft-auth-error.unknown-body": {
+		"message": "We don’t recognize this error and can’t recommend specific steps to resolve it."
+	},
+	"app.minecraft-auth-error.what-happened": {
+		"message": "What we think happened"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-1": {
+		"message": "Sign in with the <link>official Minecraft Launcher</link>"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-2": {
+		"message": "Complete any prompts shown by Microsoft, Xbox, or Minecraft"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-3": {
+		"message": "Try signing in to Portalrinth again"
+	},
+	"app.minecraft-auth-error.xsts-authorize.step-4": {
+		"message": "If the official launcher also fails, follow the error shown there or contact Xbox Support"
+	},
+	"app.minecraft-auth-error.xsts-authorize.what": {
+		"message": "Xbox services rejected the request to authorize this account for Minecraft services, but did not return a specific account restriction that Portalrinth recognizes."
+	},
+	"app.nav.lan": {
+		"message": "LAN"
+	},
+	"app.notifications.accept": {
+		"message": "Accept"
+	},
+	"app.notifications.decline": {
+		"message": "Decline"
+	},
+	"app.notifications.error.accept": {
+		"message": "Error accepting invite"
+	},
+	"app.notifications.error.decline": {
+		"message": "Error declining invite"
+	},
+	"app.notifications.error.mark-read": {
+		"message": "Error marking notification as read"
+	},
+	"app.notifications.invited-to-join": {
+		"message": "has invited you to join <target>{name}</target>."
+	},
+	"app.notifications.mark-as-read": {
+		"message": "Mark as read"
+	},
+	"app.notifications.moderator-message": {
+		"message": "Your project, <project>{title}</project>, has received {count, plural, one {a message} other {messages}} from the moderators."
+	},
+	"app.notifications.not-signed-in": {
+		"message": "Not signed in"
+	},
+	"app.notifications.project-updated": {
+		"message": "A project you follow, <project>{title}</project>, has been updated:"
+	},
+	"app.notifications.read-badge": {
+		"message": "Read"
+	},
+	"app.notifications.received": {
+		"message": "Received {time}"
+	},
+	"app.notifications.status-changed": {
+		"message": "<project>{title}</project> updated from <strong>{oldStatus}</strong> to <strong>{newStatus}</strong> by the moderators."
+	},
+	"app.notifications.version-for": {
+		"message": "for"
+	},
+	"app.project.copy-link.copied": {
+		"message": "Link copied to clipboard"
+	},
+	"app.project.sign-in-to-follow": {
+		"message": "Sign in to follow"
+	},
+	"app.resource-settings.proxy.description": {
+		"message": "Routes all launcher network traffic (Modrinth API and CDN downloads) through a proxy. Supports http://, https://, socks5:// and socks5h:// URLs. Useful when Modrinth is not reachable in your region. Leave empty to connect directly. (app restart required to take effect)"
+	},
+	"app.resource-settings.proxy.title": {
+		"message": "Proxy"
+	},
+	"app.settings.app-version": {
+		"message": "Portalrinth {version}"
+	},
+	"app.settings.default-instance-options.universal-skins.description": {
+		"message": "Servers in offline mode send no skins at all, which is why everyone is Steve there. Look them up by name instead, from Ely.by — which answers for the players registered there and falls back to Mojang for everyone else. Needs no mods, and never replaces a skin the server did send."
+	},
+	"app.settings.default-instance-options.universal-skins.title": {
+		"message": "Skins for every player"
+	},
+	"app.settings.feature-flags.search.placeholder": {
+		"message": "Search flags..."
+	},
+	"app.settings.java.gpu.choice.auto": {
+		"message": "Let Windows decide"
+	},
+	"app.settings.java.gpu.choice.high-performance": {
+		"message": "High performance"
+	},
+	"app.settings.java.gpu.choice.power-saving": {
+		"message": "Power saving"
+	},
+	"app.settings.java.gpu.label": {
+		"message": "Graphics adapter"
+	},
+	"app.settings.java.gpu.no-preference": {
+		"message": "No preference is set, so Windows picks — on a laptop that is usually the integrated adapter. Available: {adapters}"
+	},
+	"app.settings.java.gpu.on-high-performance": {
+		"message": "Windows will run this runtime on the high-performance adapter."
+	},
+	"app.settings.java.gpu.on-named-adapter": {
+		"message": "Windows will run this runtime on {adapter}."
+	},
+	"app.settings.java.gpu.on-power-saving": {
+		"message": "Windows will run this runtime on the power-saving adapter — usually the integrated one, which is the slow option for Minecraft."
+	},
+	"app.settings.java.runtimes.delete-label": {
+		"message": "Delete runtime"
+	},
+	"app.settings.java.runtimes.delete-tooltip": {
+		"message": "Delete this runtime"
+	},
+	"app.settings.java.runtimes.description": {
+		"message": "Java the launcher downloaded for you, {size} in total. Updating Java leaves the previous copy behind, so these build up over time."
+	},
+	"app.settings.java.runtimes.in-use": {
+		"message": "In use"
+	},
+	"app.settings.java.runtimes.in-use-tooltip": {
+		"message": "A Java setting points at this one — change it first"
+	},
+	"app.settings.java.runtimes.remove-unused": {
+		"message": "Remove {count} unused ({size})"
+	},
+	"app.settings.java.runtimes.removed-text": {
+		"message": "Reclaimed {size}."
+	},
+	"app.settings.java.runtimes.removed-title": {
+		"message": "Runtimes removed"
+	},
+	"app.settings.java.runtimes.title": {
+		"message": "Downloaded runtimes"
+	},
+	"app.settings.privacy.discord-rich-presence.description": {
+		"message": "Show Portalrinth as your current activity on Discord. This does not affect Rich Presence added to instances by mods. Requires an app restart."
+	},
+	"app.settings.resource-management.app-directory.description": {
+		"message": "Where Portalrinth stores instances and other files. Changes take effect after restarting the app."
+	},
+	"app.settings.tabs.changelog": {
+		"message": "Changelog"
+	},
+	"app.skins.ely.edit.texture-locked": {
+		"message": "Ely.by keeps a texture and its skin together, so this one cannot be swapped out. Upload the new texture as another skin instead."
+	},
+	"app.skins.ely.edit.upload-new": {
+		"message": "Upload a new skin"
+	},
+	"app.skins.ely.my-skins.empty": {
+		"message": "Nothing uploaded yet. Add a skin with the tile below, or drop a PNG onto it."
+	},
+	"app.skins.ely.my-skins.title": {
+		"message": "Your Ely.by skins"
+	},
+	"app.skins.ely.sign-in-needed.text": {
+		"message": "Ely.by needs you signed in on its website for this. Use \"Change skin on Ely.by\" to sign in, then try again."
+	},
+	"app.skins.ely.sign-in-needed.title": {
+		"message": "Ely.by did not accept the change"
+	},
+	"app.survey.body": {
+		"message": "Would you mind answering a few questions about your experience with Portalrinth?"
+	},
+	"app.update-popup.body": {
+		"message": "Portalrinth v{version} is ready to install! Reload to update now, or automatically when you close Portalrinth."
+	},
+	"app.update-popup.body.download-complete": {
+		"message": "Portalrinth v{version} has finished downloading. Reload to update now, or automatically when you close Portalrinth."
+	},
+	"app.update-popup.body.downloading": {
+		"message": "Portalrinth v{version} — {downloaded} of {size}"
+	},
+	"app.update-popup.body.downloading-unknown-size": {
+		"message": "Portalrinth v{version} is downloading…"
+	},
+	"app.update-popup.body.linux": {
+		"message": "Portalrinth v{version} is available. Use your package manager to update for the latest features and fixes!"
+	},
+	"app.update-popup.body.metered": {
+		"message": "Portalrinth v{version} is available now! Since you're on a metered network, we didn't automatically download it."
+	},
+	"app.update-popup.downloading": {
+		"message": "Downloading update"
+	},
+	"app.welcome-screen.title": {
+		"message": "Welcome to Portalrinth"
+	},
+	"app.window-controls.close": {
+		"message": "Close window"
+	},
+	"app.window-controls.minimize": {
+		"message": "Minimize window"
+	},
+	"app.window-controls.toggle-maximize": {
+		"message": "Toggle maximize window"
+	},
+	"collection.delete": {
+		"message": "Delete"
+	},
+	"collection.edit": {
+		"message": "Edit"
+	},
+	"collection.filter.all": {
+		"message": "All"
+	},
+	"collection.following.description": {
+		"message": "Auto-generated collection of all the projects you're following."
+	},
+	"collection.following.name": {
+		"message": "Followed projects"
+	},
+	"collection.loading": {
+		"message": "Loading..."
+	},
+	"collection.no-followed": {
+		"message": "You haven't followed any projects yet"
+	},
+	"collection.no-matching": {
+		"message": "No matching projects"
+	},
+	"collection.no-projects": {
+		"message": "No projects in this collection"
+	},
+	"collection.open-on-web": {
+		"message": "Open on web"
+	},
+	"collection.projects-count.one": {
+		"message": "project"
+	},
+	"collection.projects-count.other": {
+		"message": "projects"
+	},
+	"collection.remove-project": {
+		"message": "Remove project"
+	},
+	"collection.remove-tooltip": {
+		"message": "Remove from collection"
+	},
+	"collection.removing": {
+		"message": "Removing..."
+	},
+	"collection.search-placeholder": {
+		"message": "Search projects..."
+	},
+	"collection.sort-by": {
+		"message": "Sort by: "
+	},
+	"collection.sort-by-name": {
+		"message": "Sort by"
+	},
+	"collection.sort.downloads": {
+		"message": "Downloads"
+	},
+	"collection.sort.followers": {
+		"message": "Followers"
+	},
+	"collection.sort.name": {
+		"message": "Name (A-Z)"
+	},
+	"collection.sort.updated": {
+		"message": "Recently updated"
+	},
+	"collection.status.private": {
+		"message": "Private"
+	},
+	"collection.status.public": {
+		"message": "Public"
+	},
+	"collection.status.rejected": {
+		"message": "Rejected"
+	},
+	"collection.status.unlisted": {
+		"message": "Unlisted"
+	},
+	"collection.type.datapack": {
+		"message": "Data packs"
+	},
+	"collection.type.mod": {
+		"message": "Mods"
+	},
+	"collection.type.modpack": {
+		"message": "Modpacks"
+	},
+	"collection.type.plugin": {
+		"message": "Plugins"
+	},
+	"collection.type.resourcepack": {
+		"message": "Resource packs"
+	},
+	"collection.type.shader": {
+		"message": "Shaders"
+	},
+	"collection.unfollow-project": {
+		"message": "Unfollow project"
+	},
+	"collection.unfollowing": {
+		"message": "Unfollowing..."
+	},
+	"collection.updated-ago": {
+		"message": "Updated {time}"
+	},
+	"collections.create-new": {
+		"message": "Create new"
+	},
+	"collections.followed-projects": {
+		"message": "Followed projects"
+	},
+	"collections.followed-projects-desc": {
+		"message": "Auto-generated collection of all the projects you're following."
+	},
+	"collections.loading": {
+		"message": "Loading collections..."
+	},
+	"collections.no-collections": {
+		"message": "You don't have any collections yet"
+	},
+	"collections.no-collections-body": {
+		"message": "Create your first collection on modrinth.com to get started!"
+	},
+	"collections.no-match": {
+		"message": "No collections match your search"
+	},
+	"collections.no-match-body": {
+		"message": "Try adjusting your filters or search terms."
+	},
+	"collections.projects-count.one": {
+		"message": "project"
+	},
+	"collections.projects-count.other": {
+		"message": "projects"
+	},
+	"collections.search-placeholder": {
+		"message": "Search collections..."
+	},
+	"collections.sign-in-prompt": {
+		"message": "Sign in to view your collections"
+	},
+	"collections.sign-in-prompt-body": {
+		"message": "Sign in to your Modrinth account to see your collections here."
+	},
+	"collections.sort-by": {
+		"message": "Sort by: "
+	},
+	"collections.sort-by-name": {
+		"message": "Sort by"
+	},
+	"collections.sort.created": {
+		"message": "Recently Created"
+	},
+	"collections.sort.name": {
+		"message": "Name (A-Z)"
+	},
+	"collections.sort.updated": {
+		"message": "Recently Updated"
+	},
+	"collections.status.private": {
+		"message": "Private"
+	},
+	"collections.status.public": {
+		"message": "Public"
+	},
+	"collections.status.rejected": {
+		"message": "Rejected"
+	},
+	"collections.status.unlisted": {
+		"message": "Unlisted"
+	},
+	"console.actions.collapse": {
+		"message": "Collapse"
+	},
+	"console.actions.expand": {
+		"message": "Expand"
+	},
+	"console.crash.problems-detected": {
+		"message": "{count, plural, one {# problem} other {# problems}} detected"
+	},
+	"console.delete-modal.header": {
+		"message": "Delete log file"
+	},
+	"console.delete-modal.irreversible": {
+		"message": "This is irreversible"
+	},
+	"console.delete-modal.warning": {
+		"message": "Deleting this log file cannot be undone. Are you sure you want to continue?"
+	},
+	"console.empty-state.instance": {
+		"message": "Start your instance in the top right to start receiving live logs!"
+	},
+	"console.empty-state.server": {
+		"message": "Welcome to your Modrinth Server! Press the green start button to start your server!"
+	},
+	"console.filter.all": {
+		"message": "All"
+	},
+	"console.filter.debug": {
+		"message": "Debug"
+	},
+	"console.filter.error": {
+		"message": "Error"
+	},
+	"console.filter.info": {
+		"message": "Info"
+	},
+	"console.filter.trace": {
+		"message": "Trace"
+	},
+	"console.filter.warn": {
+		"message": "Warn"
+	},
+	"console.search.placeholder": {
+		"message": "Search logs"
+	},
+	"console.share-modal.header": {
+		"message": "Share Logs"
+	},
+	"console.terminal.input-disabled": {
+		"message": "Command input disabled"
+	},
+	"console.terminal.send-command": {
+		"message": "Send a command"
+	},
+	"console.terminal.server-not-running": {
+		"message": "Server is not running"
+	},
+	"creation-flow.modal.import-instance.delete-source.description": {
+		"defaultMessage": "Deletes each imported instance's files from the other launcher, so they aren't stored twice. Leave this off to keep both copies."
+	},
+	"creation-flow.modal.import-instance.delete-source.label": {
+		"defaultMessage": "Remove from {launcher} after importing"
+	},
+	"ely-login.cancel": {
+		"message": "Cancel"
+	},
+	"ely-login.error.generic": {
+		"message": "Login failed. Please check your credentials."
+	},
+	"ely-login.error.network": {
+		"message": "Couldn't reach Ely.by servers. Check your internet connection."
+	},
+	"ely-login.header": {
+		"message": "Sign in with Ely.by"
+	},
+	"ely-login.hide-password": {
+		"message": "Hide password"
+	},
+	"ely-login.no-account": {
+		"message": "Don't have an account?"
+	},
+	"ely-login.password-label": {
+		"message": "Password"
+	},
+	"ely-login.password-placeholder": {
+		"message": "Enter your password..."
+	},
+	"ely-login.show-password": {
+		"message": "Show password"
+	},
+	"ely-login.sign-in": {
+		"message": "Sign in"
+	},
+	"ely-login.sign-up-link": {
+		"message": "Sign up at ely.by"
+	},
+	"ely-login.signing-in": {
+		"message": "Signing in..."
+	},
+	"ely-login.totp-hint": {
+		"message": "This account is protected with two-factor authentication."
+	},
+	"ely-login.totp-label": {
+		"message": "Two-factor code"
+	},
+	"ely-login.totp-placeholder": {
+		"message": "Enter the 6-digit code..."
+	},
+	"ely-login.username-label": {
+		"message": "Username or email"
+	},
+	"ely-login.username-placeholder": {
+		"message": "Enter your Ely.by username or email..."
+	},
+	"ely-skins.change-button": {
+		"message": "Change skin on Ely.by"
+	},
+	"ely-skins.default-notice": {
+		"message": "This account has no custom skin uploaded (or it couldn't be loaded), so the default skin is shown."
+	},
+	"ely-skins.description": {
+		"message": "Skins for Ely.by accounts are managed on the Ely.by website. The button below opens it in a window right here in the app — if you aren't signed in, Ely.by will ask you to log in first. Once you close the window, the preview updates automatically."
+	},
+	"ely-skins.page-title": {
+		"message": "Skins"
+	},
+	"ely-skins.refresh-button": {
+		"message": "Refresh preview"
+	},
+	"ely-skins.section-title": {
+		"message": "Ely.by skin"
+	},
+	"friends.friend.more-options": {
+		"message": "More options"
+	},
+	"friends.requests.none": {
+		"message": "You have no pending friend requests :C"
+	},
+	"instance.action.play-again": {
+		"message": "Launch another copy"
+	},
+	"instance.badge.locked": {
+		"message": "Locked"
+	},
+	"instance.badge.locked.label": {
+		"message": "Locked instance information"
+	},
+	"instance.badge.shared": {
+		"message": "Shared"
+	},
+	"instance.badge.shared.label": {
+		"message": "Shared instance information"
+	},
+	"instance.console.copy-started-at": {
+		"message": "started {time}"
+	},
+	"instance.console.copy-unknown-account": {
+		"message": "Unknown account"
+	},
+	"instance.metadata.loader-tooltip": {
+		"message": "Mod loader and Minecraft version"
+	},
+	"instance.metadata.total-playtime": {
+		"message": "Total playtime"
+	},
+	"instance.playtime.hours": {
+		"message": "{hours, plural, one {# hour} other {# hours}}"
+	},
+	"instance.playtime.minutes": {
+		"message": "{minutes, plural, one {# minute} other {# minutes}}"
+	},
+	"instance.playtime.seconds": {
+		"message": "{seconds, plural, one {# second} other {# seconds}}"
+	},
+	"instance.settings.tabs.java.modern-java": {
+		"message": "Modern Java"
+	},
+	"instance.settings.tabs.java.modern-java-beta": {
+		"message": "Beta"
+	},
+	"instance.settings.tabs.java.modern-java-beta-note": {
+		"message": "This is new and not widely tested yet. Back up the instance before enabling it, and expect mods that assume Java 8 to misbehave."
+	},
+	"instance.settings.tabs.java.modern-java-description": {
+		"message": "Minecraft {gameVersion} normally only runs on Java 8. {provider} replaces LWJGL 2 and reworks Forge so the instance can run on a current Java release instead."
+	},
+	"instance.settings.tabs.java.modern-java-install": {
+		"message": "Enable"
+	},
+	"instance.settings.tabs.java.modern-java-installed": {
+		"message": "Installed — {provider} {version}, running on Java {javaMajor}"
+	},
+	"instance.settings.tabs.java.modern-java-installing": {
+		"message": "Enabling..."
+	},
+	"instance.settings.tabs.java.modern-java-mods-note": {
+		"message": "Disabling removes the launcher patches. Any mods it installed stay in the instance — remove them from the Mods tab if you no longer want them."
+	},
+	"instance.settings.tabs.java.modern-java-remove": {
+		"message": "Disable"
+	},
+	"instance.settings.tabs.java.modern-java-version": {
+		"message": "Java version"
+	},
+	"instance.settings.tabs.java.modern-java-version-hint": {
+		"message": "Picking a version downloads it and pins it as this instance’s Java installation. The lowest one is the best tested; newer ones are supported but less proven with mods for this Minecraft version."
+	},
+	"minecraft-account.add-ely-account": {
+		"message": "Add Ely.by account"
+	},
+	"minecraft-account.label-ely-by": {
+		"message": "Ely.by account"
+	},
+	"minecraft-account.label-microsoft": {
+		"message": "Microsoft account"
+	},
+	"notifications.back": {
+		"message": "Back"
+	},
+	"notifications.heading": {
+		"message": "Notifications"
+	},
+	"notifications.heading-history": {
+		"message": "Notification history"
+	},
+	"notifications.history-empty": {
+		"message": "No notifications in history."
+	},
+	"notifications.loading": {
+		"message": "Loading notifications..."
+	},
+	"notifications.mark-all-read": {
+		"message": "Mark all as read"
+	},
+	"notifications.sign-in-prompt": {
+		"message": "Sign in to view notifications"
+	},
+	"notifications.sign-in-prompt-body": {
+		"message": "Sign in to your Modrinth account to see your notifications here."
+	},
+	"notifications.type.all": {
+		"message": "All"
+	},
+	"notifications.type.moderator-message": {
+		"message": "Moderator messages"
+	},
+	"notifications.type.organization-invite": {
+		"message": "Organization invites"
+	},
+	"notifications.type.other": {
+		"message": "Other"
+	},
+	"notifications.type.project-update": {
+		"message": "Updates"
+	},
+	"notifications.type.status-change": {
+		"message": "Status changes"
+	},
+	"notifications.type.team-invite": {
+		"message": "Team invites"
+	},
+	"notifications.unread-empty": {
+		"message": "You don't have any unread notifications."
+	},
+	"notifications.view-history": {
+		"message": "View history"
+	},
+	"search.sort.date-published": {
+		"message": "Date published"
+	},
+	"search.sort.date-updated": {
+		"message": "Date updated"
+	},
+	"search.sort.downloads": {
+		"message": "Downloads"
+	},
+	"search.sort.followers": {
+		"message": "Followers"
+	},
+	"search.sort.players": {
+		"message": "Players"
+	},
+	"search.sort.relevance": {
+		"message": "Relevance"
+	},
+	"search.sort.verified-plays": {
+		"message": "Verified Plays"
+	},
+	"servers.list-empty.no-servers-description": {
+		"message": "Install mods, invite friends, and play together all from Portalrinth."
+	},
+	"servers.list-empty.play-with-friends-description": {
+		"message": "Invite friends to play your server with one-click play from Portalrinth."
+	},
+	"settings.display.theme.description": {
+		"message": "Select your preferred color theme across Portalrinth."
+	},
+	"settings.language.coverage.app-tooltip": {
+		"message": "About {percentage}% of Portalrinth is available in this language."
+	},
+	"portalrinth.settings.background.title": {
+		"message": "Background picture"
+	},
+	"portalrinth.settings.background.description": {
+		"message": "A picture behind the launcher, showing through its frame and, a little, through the cards on a page."
+	},
+	"portalrinth.settings.background.choose": {
+		"message": "Choose picture"
+	},
+	"portalrinth.settings.background.change": {
+		"message": "Change picture"
+	},
+	"portalrinth.settings.background.remove": {
+		"message": "Remove"
+	},
+	"portalrinth.settings.background.blur.title": {
+		"message": "Blur the picture"
+	},
+	"portalrinth.settings.background.blur.description": {
+		"message": "Softens it, so it stays behind what is in front of it."
+	},
+	"app.behavior-settings.refocus-on-game-close.description": {
+		"message": "Bring Portalrinth to the foreground when Minecraft exits."
+	},
+	"app.screenshots.selection.global-export-filename": {
+		"message": "Portalrinth screenshots.zip"
+	},
+	"app.settings.game-options.compatibility.reason.launcher-controlled": {
+		"message": "This setting is managed by Portalrinth's launch settings."
+	},
+	"app.settings.resource-management.debug-info.description": {
+		"message": "Export app logs and diagnostic data to a ZIP file to attach to a bug report."
+	},
+	"app.settings.synced-options.game-settings.custom-empty": {
+		"message": "Settings added by mods will appear here after Portalrinth finds them in one of your instances."
+	},
+	"app.settings.privacy.telemetry.description": {
+		"message": "Portalrinth sends no analytics or usage data, whichever way this is set. The switch is kept so the setting carries over to and from Modrinth App."
+	},
+	"portalrinth.settings.background.drop-hint": {
+		"message": "Or drop a picture onto the window."
+	},
+	"portalrinth.settings.background.drop-here": {
+		"message": "Drop it here"
+	},
+	"portalrinth.settings.background.dim.title": {
+		"message": "Darken the picture"
+	},
+	"portalrinth.settings.background.dim.description": {
+		"message": "For a bright or busy picture, so what is over it stays easy to read."
+	},
+	"app.appearance-settings.accent.pick": {
+		"message": "Pick an accent colour"
+	},
+	"app.appearance-settings.accent.my-colours": {
+		"message": "My accent colours"
+	},
+	"app.appearance-settings.accent.keep-colour": {
+		"message": "Keep this colour"
+	},
+	"app.appearance-settings.accent.remove-colour": {
+		"message": "Remove this colour"
+	},
+	"app.appearance-settings.accent.too-many-colours": {
+		"message": "The row is full - remove one of your colours first"
+	},
+	"app.appearance-settings.accent.use-colour": {
+		"message": "Use {color}"
+	},
+	"app.features.browse.scroll-pages.title": {
+		"message": "Pageless"
+	},
+	"app.features.browse.scroll-pages.description": {
+		"message": "The result list has no pages at all: one long scroll that keeps loading as you go down. Turned off, the usual numbered pages are back."
+	},
+	"app.features.browse.scroll-pages.scope.off": {
+		"message": "Off"
+	},
+	"app.features.browse.scroll-pages.scope.discover": {
+		"message": "Discover"
+	},
+	"app.features.browse.scroll-pages.scope.both": {
+		"message": "Discover and Find projects"
+	},
+	"app.features.browse.page-size.title": {
+		"message": "Results on a page"
+	},
+	"app.features.browse.page-size.description": {
+		"message": "How many results are on a page. More of them means fewer pages, since the same list is divided up differently."
+	},
+	"app.sidebar.find-friends": {
+		"message": "Find friends"
+	},
+	"app.sidebar.add-friend": {
+		"message": "Add a friend"
+	},
+	"app.lan.players": {
+		"message": "In the world"
+	},
+	"app.lan.players.none": {
+		"message": "Nobody is in the world yet"
+	},
+	"app.lan.action.copy": {
+		"message": "Copy the address"
+	},
+	"app.lan.action.more": {
+		"message": "More"
+	},
+	"app.lan.details.header": {
+		"message": "What is in this world"
+	},
+	"app.lan.details.loading": {
+		"message": "Reading the world..."
+	},
+	"app.lan.details.empty": {
+		"message": "Nothing is in it"
+	},
+	"app.lan.details.mods": {
+		"message": "Mods"
+	},
+	"app.lan.details.resource-packs": {
+		"message": "Resource packs"
+	},
+	"app.lan.details.data-packs": {
+		"message": "Data packs"
+	},
+	"app.lan.details.shaders": {
+		"message": "Shaders"
+	},
+	"app.lan.details.other": {
+		"message": "Other"
+	},
+	"app.lan.details.download": {
+		"message": "Download the modpack"
+	},
+	"app.lan.details.download-done": {
+		"message": "The modpack was saved"
+	},
+	"app.lan.details.join": {
+		"message": "Join the world"
+	},
+	"app.lan.details.version": {
+		"message": "Minecraft {version}"
+	},
+	"app.lan.details.loader": {
+		"message": "{loader} {loaderVersion}"
+	},
+	"app.lan.action.open-in-game": {
+		"message": "Open LAN"
+	},
+	"app.lan.action.open-in-game.hint": {
+		"message": "In Minecraft, open the world to the network: E, then \"Open to LAN\". This page finds it by itself."
+	},
+	"app.lan.hint": {
+		"message": "Open LAN"
+	},
+	"app.lan.details.world": {
+		"message": "The world is at"
+	},
+	"app.lan.details.world-closed": {
+		"message": "not open to the network yet"
+	},
+	"app.lan.state.live": {
+		"message": "In the network"
+	},
+	"app.lan.state.not-live": {
+		"message": "Not in the network"
+	},
+	"friends.find.title": {
+		"message": "Find friends"
+	},
+	"friends.find.description": {
+		"message": "Search Modrinth by username and send them a request."
+	},
+	"app.appearance-settings.accent.gradient-shimmer.title": {
+		"message": "Shimmering gradient"
+	},
+	"app.appearance-settings.accent.gradient-shimmer.description": {
+		"message": "The colours of a gradient accent slowly move across what they fill."
+	},
+	"app.settings.sound.effects": {
+		"message": "Launcher sounds"
+	},
+	"app.settings.sound.effects-description": {
+		"message": "A tick on a press, and a chime when a mod, a skin or Java has finished installing."
+	},
+	"app.settings.sound.effects-volume": {
+		"message": "Effects volume"
+	},
+	"app.settings.resource-management.skin-services.title": {
+		"message": "Skin services"
+	},
+	"app.settings.resource-management.skin-services.description": {
+		"message": "Who draws the 3D previews of skins. One service works at a time, everywhere previews are shown, and it can be switched."
+	},
+	"app.settings.resource-management.skin-services.laby": {
+		"message": "The skin library's own render: understands the hashes of every skin in Discover. Chosen by default."
+	},
+	"app.settings.resource-management.skin-services.crafty": {
+		"message": "Renders by texture hash, but only knows the textures Mojang has indexed - library skins can come out as the default Steve."
+	},
+	"app.settings.resource-management.skin-services.mcskin": {
+		"message": "Renders players by name or UUID and has no render for a bare texture hash, so previews are drawn by the launcher itself."
+	},
+	"app.nav.ai": {
+		"message": "AI assistant"
+	},
+	"app.ai.heading": {
+		"message": "AI assistant"
+	},
+	"app.ai.description": {
+		"message": "Portalus — the launcher's agent: writes mods, shaders and resource packs, searches the web, builds modpacks, works with your files and remembers past conversations."
+	},
+	"app.ai.input.placeholder": {
+		"message": "Ask anything… e.g. \"build me a 1.21 pack with JEI\""
+	},
+	"app.ai.send": {
+		"message": "Send"
+	},
+	"app.ai.clear": {
+		"message": "Clear history"
+	},
+	"app.ai.name": {
+		"message": "Portalus"
+	},
+	"app.ai.empty.title": {
+		"message": "How can I help?"
+	},
+	"app.ai.empty.hint": {
+		"message": "Ask about mods, modpacks, skins or errors — replies come from the chosen model, and the agent performs its actions right in the launcher."
+	},
+	"app.ai.suggestion.build": {
+		"message": "Build me an optimised 1.21.1 modpack"
+	},
+	"app.ai.suggestion.mods": {
+		"message": "Find a minimap mod for Forge 1.20.1"
+	},
+	"app.ai.suggestion.crash": {
+		"message": "Why won't my instance start? What do I look for in the logs?"
+	},
+	"app.ai.suggestion.skins": {
+		"message": "How do I change a player skin in the launcher?"
+	},
+	"app.ai.thinking": {
+		"message": "Thinking…"
+	},
+	"app.ai.tab.section": {
+		"message": "Model"
+	},
+	"app.ai.settings.provider": {
+		"message": "Provider"
+	},
+	"app.ai.settings.model": {
+		"message": "Model"
+	},
+	"app.ai.settings.key": {
+		"message": "API key"
+	},
+	"app.ai.settings.key.placeholder": {
+		"message": "Paste the API key for this provider"
+	},
+	"app.ai.settings.getkey": {
+		"message": "Get a key"
+	},
+	"app.ai.settings.custombase": {
+		"message": "Endpoint (OpenAI-compatible)"
+	},
+	"app.ai.settings.custommodel": {
+		"message": "Model name"
+	},
+	"app.ai.settings.note.free": {
+		"message": "Free, no key needed. If the model is busy, the launcher falls back to a spare provider by itself."
+	},
+	"app.ai.settings.fallback": {
+		"message": "If the main provider runs out of limits, the answer still arrives from a keyless spare provider."
+	},
+	"app.ai.mascot.placeholder": {
+		"message": "Tell the mascot…"
+	},
+	"app.ai.mascot.hide": {
+		"message": "Hide replies"
+	},
+	"app.ai.mascot.show": {
+		"message": "Show replies"
+	},
+	"app.ai.mascot.yes": {
+		"message": "Yes"
+	},
+	"app.ai.mascot.no": {
+		"message": "No"
+	},
+	"app.ai.mascot.replies": {
+		"message": "Recent replies"
+	},
+	"app.settings.tabs.ai-assistant": {
+		"message": "AI assistant"
+	},
+	"app.settings.ai-assistant.mascot.title": {
+		"message": "Mascot"
+	},
+	"app.settings.ai-assistant.mascot.description": {
+		"message": "A little friend with a skin who lives in the interface: walks around the launcher, offers help, answers in a bubble and can carry out commands. Pet it with Alt + left click. Everything it knows stays local."
+	},
+	"app.settings.ai-assistant.enable": {
+		"message": "Show the mascot"
+	},
+	"app.settings.ai-assistant.effects": {
+		"message": "Chat effects"
+	},
+	"app.settings.ai-assistant.name": {
+		"message": "Mascot name"
+	},
+	"app.settings.ai-assistant.name-hint": {
+		"message": "The mascot responds to this name in conversation."
+	},
+	"app.settings.ai-assistant.skin.title": {
+		"message": "Mascot skin"
+	},
+	"app.settings.ai-assistant.skin.account": {
+		"message": "Same as my account"
+	},
+	"app.settings.ai-assistant.skin.hash": {
+		"message": "Skin from the library (laby.net hash)"
+	},
+	"app.settings.ai-assistant.skin.hash-hint": {
+		"message": "Take the hash from the address of any skin in Discover — the skin page opens when you click it."
+	},
+	"app.settings.ai-assistant.skin.mascot-section": {
+		"message": "Mascot"
+	},
+	"app.settings.ai-assistant.skin.mascot-section-description": {
+		"message": "A skin for the little friend from the AI assistant tab. It walks around the launcher, helps out, and you can chat with it from any screen."
+	},
+	"app.settings.ai-assistant.skin.open-settings": {
+		"message": "Configure the mascot"
+	},
+	"app.settings.ai-assistant.brain.title": {
+		"message": "Brain"
+	},
+	"app.settings.ai-assistant.brain.description": {
+		"message": "One model for everything: the AI assistant tab and the mascot. Providers marked \"RF\" work from Russia without a VPN."
+	},
+	"app.settings.ai-assistant.affection": {
+		"message": "Mascot affection"
+	},
+	"app.settings.ai-assistant.affection-hint": {
+		"message": "Grows when you pet the mascot (Alt + click). It shapes the mascot's character."
+	},
+	"app.settings.ai-assistant.reset-affection": {
+		"message": "Reset"
+	},
+	"app.ai.plus": {
+		"message": "Chat menu"
+	},
+	"app.ai.plus.new-chat": {
+		"message": "New chat"
+	},
+	"app.ai.plus.paste": {
+		"message": "Paste from clipboard"
+	},
+	"app.ai.plus.paste-empty": {
+		"message": "Clipboard has no text."
+	},
+	"app.ai.plus.attach": {
+		"message": "Attach a file"
+	},
+	"app.ai.attach-empty": {
+		"message": "No file chosen"
+	},
+	"app.ai.models": {
+		"message": "Model"
+	},
+	"app.ai.models.peak-busy": {
+		"message": "Z.AI: peak hours"
+	},
+	"app.ai.models.peak-free": {
+		"message": "Z.AI: quiet"
+	},
+	"app.ai.activity.commands": {
+		"message": "commands"
+	},
+	"app.ai.activity.created": {
+		"message": "generated file"
+	},
+	"app.ai.activity.changed": {
+		"message": "changed file"
+	},
+	"app.ai.question.title": {
+		"message": "The assistant awaits your decision"
+	},
+	"app.ai.question.own": {
+		"message": "Your own answer…"
+	},
+	"app.ai.question.send": {
+		"message": "Answer"
+	},
+	"app.ai.no-vision": {
+		"message": "This model cannot see images."
+	},
+	"app.ai.cards.mods": {
+		"message": "Mods"
+	},
+	"app.ai.cards.jars": {
+		"message": "Files"
+	},
+	"app.ai.cards.open": {
+		"message": "Open"
+	},
+	"app.ai.cards.install": {
+		"message": "Install"
+	},
+	"app.ai.cards.installed": {
+		"message": "Installed"
+	},
+	"app.ai.cards.install-fail": {
+		"message": "Installation failed"
+	},
+	"app.ai.cards.no-instances": {
+		"message": "Create an instance first — where would the .jar go?"
+	},
+	"app.ai.bridge": {
+		"message": "Bridge"
+	},
+	"app.ai.bridge.hint": {
+		"message": "The bridge serves a local page: open the address in a browser on this same computer, paste the key, and talk to Portalus from the page. Everything runs through the launcher — no cloud, no fees."
+	},
+	"app.ai.bridge.start": {
+		"message": "Start"
+	},
+	"app.ai.bridge.stop": {
+		"message": "Stop"
+	},
+	"app.ai.bridge.copy": {
+		"message": "Copy address and key"
+	},
+	"app.ai.bridge.copied": {
+		"message": "Copied!"
+	},
+	"app.ai.bridge.running": {
+		"message": "Running"
+	},
+	"app.ai.bridge.idle": {
+		"message": "Off"
+	},
+	"app.settings.ai-assistant.assistant.title": {
+		"message": "Assistant"
+	},
+	"app.settings.ai-assistant.assistant.description": {
+		"message": "The AI tab: answers questions, searches the web, works with files in its own sandbox and drives the launcher. Everything it knows stays local."
+	},
+	"app.settings.resource-management.skin-services.minotar": {
+		"message": "Draws a flat full-body picture straight from the texture hash on its own host - a fallback that keeps working when laby.net is throttled."
+	},
+	"app.ai.activity.open-folder": {
+		"message": "Open folder in file manager"
+	},
+	"app.screenshots.set-as-background": {
+		"message": "Apply as background"
+	},
+	"app.ai.history": {
+		"message": "Chat history"
+	},
+	"app.ai.history.empty": {
+		"message": "Nothing here yet — start the first conversation"
+	},
+	"app.ai.history.new-chat": {
+		"message": "New chat"
+	},
+	"app.ai.history.messages": {
+		"message": "msg"
+	},
+	"app.ai.notice.send": {
+		"message": "Send"
+	},
+	"app.ai.settings.group.work": {
+		"message": "For chatting"
+	},
+	"app.ai.settings.group.image": {
+		"message": "For image generation"
+	},
+	"app.ai.settings.test": {
+		"message": "Test connection"
+	},
+	"app.ai.settings.test.running": {
+		"message": "Testing…"
+	},
+	"app.ai.settings.test.ok": {
+		"message": "Connected — the AI answers"
+	},
+	"app.ai.settings.test.fail": {
+		"message": "No answer"
+	},
+	"app.speed.title": {
+		"message": "Internet speed"
+	},
+	"app.speed.measure": {
+		"message": "Measure"
+	},
+	"app.speed.again": {
+		"message": "Measure again"
+	},
+	"app.speed.running": {
+		"message": "Measuring…"
+	},
+	"app.speed.down": {
+		"message": "Mbps download"
+	},
+	"app.speed.ping": {
+		"message": "ms ping"
+	},
+	"app.speed.fail": {
+		"message": "Could not measure"
+	},
+	"app.ai.skills": {
+		"message": "Skills"
+	},
+	"app.ai.skills.hint": {
+		"message": "A skill is a standing instruction for the AI (what to be able to do and how to behave). The AI can install them itself via <<skill_save|name::description>>."
+	},
+	"app.ai.skills.empty": {
+		"message": "No skills yet - add your own below."
+	},
+	"app.ai.skills.name": {
+		"message": "Skill name"
+	},
+	"app.ai.skills.text": {
+		"message": "What it should do (instruction)"
+	},
+	"app.ai.skills.add": {
+		"message": "Install skill"
+	},
+	"app.settings.tabs.connections": {
+		"message": "Connections"
+	},
+	"instance.action.clean-launch": {
+		"message": "Clean launch"
+	},
+	"instance.files.move-bulk-failed": {
+		"message": "Could not move some items"
+	},
+	"instance.settings.tabs.mods-sync": {
+		"message": "Mod sync"
+	},
+	"instance.settings.tabs.backups": {
+		"message": "Backups"
+	},
+	"instance.settings.mods-sync.title": {
+		"message": "Mod sync"
+	},
+	"instance.settings.mods-sync.description": {
+		"message": "Mods installed or updated in this instance update themselves in every other instance that already carries the same mod. Nothing new gets added there - only shared mods stay on one version. Off by default."
+	},
+	"instance.settings.mods-sync.enabled": {
+		"message": "Sync shared mods with other instances"
+	},
+	"instance.settings.mods-sync.sync-now": {
+		"message": "Sync now"
+	},
+	"instance.settings.mods-sync.running": {
+		"message": "Comparing versions…"
+	},
+	"instance.settings.backups.title": {
+		"message": "Backups"
+	},
+	"instance.settings.backups.description": {
+		"message": "Whole-instance copies: mods, configs, worlds. The launcher backs the instance up before updating it, and you can save one any time with the button below. Restoring unfolds a copy over the instance."
+	},
+	"instance.settings.backups.new": {
+		"message": "New backup"
+	},
+	"instance.settings.backups.making": {
+		"message": "Packing a copy… Finished versions never change in here."
+	},
+	"instance.settings.backups.empty": {
+		"message": "No copies yet - make the first one so your progress is safe."
+	},
+	"instance.settings.backups.restore": {
+		"message": "Restore"
+	},
+	"instance.settings.backups.restore-confirm": {
+		"message": "Sure? Over the instance"
+	},
+	"instance.settings.backups.restoring": {
+		"message": "Unpacking the copy…"
+	},
+	"instance.settings.backups.delete": {
+		"message": "Delete"
+	},
+	"instance.settings.backups.fail": {
+		"message": "Did not work"
+	},
+	"app.ai.stop": {
+		"message": "Stop"
+	},
+	"app.ai.process.title": {
+		"message": "Thought process"
+	},
+	"app.ai.phase.thinking": {
+		"message": "Thinking…"
+	},
+	"app.ai.phase.working": {
+		"message": "Working…"
+	},
+	"app.ai.phase.speaking": {
+		"message": "Replying…"
+	},
+	"app.ai.queued": {
+		"message": "queued"
+	},
+	"app.ai.settings.custom-model-any": {
+		"message": "Your own model (an id from the provider's site - they have far more):"
+	},
+	"app.settings.sound.playlist-heavy": {
+		"message": "The playlist already takes up a lot of space ({used}) - you might want to remove something."
+	},
+	"app.settings.sound.online.title": {
+		"message": "Music from the internet"
+	},
+	"app.settings.sound.online.url-placeholder": {
+		"message": "Direct link to a track (https://…/track.mp3)"
+	},
+	"app.settings.sound.online.add": {
+		"message": "Download"
+	},
+	"app.settings.sound.online.hint": {
+		"message": "Paste a direct link to a track (for example, https://…/track.mp3) and it downloads straight into the playlist. Portalus can do the same: ask it to “download a track by the link …”."
+	},
+	"app.settings.sound.online.url-ok": {
+		"message": "Track downloaded into the playlist"
+	},
+	"app.settings.sound.online.url-fail": {
+		"message": "Could not add"
+	},
+	"app.bedrock.not-found.title": {
+		"message": "Build not found"
+	},
+	"app.bedrock.not-found.description": {
+		"message": "This Bedrock build no longer exists - it may have been removed. The sidebar has been refreshed."
+	},
+	"app.bedrock.not-found.home": {
+		"message": "Back to the launcher"
+	},
+	"app.appearance-settings.accent.gradient-speed.title": {
+		"message": "Pour speed"
+	},
+	"app.appearance-settings.accent.gradient-speed.description": {
+		"message": "One walk of the gradient takes {seconds} s."
+	},
+	"app.search.title": {
+		"message": "Web search"
+	},
+	"app.weather.title": {
+		"message": "Weather"
+	},
+	"app.weather.wind": {
+		"message": "wind"
+	},
+	"app.weather.day": {
+		"message": "day"
+	},
+	"app.weather.night": {
+		"message": "night"
+	},
+	"app.weather.loading": {
+		"message": "Looking out the window…"
+	},
+	"app.weather.fail": {
+		"message": "Weather is not answering"
+	},
+	"app.weather.refresh": {
+		"message": "Refresh"
+	},
+	"app.widgets.title": {
+		"message": "Widgets and features"
+	},
+	"app.widgets.search.title": {
+		"message": "Web search"
+	},
+	"app.widgets.search.description": {
+		"message": "A search button in the title bar: opens DuckDuckGo in a separate launcher window."
+	},
+	"app.widgets.clock.title": {
+		"message": "Clock at the top"
+	},
+	"app.widgets.clock.description": {
+		"message": "Time in the system timezone at the center of the title bar: sun by day, moon at night, sunrise and sunset."
+	},
+	"app.settings.tabs.browser": {
+		"message": "Browser"
+	},
+	"app.settings.tabs.hotkeys": {
+		"message": "Hotkeys"
+	},
+	"app.settings.tabs.updates": {
+		"message": "Updates"
+	},
+	"app.settings.browser.title": {
+		"message": "Browser"
+	},
+	"app.settings.browser.placeholder": {
+		"message": "Search the web or type an address…"
+	},
+	"app.settings.browser.search": {
+		"message": "Search"
+	},
+	"app.settings.browser.open": {
+		"message": "Open"
+	},
+	"app.settings.browser.opening": {
+		"message": "Opening…"
+	},
+	"app.settings.browser.searching": {
+		"message": "Searching…"
+	},
+	"app.settings.browser.nothing": {
+		"message": "Nothing found — try something else"
+	},
+	"app.settings.browser.error": {
+		"message": "The search did not answer"
+	},
+	"app.settings.browser.note": {
+		"message": "Pages open in a separate launcher window — a real browser, just inside Portalrinth."
+	},
+	"app.settings.browser.history": {
+		"message": "Recent searches"
+	},
+	"app.settings.browser.clear": {
+		"message": "Clear history"
+	},
+	"app.settings.hotkeys.title": {
+		"message": "Hotkeys"
+	},
+	"app.settings.hotkeys.note": {
+		"message": "Click a combo to set your own. Works from any launcher screen (while the cursor is not in a text field)."
+	},
+	"app.settings.hotkeys.press": {
+		"message": "Press the combo… (Esc to cancel)"
+	},
+	"app.settings.hotkeys.reset": {
+		"message": "Back to default"
+	},
+	"app.settings.hotkeys.taken": {
+		"message": "Released from another action"
+	},
+	"app.settings.updates.title": {
+		"message": "Updates"
+	},
+	"app.settings.updates.note": {
+		"message": "Fresh release notes from Modrinth App, Noctrinth and Portalrinth — translated into your language."
+	},
+	"app.settings.updates.launcher": {
+		"message": "Launcher"
+	},
+	"app.settings.updates.current": {
+		"message": "Installed version"
+	},
+	"app.settings.updates.up-to-date": {
+		"message": "You are on the latest version"
+	},
+	"app.settings.updates.available": {
+		"message": "Update available"
+	},
+	"app.settings.updates.update": {
+		"message": "Update (.exe)"
+	},
+	"app.settings.updates.downloading": {
+		"message": "Downloading…"
+	},
+	"app.settings.updates.running": {
+		"message": "Installer started — it takes it from here"
+	},
+	"app.settings.updates.release-page": {
+		"message": "Release page"
+	},
+	"app.settings.updates.translate": {
+		"message": "Translate"
+	},
+	"app.settings.updates.translated": {
+		"message": "Original"
+	},
+	"app.settings.updates.translated-note": {
+		"message": "Translated by the built-in Google translator"
+	},
+	"app.settings.updates.no-releases": {
+		"message": "No releases, or none available"
+	},
+	"app.settings.updates.fail": {
+		"message": "Not responding"
+	},
+	"app.settings.updates.refresh": {
+		"message": "Refresh"
+	},
+	"app.features.ai-links.title": {
+		"message": "AI links open in the built-in browser"
+	},
+	"app.features.ai-links.description": {
+		"message": "External links from the Portalus chat open in a launcher window instead of the system browser (off by default)."
+	},
+	"app.clock.time": {
+		"message": "Time"
+	},
+	"app.clock.timer": {
+		"message": "Timer"
+	},
+	"app.clock.stopwatch": {
+		"message": "Stopwatch"
+	},
+	"app.clock.action-none": {
+		"message": "Nothing"
+	},
+	"app.clock.action-close": {
+		"message": "Close the game"
+	},
+	"app.clock.action-open": {
+		"message": "Open the game"
+	},
+	"app.settings.resource-management.skin-services.vzge": {
+		"message": "vzge.me — fast 3D render on a CDN, takes any texture hash (default)"
+	},
+	"app.settings.resource-management.skin-services.skinrender": {
+		"message": "SkinRender.dev — its own 3D engine, takes any texture hash"
+	},
+	"app.settings.resource-management.skin-services.nmsr": {
+		"message": "NMSR — the reference renderer, takes any texture hash"
+	},
+	"app.instance.tab.notes": {
+		"message": "Info"
+	},
+	"app.instance.notes.title": {
+		"message": "Notes"
+	},
+	"app.instance.notes.description": {
+		"message": "A note pinned to this build: plans, things to check, the server address. It pops up on screen before every game launch."
+	},
+	"app.instance.notes.placeholder": {
+		"message": "For example: remember to enable shaders and join the server…"
+	},
+	"app.instance.notes.save": {
+		"message": "Save"
+	},
+	"app.instance.notes.saved": {
+		"message": "Saved"
+	},
+	"app.instance.notes.empty": {
+		"message": "Nothing yet: write something, and the note will pop up before every launch of this build."
+	},
+	"app.instance.notes.popup.header": {
+		"message": "Note for \"{name}\""
+	},
+	"app.instance.notes.popup.never": {
+		"message": "Never remind me again"
+	},
+	"app.instance.notes.popup.ok": {
+		"message": "OK"
+	},
+	"app.skin-browse.page": {
+		"message": "Page {page}"
+	},
+	"app.skin-browse.page-last": {
+		"message": "Page {page} — last one"
+	},
+	"app.bedrock.page": {
+		"message": "Page {page}"
+	},
+	"app.bedrock.page-last": {
+		"message": "Page {page} — last one"
+	},
+	"app.skin-browse.similar-page": {
+		"message": "Page {page} of {total}"
+	},
+	"app.skin-browse.similar-category": {
+		"message": "Category: {tags}"
+	},
+	"app.appearance-settings.accent-icons.title": {
+		"message": "All icons in the accent"
+	},
+	"app.appearance-settings.accent-icons.description": {
+		"message": "The Modrinth and CurseForge icons and our mark - in the title bar and on the desktop - take the accent’s colour. A gradient gives them its first colour. Account icons keep their own."
+	},
+	"app.appearance-settings.font.title": {
+		"message": "Interface font"
+	},
+	"app.appearance-settings.font.description": {
+		"message": "The typeface the app is set in. A letter the chosen font does not have is drawn in Inter."
+	},
+	"app.appearance-settings.font.default": {
+		"message": "Inter"
+	},
+	"app.appearance-settings.font.system": {
+		"message": "System"
+	},
+	"app.appearance-settings.font.minecraft": {
+		"message": "Minecraft"
+	},
+	"app.appearance-settings.font.custom": {
+		"message": "Custom"
+	},
+	"app.appearance-settings.font.default.badge": {
+		"message": "Default"
+	},
+	"app.appearance-settings.font.custom.placeholder": {
+		"message": "Choose a font installed on this computer"
+	},
+	"app.appearance-settings.font.custom.search": {
+		"message": "Search fonts"
+	},
+	"app.appearance-settings.font.custom.none": {
+		"message": "No installed font is called that"
+	},
+	"app.settings.ai-assistant.enabled": {
+		"message": "Enable AI assistant"
+	},
+	"app.settings.ai-assistant.enabled-hint": {
+		"message": "When off, the AI tab and the mascot are hidden from the launcher."
+	},
+	"app.skin-browse.profile": {
+		"message": "Player profile"
+	},
+	"app.skin-browse.profile-copy": {
+		"message": "Copy"
+	},
+	"app.skin-browse.profile-color": {
+		"message": "Locator bar color"
+	},
+	"app.skin-browse.profile-head": {
+		"message": "Getting the head"
+	},
+	"app.skin-browse.profile-copied": {
+		"message": "Copied"
+	},
+	"app.skin-browse.arm-classic": {
+		"message": "Classic"
+	},
+	"app.skin-browse.arm-slim": {
+		"message": "Slim"
+	},
+	"app.nav.hosting-paid": {
+		"message": "Modrinth Hosting"
+	},
+	"app.nav.lan-free": {
+		"message": "LAN"
+	},
+	"app.ai.effort": {
+		"message": "Reasoning effort"
+	},
+	"app.ai.effort.low": {
+		"message": "Low"
+	},
+	"app.ai.effort.medium": {
+		"message": "Medium"
+	},
+	"app.ai.effort.high": {
+		"message": "High"
+	},
+	"app.ai.settings.showkey": {
+		"message": "Show key"
+	},
+	"app.ai.settings.hidekey": {
+		"message": "Hide key"
+	},
+	"app.ai.settings.picker.hint": {
+		"message": "Pick a model — the list is grouped by provider"
+	},
+	"app.ai.settings.manage": {
+		"message": "Manage models"
+	},
+	"app.ai.settings.done": {
+		"message": "Done"
+	},
+	"app.ai.settings.manage.hint": {
+		"message": "Click a provider name to paste its key. A switch hides the model from the picker above."
+	},
+	"app.ai.settings.key.missing": {
+		"message": "Without a key these models do not work — paste it here."
+	},
+	"app.ai.settings.models.alloff": {
+		"message": "All models of this provider are switched off"
+	},
+	"app.ai.code.edit": "Редактировать",
+	"app.ai.code.done": "Готово",
+	"app.ai.code.ping": "Пингануть",
+	"app.ai.code.ping-hint": "Прицепить к следующему сообщению — ИИ будет знать, какой код иметь в виду",
+	"app.ai.code.file-created": "файл создан",
+	"app.ai.code.file-changed": "файл изменён",
+	"app.ai.pings": "Пинг",
+	"app.settings.ai-assistant.effects-hint": {
+		"message": "Replies type out letter by letter, code appears with an animation."
+	},
+	"ely-login.error.client": {
+		"message": "Ely.by sign-in through the page is not available in this build yet. Sign in with your password."
+	},
+	"app.ai.mode.ask": {
+		"message": "Ask"
+	},
+	"app.ai.mode.build": {
+		"message": "Build"
+	},
+	"app.ai.mode.ask-hint": {
+		"message": "Only answers and searches, changes nothing in the launcher"
+	},
+	"app.ai.mode.build-hint": {
+		"message": "Ask + automation: answers questions and does the tasks itself"
+	},
+	"app.ai.focus": {
+		"message": "Category"
+	},
+	"app.ai.focus.any": {
+		"message": "Anything"
+	},
+	"app.ai.focus.mods": {
+		"message": "Mods"
+	},
+	"app.ai.focus.shaders": {
+		"message": "Shaders"
+	},
+	"app.ai.focus.resourcepacks": {
+		"message": "Resource packs"
+	},
+	"app.ai.focus.datapacks": {
+		"message": "Datapacks"
+	},
+	"app.ai.focus.modpacks": {
+		"message": "Modpacks"
+	},
+	"app.settings.ai-assistant.gradle.title": {
+		"message": "Mod builds (Gradle)"
+	},
+	"app.settings.ai-assistant.gradle.description": {
+		"message": "Portalus builds mods with Gradle right in the launcher. Gradle and the JDK it needs are downloaded only on the first build and are not part of the installer."
+	},
+	"app.settings.ai-assistant.gradle.installed": {
+		"message": "Gradle {version} downloaded · {size} used"
+	},
+	"app.settings.ai-assistant.gradle.missing": {
+		"message": "Not downloaded · {size} used"
+	},
+	"app.settings.ai-assistant.gradle.remove": {
+		"message": "Remove Gradle and cache"
+	},
+	"app.ai.mode.handoff": {
+		"message": "Portalus suggested a plan — run it in Build?"
+	},
+	"app.ai.mode.handoff-action": {
+		"message": "Do it in Build"
+	},
+	"app.ai.mode.handoff-prompt": {
+		"message": "Do it"
+	},
+	"instance.settings.backups.running": {
+		"message": "Close the game first — its files are locked while it runs."
+	},
+	"instance.settings.backups.restored": {
+		"message": "Backup restored."
+	},
+	"app.quick-instance-switcher.reset-order": {
+		"message": "Reset order"
+	},
+	"app.instance.notes.note": {
+		"message": "Note"
+	},
+	"app.instance.notes.tasks": {
+		"message": "Tasks"
+	},
+	"app.instance.notes.task-placeholder": {
+		"message": "New task"
+	},
+	"app.instance.notes.add-task": {
+		"message": "Add"
+	},
+	"app.instance.notes.remove-task": {
+		"message": "Remove task"
+	},
+	"app.instance.notes.clear-done": {
+		"message": "Clear completed"
+	},
+	"app.instance.notes.no-tasks": {
+		"message": "No tasks"
+	},
+	"app.instance.notes.remind": {
+		"message": "Show before launch"
+	},
+	"app.instance.notes.saving": {
+		"message": "Saving…"
+	},
+	"app.instance.notes.chars": {
+		"message": "{count} chars"
+	},
+	"app.instance.notes.clear": {
+		"message": "Clear"
+	},
+	"portalrinth.install.progress.waiting": {
+		"message": "Preparing…"
+	},
+	"portalrinth.install.progress.installing": {
+		"message": "Installing content…"
+	},
+	"app.download-manager.contents.title": {
+		"message": "What is being downloaded"
+	},
+	"app.download-manager.contents.current": {
+		"message": "Downloading now"
+	},
+	"app.download-manager.contents.loaded": {
+		"message": "Downloaded"
+	},
+	"app.download-manager.contents.pending": {
+		"message": "To be downloaded"
+	},
+	"app.download-manager.contents.preparing": {
+		"message": "Preparing…"
+	},
+	"app.download-manager.contents.failure": {
+		"message": "Failed"
+	},
+	"app.download-manager.contents.kind.all": {
+		"message": "All"
+	},
+	"app.download-manager.contents.kind.mod": {
+		"message": "Mods"
+	},
+	"app.download-manager.contents.kind.resource_pack": {
+		"message": "Resource packs"
+	},
+	"app.download-manager.contents.kind.shader": {
+		"message": "Shaders"
+	},
+	"app.download-manager.contents.kind.data_pack": {
+		"message": "Data packs"
+	},
+	"app.download-manager.contents.likes": {
+		"message": "Likes"
+	},
+	"app.download-manager.contents.downloads": {
+		"message": "Downloads"
+	},
+	"app.download-manager.contents.updated": {
+		"message": "Last updated"
+	},
+	"app.download-manager.contents.open-page": {
+		"message": "Open the project page"
+	},
+	"app.instance.logs.copied": {
+		"message": "Copied"
+	},
+	"app.instance.logs.copy-hint": {
+		"message": "Copy log"
+	},
+	"app.project.install-button.installed-hint": {
+		"message": "Click to remove from the instance"
+	},
+	"app.project.remove-from-instance": {
+		"message": "Remove"
+	},
+	"app.project.removed-from-instance": {
+		"message": "Removed from the instance"
+	},
+	"app.instance.info.sessions": {
+		"message": "Recent sessions"
+	},
+	"app.instance.info.fps.live": {
+		"message": "Now"
+	},
+	"app.instance.info.fps.range": {
+		"message": "{min}–{max} FPS"
+	},
+	"app.instance.info.playtime": {
+		"message": "Playtime"
+	},
+	"app.instance.info.playtime.last": {
+		"message": "Last played"
+	},
+	"app.instance.info.playtime.total": {
+		"message": "Total"
+	},
+	"app.instance.info.playtime.empty": {
+		"message": "No data yet - launch the game and a day-by-day graph will appear here"
+	},
+	"app.crash.use-ai": {
+		"message": "Use AI"
+	},
+	"app.crash.copy-file": {
+		"message": "Copy file"
+	},
+	"app.crash.copied": {
+		"message": "Copied"
+	},
+	"console.actions.copy": {
+		"message": "Copy"
+	},
+	"app.ai.attach": {
+		"message": "Attach files"
+	},
+	"app.ai.cards.skins": {
+		"message": "Skins"
+	},
+	"app.ai.cards.skin-install": {
+		"message": "Apply"
+	},
+	"app.ai.cards.skin-installed": {
+		"message": "Applied"
+	},
+	"app.ai.chat.delete": {
+		"message": "Delete chat forever"
+	},
+	"app.ai.builds": {
+		"message": "Instance to work with"
+	},
+	"app.ai.builds.none": {
+		"message": "No instance"
+	},
+	"app.ai.builds.none-hint": {
+		"message": "Like with an instance, but not limited to it — the agent asks where to install"
+	},
+	"app.ai.composer.mode.ask": {
+		"message": "Ask"
+	},
+	"app.ai.composer.mode.build": {
+		"message": "Build"
+	},
+	"app.ai.composer.mode.ask-hint": {
+		"message": "Only answers and searches, changes nothing in the launcher"
+	},
+	"app.ai.composer.mode.build-hint": {
+		"message": "Answers questions and carries out tasks in the launcher itself"
+	},
+	"app.ai.composer.focus": {
+		"message": "Where to search"
+	},
+	"app.ai.composer.attach": {
+		"message": "File"
+	},
+	"app.ai.composer.attach-hint": {
+		"message": "Image, log, config"
+	},
+	"app.ai.composer.commands": {
+		"message": "Commands"
+	},
+	"app.ai.composer.commands-hint": {
+		"message": "Tasks and skills"
+	},
+	"app.ai.composer.tools": {
+		"message": "Capabilities"
+	},
+	"app.ai.composer.web": {
+		"message": "Web search"
+	},
+	"app.ai.composer.web-hint": {
+		"message": "Fresh data from the internet"
+	},
+	"app.ai.composer.deep": {
+		"message": "Deep thinking"
+	},
+	"app.ai.composer.deep-hint": {
+		"message": "Smarter and more careful, but slower"
+	},
+	"app.ai.composer.effort": {
+		"message": "Reasoning"
+	},
+	"app.ai.composer.effort.low": {
+		"message": "Low"
+	},
+	"app.ai.composer.effort.medium": {
+		"message": "Medium"
+	},
+	"app.ai.composer.effort.high": {
+		"message": "High"
+	},
+	"app.ai.picker.search": {
+		"message": "Find a model"
+	},
+	"app.ai.picker.providers": {
+		"message": "Providers"
+	},
+	"app.ai.picker.models": {
+		"message": "Models"
+	},
+	"app.ai.picker.active": {
+		"message": "Answering now"
+	},
+	"app.ai.picker.need-key": {
+		"message": "key needed"
+	},
+	"app.ai.picker.free": {
+		"message": "free"
+	},
+	"app.ai.picker.russia": {
+		"message": "RU"
+	},
+	"app.ai.picker.key": {
+		"message": "API key"
+	},
+	"app.ai.picker.key.placeholder": {
+		"message": "Paste the key"
+	},
+	"app.ai.picker.key.missing": {
+		"message": "Without a key this provider's models don't answer."
+	},
+	"app.ai.picker.get-key": {
+		"message": "Get it at {domain}"
+	},
+	"app.ai.picker.show-key": {
+		"message": "Show key"
+	},
+	"app.ai.picker.hide-key": {
+		"message": "Hide key"
+	},
+	"app.ai.picker.custom-base": {
+		"message": "Address (OpenAI-compatible)"
+	},
+	"app.ai.picker.custom-model": {
+		"message": "Model name"
+	},
+	"app.ai.picker.custom-use": {
+		"message": "Use my own server"
+	},
+	"app.ai.picker.custom-in-use": {
+		"message": "In use"
+	},
+	"app.ai.picker.all-off": {
+		"message": "All models are hidden — turn the ones you need on in Manage."
+	},
+	"app.ai.picker.nothing": {
+		"message": "Nothing found"
+	},
+	"app.ai.picker.manage": {
+		"message": "Manage"
+	},
+	"app.ai.picker.manage-done": {
+		"message": "Done"
+	},
+	"app.ai.picker.manage-hint": {
+		"message": "Disabled models are not shown in the picker"
+	},
+	"app.ai.picker.test": {
+		"message": "Test connection"
+	},
+	"app.ai.picker.test.running": {
+		"message": "Testing…"
+	},
+	"app.ai.picker.test.fail": {
+		"message": "Not responding"
+	},
+	"app.ai.picker.peak-busy": {
+		"message": "Z.AI: peak hours"
+	},
+	"app.ai.picker.peak-free": {
+		"message": "Z.AI: free"
+	},
+	"app.ai.catalog.note.zai": {
+		"message": "Free GLM models that work from Russia. 4.5 Flash has thinking off, 4.7 Flash always thinks but is smarter; 4.6V Flash looks at pictures (switches on by itself when you attach an image). Free key at z.ai/model-api."
+	},
+	"app.ai.catalog.note.genapi": {
+		"message": "A Russian OpenAI-format aggregator: a new account gets free trial generations (“Try for free”), then a few kopecks per request. Only budget text models are listed."
+	},
+	"app.ai.catalog.note.kilo": {
+		"message": "No key needed — the free models work right away. A good backup brain when GLM is at peak hours."
+	},
+	"app.ai.catalog.note.ovh": {
+		"message": "Without a key — anonymous, but with a per-minute request limit; a free OVH token removes the limit (optional)."
+	},
+	"app.ai.catalog.note.nvidia": {
+		"message": "DeepSeek, Kimi, GLM 5 and MiniMax for free with an NVIDIA key (build.nvidia.com). Signing up from Russia may ask for a VPN — the requests themselves usually go through."
+	},
+	"app.ai.catalog.note.pollinations": {
+		"message": "No key needed — works right away. Anonymous limit: 1 answer per 30 seconds per IP, so it's a backup, not the main option."
+	},
+	"app.ai.catalog.note.llm7": {
+		"message": "No key needed — the free “turbo” tier answers right away (if the service asks for a token, the word unused works as a key). A backup brain without signing up."
+	},
+	"app.ai.catalog.note.openrouter": {
+		"message": "Free models under one key — the lineup changes, current ones always end with :free. Usually reachable from Russia."
+	},
+	"app.ai.catalog.note.custom": {
+		"message": "Local models (LM Studio, Ollama) — free, everything runs on your computer."
+	},
+	"app.ai.catalog.note.image-pollinations": {
+		"message": "Free and without a key."
+	},
+	"app.ai.catalog.note.image-zai": {
+		"message": "CogView-3-Flash is free; the same Z.AI key as for chat works."
+	},
+	"app.ai.catalog.tag.fastest": {
+		"message": "fastest"
+	},
+	"app.ai.catalog.tag.smarter": {
+		"message": "smarter"
+	},
+	"app.ai.catalog.tag.vision": {
+		"message": "sees images"
+	},
+	"app.ai.catalog.tag.cheapest": {
+		"message": "cheapest"
+	},
+	"app.ai.catalog.tag.best-free": {
+		"message": "best free"
+	},
+	"app.ai.catalog.tag.smart": {
+		"message": "smart"
+	},
+	"app.ai.catalog.tag.fast": {
+		"message": "fast"
+	},
+	"app.ai.catalog.tag.code": {
+		"message": "code"
+	},
+	"app.ai.catalog.tag.context": {
+		"message": "{size} context"
+	},
+	"app.ai.catalog.tag.no-key": {
+		"message": "no key"
+	},
+	"app.ai.catalog.name.auto": {
+		"message": "Auto"
+	},
+	"app.ai.catalog.name.gpt-fast": {
+		"message": "GPT fast"
+	},
+	"app.ai.catalog.name.custom": {
+		"message": "Own server"
+	},
+	"app.ai.catalog.name.custom-model": {
+		"message": "Own model"
+	},
+	"app.creator.sign-in": {
+		"message": "Sign in to Modrinth"
+	},
+	"app.creator.sign-in.body": {
+		"message": "This page works with your Modrinth account. Sign in to continue."
+	},
+	"app.creator.open-on-site": {
+		"message": "Open on Modrinth"
+	},
+	"app.creator.load-failed": {
+		"message": "Could not load data"
+	},
+	"app.creator.cancel": {
+		"message": "Cancel"
+	},
+	"app.creator.save": {
+		"message": "Save changes"
+	},
+	"app.creator.saving": {
+		"message": "Saving..."
+	},
+	"app.creator.saved": {
+		"message": "Changes saved"
+	},
+	"app.creator.delete": {
+		"message": "Delete"
+	},
+	"app.creator.projects.search": {
+		"message": "Search projects..."
+	},
+	"app.creator.projects.create": {
+		"message": "Create a project"
+	},
+	"app.creator.projects.empty": {
+		"message": "You don't have any projects yet"
+	},
+	"app.creator.projects.empty.body": {
+		"message": "Create a project to publish your mods, packs and plugins on Modrinth."
+	},
+	"app.creator.projects.no-match": {
+		"message": "No projects match your search"
+	},
+	"app.creator.projects.column.name": {
+		"message": "Name"
+	},
+	"app.creator.projects.column.type": {
+		"message": "Type"
+	},
+	"app.creator.projects.column.status": {
+		"message": "Status"
+	},
+	"app.creator.projects.column.downloads": {
+		"message": "Downloads"
+	},
+	"app.creator.projects.manage": {
+		"message": "Manage"
+	},
+	"app.creator.projects.total": {
+		"message": "Projects"
+	},
+	"app.creator.projects.total-downloads": {
+		"message": "Total downloads"
+	},
+	"app.creator.projects.total-followers": {
+		"message": "Followers"
+	},
+	"app.creator.type.mod": {
+		"message": "Mod"
+	},
+	"app.creator.type.modpack": {
+		"message": "Modpack"
+	},
+	"app.creator.type.resourcepack": {
+		"message": "Resource pack"
+	},
+	"app.creator.type.shader": {
+		"message": "Shader"
+	},
+	"app.creator.type.datapack": {
+		"message": "Data pack"
+	},
+	"app.creator.type.plugin": {
+		"message": "Plugin"
+	},
+	"app.creator.status.approved": {
+		"message": "Public"
+	},
+	"app.creator.status.unlisted": {
+		"message": "Unlisted"
+	},
+	"app.creator.status.private": {
+		"message": "Private"
+	},
+	"app.creator.status.draft": {
+		"message": "Draft"
+	},
+	"app.creator.status.processing": {
+		"message": "Under review"
+	},
+	"app.creator.status.rejected": {
+		"message": "Rejected"
+	},
+	"app.creator.status.archived": {
+		"message": "Archived"
+	},
+	"app.creator.status.withheld": {
+		"message": "Withheld"
+	},
+	"app.creator.status.scheduled": {
+		"message": "Scheduled"
+	},
+	"app.creator.status.unknown": {
+		"message": "Unknown"
+	},
+	"app.creator.create.header": {
+		"message": "Creating a project"
+	},
+	"app.creator.create.name": {
+		"message": "Name"
+	},
+	"app.creator.create.name.placeholder": {
+		"message": "Enter project name..."
+	},
+	"app.creator.create.url": {
+		"message": "URL"
+	},
+	"app.creator.create.url.hint": {
+		"message": "Letters, numbers and dashes, 3 to 64 characters."
+	},
+	"app.creator.create.type": {
+		"message": "Project type"
+	},
+	"app.creator.create.visibility": {
+		"message": "Visibility"
+	},
+	"app.creator.create.visibility.hint": {
+		"message": "The visibility your project will have after it has been approved."
+	},
+	"app.creator.create.summary": {
+		"message": "Summary"
+	},
+	"app.creator.create.summary.hint": {
+		"message": "A sentence or two that describes your project."
+	},
+	"app.creator.create.summary.placeholder": {
+		"message": "This project adds..."
+	},
+	"app.creator.create.icon": {
+		"message": "Icon"
+	},
+	"app.creator.create.icon.choose": {
+		"message": "Choose image"
+	},
+	"app.creator.create.icon.remove": {
+		"message": "Remove"
+	},
+	"app.creator.create.submit": {
+		"message": "Create project"
+	},
+	"app.creator.create.submitting": {
+		"message": "Creating..."
+	},
+	"app.creator.create.created": {
+		"message": "Project created"
+	},
+	"app.creator.create.created.detail": {
+		"message": "“{name}” was created as a draft."
+	},
+	"app.creator.manage.back": {
+		"message": "All projects"
+	},
+	"app.creator.manage.tab.general": {
+		"message": "General"
+	},
+	"app.creator.manage.tab.versions": {
+		"message": "Versions"
+	},
+	"app.creator.manage.tab.links": {
+		"message": "Links"
+	},
+	"app.creator.manage.description": {
+		"message": "Description"
+	},
+	"app.creator.manage.description.hint": {
+		"message": "The full page of your project. Markdown is supported."
+	},
+	"app.creator.manage.environment": {
+		"message": "Environment"
+	},
+	"app.creator.manage.client": {
+		"message": "Client"
+	},
+	"app.creator.manage.server": {
+		"message": "Server"
+	},
+	"app.creator.side.required": {
+		"message": "Required"
+	},
+	"app.creator.side.optional": {
+		"message": "Optional"
+	},
+	"app.creator.side.unsupported": {
+		"message": "Unsupported"
+	},
+	"app.creator.manage.icon.change": {
+		"message": "Change icon"
+	},
+	"app.creator.manage.icon.updated": {
+		"message": "Icon updated"
+	},
+	"app.creator.manage.links.source": {
+		"message": "Source code"
+	},
+	"app.creator.manage.links.issues": {
+		"message": "Issue tracker"
+	},
+	"app.creator.manage.links.wiki": {
+		"message": "Wiki page"
+	},
+	"app.creator.manage.links.discord": {
+		"message": "Discord invite"
+	},
+	"app.creator.manage.links.hint": {
+		"message": "Links shown on the project page. Leave a field empty to hide it."
+	},
+	"app.creator.manage.submit": {
+		"message": "Submit for review"
+	},
+	"app.creator.manage.submitted": {
+		"message": "Sent for review"
+	},
+	"app.creator.manage.submitted.detail": {
+		"message": "The moderators will look at your project soon."
+	},
+	"app.creator.manage.draft-note": {
+		"message": "This project is a draft. Upload at least one version, then submit it for review to publish it."
+	},
+	"app.creator.manage.processing-note": {
+		"message": "This project is waiting for the moderators. You can keep editing it."
+	},
+	"app.creator.manage.delete": {
+		"message": "Delete project"
+	},
+	"app.creator.manage.delete.title": {
+		"message": "Are you sure you want to delete this project?"
+	},
+	"app.creator.manage.delete.body": {
+		"message": "The project, its versions and its files will be removed from Modrinth forever. This cannot be undone."
+	},
+	"app.creator.manage.deleted": {
+		"message": "Project deleted"
+	},
+	"app.creator.versions.upload": {
+		"message": "Upload a version"
+	},
+	"app.creator.versions.empty": {
+		"message": "No versions yet"
+	},
+	"app.creator.versions.empty.body": {
+		"message": "Upload the first file of your project so players can download it."
+	},
+	"app.creator.versions.delete.title": {
+		"message": "Delete this version?"
+	},
+	"app.creator.versions.delete.body": {
+		"message": "Its files will no longer be available to download."
+	},
+	"app.creator.versions.deleted": {
+		"message": "Version deleted"
+	},
+	"app.creator.version.header": {
+		"message": "Uploading a version"
+	},
+	"app.creator.version.files": {
+		"message": "Files"
+	},
+	"app.creator.version.files.hint": {
+		"message": "The first file is the primary one. .jar, .zip and .mrpack are accepted."
+	},
+	"app.creator.version.files.primary": {
+		"message": "Primary"
+	},
+	"app.creator.version.files.choose": {
+		"message": "Choose files"
+	},
+	"app.creator.version.name": {
+		"message": "Version name"
+	},
+	"app.creator.version.number": {
+		"message": "Version number"
+	},
+	"app.creator.version.channel": {
+		"message": "Release channel"
+	},
+	"app.creator.version.channel.release": {
+		"message": "Release"
+	},
+	"app.creator.version.channel.beta": {
+		"message": "Beta"
+	},
+	"app.creator.version.channel.alpha": {
+		"message": "Alpha"
+	},
+	"app.creator.version.loaders": {
+		"message": "Loaders"
+	},
+	"app.creator.version.game-versions": {
+		"message": "Game versions"
+	},
+	"app.creator.version.snapshots": {
+		"message": "Show snapshots"
+	},
+	"app.creator.version.game-versions.search": {
+		"message": "Search versions..."
+	},
+	"app.creator.version.changelog": {
+		"message": "Changelog"
+	},
+	"app.creator.version.changelog.placeholder": {
+		"message": "What changed in this version?"
+	},
+	"app.creator.version.featured": {
+		"message": "Feature this version"
+	},
+	"app.creator.version.submit": {
+		"message": "Upload version"
+	},
+	"app.creator.version.submitting": {
+		"message": "Uploading..."
+	},
+	"app.creator.version.uploaded": {
+		"message": "Version uploaded"
+	},
+	"app.creator.version.selected": {
+		"message": "{count, plural, =0 {Nothing selected} one {# selected} other {# selected}}"
+	},
+	"app.creator.orgs.title": {
+		"message": "Organizations"
+	},
+	"app.creator.orgs.create": {
+		"message": "Create organization"
+	},
+	"app.creator.orgs.empty": {
+		"message": "You aren't in any organizations yet"
+	},
+	"app.creator.orgs.empty.body": {
+		"message": "Organizations let a team publish and manage projects together."
+	},
+	"app.creator.orgs.header": {
+		"message": "Creating an organization"
+	},
+	"app.creator.orgs.name.placeholder": {
+		"message": "Enter organization name..."
+	},
+	"app.creator.orgs.summary.hint": {
+		"message": "A sentence or two that describes your organization."
+	},
+	"app.creator.orgs.created": {
+		"message": "Organization created"
+	},
+	"app.creator.orgs.members": {
+		"message": "{count, plural, one {# member} other {# members}}"
+	},
+	"app.creator.analytics.title": {
+		"message": "Analytics"
+	},
+	"app.creator.analytics.downloads": {
+		"message": "Downloads"
+	},
+	"app.creator.analytics.views": {
+		"message": "Views"
+	},
+	"app.creator.analytics.range.1": {
+		"message": "24 hours"
+	},
+	"app.creator.analytics.range.7": {
+		"message": "7 days"
+	},
+	"app.creator.analytics.range.30": {
+		"message": "30 days"
+	},
+	"app.creator.analytics.range.90": {
+		"message": "90 days"
+	},
+	"app.creator.analytics.total": {
+		"message": "Total for the period"
+	},
+	"app.creator.analytics.top": {
+		"message": "By project"
+	},
+	"app.creator.analytics.empty": {
+		"message": "Analytics appear once you have a published project."
+	},
+	"app.creator.revenue.title": {
+		"message": "Revenue"
+	},
+	"app.creator.revenue.available": {
+		"message": "Available now"
+	},
+	"app.creator.revenue.pending": {
+		"message": "Pending"
+	},
+	"app.creator.revenue.pending.hint": {
+		"message": "Revenue becomes available about 60 days after the end of the month."
+	},
+	"app.creator.revenue.lifetime": {
+		"message": "Withdrawn in total"
+	},
+	"app.creator.revenue.ytd": {
+		"message": "Withdrawn this year"
+	},
+	"app.creator.revenue.withdraw": {
+		"message": "Withdraw"
+	},
+	"app.creator.revenue.withdraw.hint": {
+		"message": "Withdrawals need identity checks, so they finish on modrinth.com."
+	},
+	"app.creator.revenue.transactions": {
+		"message": "Transactions"
+	},
+	"app.creator.revenue.transactions.empty": {
+		"message": "No transactions yet"
+	},
+	"app.creator.revenue.tx.withdrawal": {
+		"message": "Withdrawal"
+	},
+	"app.creator.revenue.tx.income": {
+		"message": "Creator revenue"
+	},
+	"app.creator.revenue.tx.fee": {
+		"message": "Fee {amount}"
+	},
+	"app.creator.revenue.tx.success": {
+		"message": "Completed"
+	},
+	"app.creator.revenue.tx.failed": {
+		"message": "Failed"
+	},
+	"app.creator.revenue.tx.pending": {
+		"message": "Processing"
+	},
+	"app.creator.revenue.upcoming": {
+		"message": "Becoming available"
+	},
+	"app.creator.reports.title": {
+		"message": "Active reports"
+	},
+	"app.creator.reports.empty": {
+		"message": "You have no active reports"
+	},
+	"app.creator.reports.empty.body": {
+		"message": "Reports you send about projects, versions or users appear here."
+	},
+	"app.creator.reports.open": {
+		"message": "Open"
+	},
+	"app.creator.reports.closed": {
+		"message": "Closed"
+	},
+	"app.creator.reports.on": {
+		"message": "Reported {type}"
+	},
+	"app.creator.reports.item.project": {
+		"message": "project"
+	},
+	"app.creator.reports.item.version": {
+		"message": "version"
+	},
+	"app.creator.reports.item.user": {
+		"message": "user"
+	},
+	"app.creator.reports.show-closed": {
+		"message": "Show closed"
+	},
+	"app.account.profile": {
+		"message": "Profile"
+	},
+	"app.account.modrinth-plus": {
+		"message": "Get Modrinth+"
+	},
+	"app.account.servers": {
+		"message": "My servers"
+	},
+	"app.account.settings": {
+		"message": "Settings"
+	},
+	"app.account.reports": {
+		"message": "Active reports"
+	},
+	"app.account.projects": {
+		"message": "Projects"
+	},
+	"app.account.organizations": {
+		"message": "Organizations"
+	},
+	"app.account.analytics": {
+		"message": "Analytics"
+	},
+	"app.account.revenue": {
+		"message": "Revenue"
+	},
+	"app.features.notes-popup.title": {
+		"message": "Notes before launch"
+	},
+	"app.features.notes-popup.description": {
+		"message": "An instance's note pops up when the game launches. Turning this on also brings back the ones hidden with “Don't remind me again”."
+	},
+	"app.features.notes-popup.restore": {
+		"message": "Restore hidden ({count})"
+	},
+	"app.settings.connections.title": {
+		"message": "Connections"
+	},
+	"app.settings.connections.description": {
+		"message": "Where the launcher goes: every network request — to which server or CDN, when, with what response and how long it took. The list lives from the moment of launch."
+	},
+	"app.settings.connections.empty": {
+		"message": "All quiet — no requests yet."
+	},
+	"app.settings.connections.clear": {
+		"message": "Clear"
+	},
+	"app.settings.connections.copy": {
+		"message": "Copy the list"
+	},
+	"app.settings.connections.copied": {
+		"message": "Copied!"
+	},
+	"noctrinth.settings.curseforge.description": {
+		"message": "Search and install from CurseForge, recognize its files in instances and update them. When off, the launcher asks CurseForge for nothing."
+	},
+	"noctrinth.settings.curseforge.no-key": {
+		"message": "This build of the launcher has no CurseForge API key. Add your own below to use CurseForge."
+	},
+	"noctrinth.settings.curseforge.section.discover": {
+		"message": "Discover"
+	},
+	"noctrinth.settings.curseforge.default-source": {
+		"message": "Discover opens on"
+	},
+	"noctrinth.settings.curseforge.default-source.description": {
+		"message": "Which catalog to show first. The switch above the results changes it at any time."
+	},
+	"noctrinth.settings.curseforge.section.files": {
+		"message": "Files and updates"
+	},
+	"noctrinth.settings.curseforge.recognize-files.title": {
+		"message": "Recognize files"
+	},
+	"noctrinth.settings.curseforge.recognize-files": {
+		"message": "Identify mods added by hand or from other launchers by their file fingerprint"
+	},
+	"noctrinth.settings.curseforge.check-updates.title": {
+		"message": "Check for updates"
+	},
+	"noctrinth.settings.curseforge.check-updates": {
+		"message": "Check CurseForge for updates to its mods and modpacks"
+	},
+	"noctrinth.settings.curseforge.release-type": {
+		"message": "Update to"
+	},
+	"noctrinth.settings.curseforge.release-type.description": {
+		"message": "Which files count as an update."
+	},
+	"noctrinth.settings.curseforge.release-type.release": {
+		"message": "Releases only"
+	},
+	"noctrinth.settings.curseforge.release-type.beta": {
+		"message": "Releases and betas"
+	},
+	"noctrinth.settings.curseforge.release-type.alpha": {
+		"message": "Any files, alphas included"
+	},
+	"noctrinth.settings.curseforge.section.restricted": {
+		"message": "Files launchers can't download"
+	},
+	"noctrinth.settings.curseforge.search-other-launchers.title": {
+		"message": "Search other launchers"
+	},
+	"noctrinth.settings.curseforge.search-other-launchers": {
+		"message": "Look for files launchers can't download in other launchers' instances, not only in Downloads"
+	},
+	"noctrinth.settings.curseforge.own-key": {
+		"message": "Your own API key"
+	},
+	"noctrinth.settings.curseforge.own-key.hint": {
+		"message": "Used instead of the built-in one and stored only on this computer. Sign in to the CurseForge console and copy the key from the API keys page:"
+	},
+	"noctrinth.settings.curseforge.own-key.placeholder": {
+		"message": "Your key is saved"
+	},
+	"noctrinth.settings.curseforge.own-key.check": {
+		"message": "Check"
+	},
+	"noctrinth.settings.curseforge.own-key.check-and-save": {
+		"message": "Check and save"
+	},
+	"noctrinth.settings.curseforge.own-key.forget": {
+		"message": "Forget my key"
+	},
+	"noctrinth.settings.curseforge.own-key.ok": {
+		"message": "CurseForge accepts the key"
+	},
+	"noctrinth.settings.curseforge.own-key.saved": {
+		"message": "CurseForge accepts the key, it is saved"
+	},
+	"noctrinth.settings.curseforge.own-key.invalid": {
+		"message": "CurseForge does not accept this key"
+	},
+	"noctrinth.settings.curseforge.own-key.check-failed": {
+		"message": "Could not reach CurseForge to check the key"
+	},
+	"noctrinth.settings.curseforge.cache.title": {
+		"message": "Cache"
+	},
+	"noctrinth.settings.curseforge.clear-cache": {
+		"message": "Reset CurseForge answers"
+	},
+	"noctrinth.settings.curseforge.clear-cache-hint": {
+		"message": "They are kept for five minutes; the button asks again right now."
+	},
+	"noctrinth.settings.curseforge.cleared": {
+		"message": "Reset"
+	},
+	"app.settings.tabs.changes": {
+		"message": "Changes"
+	},
+	"app.skin-browse.profile-account": {
+		"message": "Account"
+	},
+	"app.project.load-error.title": {
+		"message": "Project page is unavailable"
+	},
+	"app.project.load-error.retry": {
+		"message": "Try again"
+	}
+}

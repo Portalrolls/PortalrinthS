@@ -1,0 +1,460 @@
+use crate::util::fetch::INSECURE_REQWEST_CLIENT;
+use dashmap::DashMap;
+use serde::Serializer;
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
+use std::time::{Duration, Instant};
+use uuid::Uuid;
+
+/// How long to wait on Ely.by before carrying on without an answer.
+const AUTH_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Tokens Ely.by has already vouched for, and when it did.
+///
+/// Every launch asks whether the token is still good, which costs the best part
+/// of a second on the way to starting the game and is asked again the moment
+/// somebody launches a second copy. An answer that recent is still true.
+static RECENTLY_VALIDATED: LazyLock<DashMap<Uuid, Instant>> =
+    LazyLock::new(DashMap::new);
+
+/// How long such an answer is trusted for.
+const VALIDATION_TTL: Duration = Duration::from_secs(10 * 60);
+
+fn validated_recently(uuid: Uuid) -> bool {
+    RECENTLY_VALIDATED
+        .get(&uuid)
+        .is_some_and(|at| at.elapsed() < VALIDATION_TTL)
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct ElyCredentials {
+    pub uuid: Uuid,
+    pub username: String,
+    pub access_token: String,
+    pub client_token: String,
+    pub active: bool,
+    /// Present only for an account signed in on Ely.by's own page.
+    ///
+    /// Which of the two ways an account arrived by is not recorded anywhere
+    /// else, and it decides how the account is kept alive: with one, the token
+    /// is renewed against Ely.by's OAuth endpoint; without, against the
+    /// password flow's `authserver`. Accounts that predate the page flow have
+    /// none, and go on being refreshed exactly as they were.
+    pub refresh_token: Option<String>,
+}
+
+impl Serialize for ElyCredentials {
+    fn serialize<S: Serializer>(
+        &self,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        let mut s = serializer.serialize_struct("ElyCredentials", 4)?;
+        s.serialize_field(
+            "profile",
+            &serde_json::json!({
+                "id": self.uuid,
+                "name": self.username,
+                "skins": [],
+                "capes": []
+            }),
+        )?;
+        s.serialize_field("access_token", &self.access_token)?;
+        s.serialize_field("active", &self.active)?;
+        s.serialize_field("auth_provider", "ely_by")?;
+        s.end()
+    }
+}
+
+/// Result of a token validity probe against Ely.by.
+enum ElyTokenCheck {
+    Valid,
+    Invalid,
+    /// Network failure or a 5xx — the token's state is unknown.
+    Unreachable,
+}
+
+/// Result of a successful round-trip to the Ely.by refresh endpoint.
+enum ElyRefresh {
+    Refreshed,
+    /// Ely.by explicitly refused the token pair — it is permanently dead.
+    Rejected,
+}
+
+#[derive(Deserialize)]
+struct ElyAuthResponse {
+    #[serde(rename = "accessToken")]
+    access_token: String,
+    #[serde(rename = "clientToken")]
+    client_token: String,
+    #[serde(rename = "selectedProfile")]
+    selected_profile: ElyProfile,
+}
+
+#[derive(Deserialize)]
+struct ElyProfile {
+    id: String,
+    name: String,
+}
+
+impl ElyCredentials {
+    pub async fn authenticate(
+        username: &str,
+        password: &str,
+    ) -> crate::Result<Self> {
+        let client_token = Uuid::new_v4().to_string();
+
+        let resp = INSECURE_REQWEST_CLIENT
+            .post("https://authserver.ely.by/auth/authenticate")
+            .json(&serde_json::json!({
+                "username": username,
+                "password": password,
+                "clientToken": client_token,
+                "requestUser": true,
+                "agent": { "name": "Minecraft", "version": 1 }
+            }))
+            .send()
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Ely.by auth request failed: {e}"))
+            })?;
+
+        let status = resp.status();
+        let body = resp.text().await.map_err(|e| {
+            anyhow::anyhow!(format!("Failed to read Ely.by response: {e}"))
+        })?;
+
+        if !status.is_success() {
+            // Try to extract error message
+            let msg = serde_json::from_str::<serde_json::Value>(&body)
+                .ok()
+                .and_then(|v| v["errorMessage"].as_str().map(String::from))
+                .unwrap_or_else(|| format!("HTTP {status}"));
+            return Err(anyhow::anyhow!(format!("Ely.by login failed: {msg}")));
+        }
+
+        let data: ElyAuthResponse =
+            serde_json::from_str(&body).map_err(|e| {
+                anyhow::anyhow!(format!(
+                    "Failed to parse Ely.by auth response: {e}. Body: {body}"
+                ))
+            })?;
+
+        let uuid = Uuid::parse_str(&data.selected_profile.id).map_err(|e| {
+            anyhow::anyhow!(format!("Invalid UUID from Ely.by: {e}"))
+        })?;
+
+        Ok(Self {
+            uuid,
+            username: data.selected_profile.name,
+            access_token: data.access_token,
+            client_token: data.client_token,
+            active: true,
+            refresh_token: None,
+        })
+    }
+
+    async fn validate(&self) -> ElyTokenCheck {
+        let resp = INSECURE_REQWEST_CLIENT
+            .post("https://authserver.ely.by/auth/validate")
+            .json(&serde_json::json!({
+                "accessToken": self.access_token,
+                "clientToken": self.client_token
+            }))
+            // The shared client waits up to three quarters of a minute, which
+            // is a long time to hold a launch on a question whose answer only
+            // decides whether to refresh a token.
+            .timeout(AUTH_TIMEOUT)
+            .send()
+            .await;
+
+        match resp {
+            Ok(r) if r.status().as_u16() == 204 => ElyTokenCheck::Valid,
+            // Server-side errors say nothing about the token — don't treat
+            // them as a rejection.
+            Ok(r) if r.status().is_server_error() => ElyTokenCheck::Unreachable,
+            Ok(_) => ElyTokenCheck::Invalid,
+            Err(_) => ElyTokenCheck::Unreachable,
+        }
+    }
+
+    /// Refresh the access token. `Ok(ElyRefresh::Rejected)` means Ely.by
+    /// explicitly refused the token pair (it is dead); `Err` means the answer
+    /// is unknown (network failure, server error) and the stored credentials
+    /// must NOT be discarded.
+    async fn refresh(&mut self) -> crate::Result<ElyRefresh> {
+        // An account signed in on Ely.by's own page is renewed there. The
+        // password flow's endpoint knows nothing about an OAuth token and would
+        // refuse it, which `get_active` reads as the account being dead — so
+        // sending one there would sign the player out on the next launch.
+        if let Some(refresh_token) = self.refresh_token.clone() {
+            let tokens = super::ely_oauth::refresh(&refresh_token).await?;
+
+            self.access_token = tokens.access_token;
+            self.username = tokens.username;
+            self.refresh_token = tokens.refresh_token;
+
+            // Deliberately never `Rejected`: a refusal and a failed request
+            // arrive here as the same error, and removing the account on a
+            // connection that happened to drop is the worse of the two
+            // mistakes. A genuinely dead token is caught by the next sign-in
+            // instead of by a silent sign-out.
+            return Ok(ElyRefresh::Refreshed);
+        }
+
+        let resp = INSECURE_REQWEST_CLIENT
+            .post("https://authserver.ely.by/auth/refresh")
+            .json(&serde_json::json!({
+                "accessToken": self.access_token,
+                "clientToken": self.client_token
+            }))
+            .timeout(AUTH_TIMEOUT)
+            .send()
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(format!("Ely.by refresh request failed: {e}"))
+            })?;
+
+        let status = resp.status();
+        let body = resp.text().await.map_err(|e| {
+            anyhow::anyhow!(format!(
+                "Failed to read Ely.by refresh response: {e}"
+            ))
+        })?;
+
+        if status.is_server_error() {
+            return Err(anyhow::anyhow!(format!(
+                "Ely.by token refresh failed: HTTP {status}"
+            )));
+        }
+        if !status.is_success() {
+            return Ok(ElyRefresh::Rejected);
+        }
+
+        #[derive(Deserialize)]
+        struct RefreshResponse {
+            #[serde(rename = "accessToken")]
+            access_token: String,
+        }
+
+        let data: RefreshResponse =
+            serde_json::from_str(&body).map_err(|e| {
+                anyhow::anyhow!(format!(
+                    "Failed to parse Ely.by refresh response: {e}"
+                ))
+            })?;
+
+        self.access_token = data.access_token;
+        Ok(ElyRefresh::Refreshed)
+    }
+
+    /// Tokens worth offering a service that checks this account with Ely.by
+    /// itself (the LAN relay's messenger), freshest first.
+    ///
+    /// The stored token may be a day old: an OAuth access token runs out long
+    /// before its refresh token does, and nothing renews it until the next
+    /// launch. A renewal that works is written back, so the game and the next
+    /// ask get it too. A password-flow token is only renewed when Ely.by says
+    /// it is dead — renewing it retires the old one, and the running game is
+    /// still using that.
+    pub async fn service_tokens(
+        &mut self,
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> Vec<String> {
+        let current = self.access_token.clone();
+        let renew = self.refresh_token.is_some()
+            || matches!(self.validate().await, ElyTokenCheck::Invalid);
+
+        let mut tokens = Vec::new();
+        if renew
+            && matches!(self.refresh().await, Ok(ElyRefresh::Refreshed))
+            && self.access_token != current
+        {
+            self.upsert(exec).await.ok();
+            RECENTLY_VALIDATED.insert(self.uuid, Instant::now());
+            tokens.push(self.access_token.clone());
+        }
+        tokens.push(current);
+        tokens
+    }
+
+    /// Whether this account was signed in on Ely.by's own page, rather than
+    /// with a password through the old authserver.
+    pub fn is_oauth(&self) -> bool {
+        self.refresh_token.is_some()
+    }
+
+    pub async fn get_active(
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> crate::Result<Option<Self>> {
+        let res = sqlx::query!(
+            "SELECT uuid, active, username, access_token, client_token FROM ely_users WHERE active = TRUE"
+        )
+        .fetch_optional(exec)
+        .await?;
+
+        let Some(row) = res else { return Ok(None) };
+
+        let uuid = Uuid::parse_str(&row.uuid).map_err(|e| {
+            anyhow::anyhow!(format!("Invalid UUID in ely_users: {e}"))
+        })?;
+
+        let mut creds = Self {
+            uuid,
+            username: row.username,
+            access_token: row.access_token,
+            client_token: row.client_token,
+            active: row.active == 1,
+            refresh_token: Self::stored_refresh_token(&row.uuid, exec).await?,
+        };
+
+        // Asked once and then left alone for a while: the answer does not change
+        // from one launch to the next, and every ask is time spent before the
+        // game starts.
+        if validated_recently(uuid) {
+            return Ok(Some(creds));
+        }
+
+        // Validate and refresh if needed. The account is only removed when
+        // Ely.by explicitly rejects both the token and its refresh — a network
+        // failure (offline play, Ely.by outage) keeps the stored credentials,
+        // so a flaky connection can no longer sign the user out.
+        match creds.validate().await {
+            ElyTokenCheck::Valid => {
+                RECENTLY_VALIDATED.insert(uuid, Instant::now());
+            }
+            ElyTokenCheck::Unreachable => {}
+            ElyTokenCheck::Invalid => match creds.refresh().await {
+                Ok(ElyRefresh::Refreshed) => {
+                    RECENTLY_VALIDATED.insert(uuid, Instant::now());
+                    creds.upsert(exec).await.ok();
+                }
+                Ok(ElyRefresh::Rejected) => {
+                    RECENTLY_VALIDATED.remove(&creds.uuid);
+                    Self::remove(creds.uuid, exec).await.ok();
+                    return Ok(None);
+                }
+                Err(err) => {
+                    tracing::warn!(
+                        "Could not refresh Ely.by token (keeping stored credentials): {err}"
+                    );
+                }
+            },
+        }
+
+        Ok(Some(creds))
+    }
+
+    pub async fn get_all(
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> crate::Result<Vec<Self>> {
+        let rows = sqlx::query!(
+            "SELECT uuid, active, username, access_token, client_token FROM ely_users"
+        )
+        .fetch_all(exec)
+        .await?;
+
+        let mut result = Vec::new();
+        for row in rows {
+            let Ok(uuid) = Uuid::parse_str(&row.uuid) else {
+                continue;
+            };
+            result.push(Self {
+                uuid,
+                username: row.username,
+                access_token: row.access_token,
+                client_token: row.client_token,
+                active: row.active == 1,
+                refresh_token: Self::stored_refresh_token(&row.uuid, exec)
+                    .await?,
+            });
+        }
+
+        Ok(result)
+    }
+
+    pub async fn upsert(
+        &self,
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
+    ) -> crate::Result<()> {
+        let uuid = self.uuid.as_hyphenated().to_string();
+
+        if self.active {
+            sqlx::query!("UPDATE ely_users SET active = FALSE")
+                .execute(exec)
+                .await?;
+        }
+
+        sqlx::query!(
+            "INSERT INTO ely_users (uuid, active, username, access_token, client_token)
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (uuid) DO UPDATE SET
+                 active = $2, username = $3, access_token = $4, client_token = $5",
+            uuid,
+            self.active,
+            self.username,
+            self.access_token,
+            self.client_token,
+        )
+        .execute(exec)
+        .await?;
+
+        // Written on its own, with a runtime-checked query, so the sqlx offline
+        // cache does not need regenerating for this fork-only column. A `None`
+        // is written as well as a `Some`: it is what says the account is kept
+        // alive by the password flow.
+        sqlx::query("UPDATE ely_users SET refresh_token = ? WHERE uuid = ?")
+            .bind(&self.refresh_token)
+            .bind(&uuid)
+            .execute(exec)
+            .await?;
+
+        Ok(())
+    }
+
+    /// The refresh token stored for this account, if it has one.
+    async fn stored_refresh_token(
+        uuid: &str,
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
+    ) -> crate::Result<Option<String>> {
+        Ok(sqlx::query_scalar(
+            "SELECT refresh_token FROM ely_users WHERE uuid = ?",
+        )
+        .bind(uuid)
+        .fetch_optional(exec)
+        .await?
+        .flatten())
+    }
+
+    pub async fn remove(
+        uuid: Uuid,
+        exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
+    ) -> crate::Result<()> {
+        let uuid = uuid.as_hyphenated().to_string();
+        sqlx::query!("DELETE FROM ely_users WHERE uuid = $1", uuid)
+            .execute(exec)
+            .await?;
+        Ok(())
+    }
+
+    /// Builds a Minecraft [`Credentials`](crate::state::Credentials) object
+    /// from this Ely.by account so it can be passed through the regular
+    /// launch pipeline. The game must additionally be launched with the
+    /// authlib-injector Java agent for the token to be accepted.
+    pub fn to_minecraft_credentials(&self) -> crate::state::Credentials {
+        crate::state::Credentials {
+            offline_profile: crate::state::MinecraftProfile {
+                id: self.uuid,
+                name: self.username.clone(),
+                ..Default::default()
+            },
+            access_token: self.access_token.clone(),
+            // Ely.by tokens are refreshed via the Ely.by flow, not the
+            // Microsoft one — set a far-future expiry so the Microsoft
+            // refresh path is never triggered for this synthetic object.
+            refresh_token: String::new(),
+            expires: chrono::Utc::now() + chrono::Duration::weeks(52),
+            active: true,
+        }
+    }
+}

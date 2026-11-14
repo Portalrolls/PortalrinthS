@@ -1,0 +1,662 @@
+<script setup>
+import {
+	EyeIcon,
+	FolderOpenIcon,
+	PinIcon,
+	PlayIcon,
+	RefreshCwIcon,
+	SpinnerIcon,
+	StopCircleIcon,
+	TagLoaderBedrockIcon,
+} from '@modrinth/assets'
+import {
+	Avatar,
+	commonMessages,
+	ContextMenu,
+	defineMessages,
+	injectNotificationManager,
+	useVIntl,
+} from '@modrinth/ui'
+import { useQuery } from '@tanstack/vue-query'
+import { useStorage } from '@vueuse/core'
+import dayjs from 'dayjs'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+import NavButton from '@/components/ui/NavButton.vue'
+import { useAppEvent } from '@/composables/use-app-event'
+import { handleSevereError } from '@/composables/use-error.js'
+import {
+	QUICK_INSTANCE_LIMIT_MAX,
+	useQuickInstanceLimit,
+} from '@/composables/use-quick-instance-limit.ts'
+import { trackEvent } from '@/helpers/analytics'
+import {
+	bedrockIconUrl,
+	bedrockProfiles,
+	bedrockVisible,
+	refreshBedrockProfiles,
+} from '@/helpers/bedrock'
+import { getInstanceIconUrl, kill, run } from '@/helpers/instance'
+import { get_all } from '@/helpers/process'
+import { showInstanceInFolder } from '@/helpers/utils'
+import { instanceListQueryOptions } from '@/pages/instance/query-options'
+
+const ITEM_SIZE = 52
+const { handleError } = injectNotificationManager()
+const instancesQuery = useQuery(instanceListQueryOptions())
+const router = useRouter()
+const instanceOptions = ref()
+const runningInstances = ref([])
+
+const { formatMessage } = useVIntl()
+
+const container = ref()
+const footer = ref()
+const bedrockSection = ref()
+let resizeObserver
+const maxAuto = ref(0)
+const allInstances = computed(() =>
+	(instancesQuery.data.value ?? []).slice().sort((a, b) => {
+		const dateACreated = dayjs(a.created)
+		const dateAPlayed = a.last_played ? dayjs(a.last_played) : dayjs(0)
+
+		const dateBCreated = dayjs(b.created)
+		const dateBPlayed = b.last_played ? dayjs(b.last_played) : dayjs(0)
+
+		const dateA = dateACreated.isAfter(dateAPlayed) ? dateACreated : dateAPlayed
+		const dateB = dateBCreated.isAfter(dateBPlayed) ? dateBCreated : dateBPlayed
+
+		if (dateA.isSame(dateB)) {
+			return a.name.localeCompare(b.name)
+		}
+
+		return dateB - dateA
+	}),
+)
+const dragging = ref(false)
+const quickInstances = useQuickInstanceLimit()
+
+// Portalrinth: shares the library pin list, so a build pinned anywhere shows
+// its badge everywhere.
+const pinnedIds = useStorage('portalrinth-pinned-instances', [])
+const isPinned = (id) => pinnedIds.value.includes(id)
+
+function togglePin(id) {
+	pinnedIds.value = pinnedIds.value.includes(id)
+		? pinnedIds.value.filter((kept) => kept !== id)
+		: [...pinnedIds.value, id]
+}
+
+const maxVisible = computed(() =>
+	Math.min(maxAuto.value, allInstances.value.length, QUICK_INSTANCE_LIMIT_MAX),
+)
+const visibleCount = computed(() =>
+	Math.min(quickInstances.limit.value ?? maxVisible.value, maxVisible.value),
+)
+// Portalrinth: pinned builds never fall out of the quick panel - any pinned
+// instance cut off by the visible window is appended back below the recent ones.
+const manualOrder = useStorage('portalrinth-quick-order', [])
+const orderedInstances = computed(() => {
+	if (manualOrder.value.length === 0) return allInstances.value
+	const rank = new Map(manualOrder.value.map((id, index) => [id, index]))
+	const fresh = allInstances.value.filter((instance) => !rank.has(instance.id))
+	const placed = allInstances.value
+		.filter((instance) => rank.has(instance.id))
+		.sort((a, b) => rank.get(a.id) - rank.get(b.id))
+	return [...fresh, ...placed]
+})
+const shownInstances = computed(() => {
+	const visible = orderedInstances.value.slice(0, visibleCount.value)
+	const pinnedOutside = orderedInstances.value.filter(
+		(instance) => isPinned(instance.id) && !visible.some((shown) => shown.id === instance.id),
+	)
+	return pinnedOutside.length > 0 ? [...visible, ...pinnedOutside] : visible
+})
+const dragOrder = ref(null)
+const reorderingId = ref(null)
+const recentInstances = computed(() => {
+	if (!dragOrder.value) return shownInstances.value
+	const byId = new Map(shownInstances.value.map((instance) => [instance.id, instance]))
+	return dragOrder.value.map((id) => byId.get(id)).filter(Boolean)
+})
+
+const instanceList = ref()
+let reorderPointer = null
+let suppressClick = false
+
+function slotIndexAt(clientY) {
+	const list = instanceList.value?.$el ?? instanceList.value
+	if (!list) return 0
+	const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
+	const stride = 3.25 * rem
+	const offset = clientY - list.getBoundingClientRect().top
+	return Math.max(0, Math.min(dragOrder.value.length - 1, Math.floor(offset / stride)))
+}
+
+function onItemPointerDown(event, instance) {
+	if (event.button !== 0 || dragging.value) return
+	reorderPointer = { id: instance.id, startY: event.clientY, pointerId: event.pointerId, target: event.currentTarget }
+}
+
+function onItemPointerMove(event) {
+	if (!reorderPointer || event.pointerId !== reorderPointer.pointerId) return
+	if (!reorderingId.value) {
+		if (Math.abs(event.clientY - reorderPointer.startY) < 6) return
+		reorderingId.value = reorderPointer.id
+		dragOrder.value = shownInstances.value.map((instance) => instance.id)
+		reorderPointer.target?.setPointerCapture?.(event.pointerId)
+		document.body.classList.add('quick-instance-reordering')
+	}
+	const from = dragOrder.value.indexOf(reorderingId.value)
+	const to = slotIndexAt(event.clientY)
+	if (from === -1 || from === to) return
+	const next = dragOrder.value.slice()
+	next.splice(from, 1)
+	next.splice(to, 0, reorderingId.value)
+	dragOrder.value = next
+}
+
+function onItemPointerUp(event) {
+	if (!reorderPointer || event.pointerId !== reorderPointer.pointerId) return
+	const target = reorderPointer.target
+	reorderPointer = null
+	if (target?.hasPointerCapture?.(event.pointerId)) target.releasePointerCapture(event.pointerId)
+	if (!reorderingId.value) return
+	const placed = dragOrder.value
+	if (event.type !== 'pointercancel') {
+		manualOrder.value = [...placed, ...manualOrder.value.filter((id) => !placed.includes(id))]
+		suppressClick = true
+		setTimeout(() => {
+			suppressClick = false
+		}, 0)
+	}
+	reorderingId.value = null
+	dragOrder.value = null
+	document.body.classList.remove('quick-instance-reordering')
+}
+
+function onItemClickCapture(event) {
+	if (!suppressClick) return
+	event.preventDefault()
+	event.stopPropagation()
+	suppressClick = false
+}
+
+function resetOrder() {
+	manualOrder.value = []
+}
+const canDrag = computed(() => maxVisible.value > 0)
+const showOverdrag = ref(false)
+
+const updateMaxAuto = () => {
+	if (!container.value) return
+	const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
+	const dividerHeight = rem + 1
+	const gap = rem / 4
+	const footerHeight = (footer.value?.clientHeight ?? 0) + gap
+	const bedrockHeight = bedrockSection.value?.clientHeight ?? 0
+	maxAuto.value = Math.max(
+		0,
+		Math.floor(
+			(container.value.clientHeight - footerHeight - 2 * dividerHeight - gap - bedrockHeight) /
+				(3 * rem + gap),
+		),
+	)
+}
+
+// The Bedrock section renders below the Java list, so its height has to be
+// reserved too, otherwise Java cards overflow out of reach.
+watch(
+	() => [bedrockProfiles.value.length, bedrockVisible.value],
+	async () => {
+		await nextTick()
+		if (bedrockSection.value) {
+			resizeObserver?.observe(bedrockSection.value)
+		}
+		updateMaxAuto()
+	},
+)
+
+const setLimit = (count) => {
+	const clamped = Math.max(0, Math.min(count, maxVisible.value))
+	if (clamped >= maxVisible.value) {
+		quickInstances.setLimit(null)
+	} else {
+		quickInstances.setLimit(clamped)
+	}
+}
+
+const nudgeLimit = (delta) => {
+	if (!canDrag.value) {
+		return
+	}
+	const target = visibleCount.value + delta
+	if (target < 0 || target > maxVisible.value) {
+		flashOverdrag()
+	}
+	setLimit(target)
+}
+
+let dragStartY = 0
+let dragStartCount = 0
+let wasOverdragging = false
+let overdragTimeout = null
+
+const clearOverdragFlash = () => {
+	showOverdrag.value = false
+	if (overdragTimeout !== null) {
+		clearTimeout(overdragTimeout)
+		overdragTimeout = null
+	}
+}
+
+const flashOverdrag = () => {
+	showOverdrag.value = true
+	if (overdragTimeout !== null) {
+		clearTimeout(overdragTimeout)
+	}
+	overdragTimeout = setTimeout(() => {
+		showOverdrag.value = false
+		overdragTimeout = null
+	}, 500)
+}
+
+const onDividerPointerDown = (event) => {
+	if (!canDrag.value) {
+		return
+	}
+	event.preventDefault()
+	dragging.value = true
+	wasOverdragging = false
+	clearOverdragFlash()
+	dragStartY = event.clientY
+	dragStartCount = visibleCount.value
+	document.body.classList.add('quick-instance-dragging')
+	event.currentTarget.setPointerCapture(event.pointerId)
+}
+
+const onDividerPointerMove = (event) => {
+	if (!dragging.value) {
+		return
+	}
+	const delta = event.clientY - dragStartY
+	const target = dragStartCount + Math.round(delta / ITEM_SIZE)
+	const isOverdragging = target < 0 || target > maxAuto.value
+	if (isOverdragging && !wasOverdragging) {
+		flashOverdrag()
+	}
+	wasOverdragging = isOverdragging
+	setLimit(target)
+}
+
+const endDrag = (event) => {
+	if (!dragging.value) {
+		return
+	}
+	dragging.value = false
+	wasOverdragging = false
+	clearOverdragFlash()
+	document.body.classList.remove('quick-instance-dragging')
+	if (event?.currentTarget?.hasPointerCapture?.(event.pointerId)) {
+		event.currentTarget.releasePointerCapture(event.pointerId)
+	}
+}
+
+const onDividerPointerUp = (event) => {
+	endDrag(event)
+}
+
+await instancesQuery.suspense().catch(handleError)
+
+useAppEvent('process', checkProcesses)
+
+onMounted(() => {
+	resizeObserver = new ResizeObserver(updateMaxAuto)
+	resizeObserver.observe(container.value)
+	resizeObserver.observe(footer.value)
+	updateMaxAuto()
+	checkProcesses()
+	void refreshBedrockProfiles().then(async () => {
+		await nextTick()
+		if (bedrockSection.value) {
+			resizeObserver.observe(bedrockSection.value)
+		}
+		updateMaxAuto()
+	})
+})
+
+onUnmounted(() => {
+	resizeObserver?.disconnect()
+	document.body.classList.remove('quick-instance-dragging')
+	document.body.classList.remove('quick-instance-reordering')
+	clearOverdragFlash()
+})
+
+const messages = defineMessages({
+	dragTooltip: {
+		id: 'app.quick-instance-switcher.drag-tooltip',
+		defaultMessage: 'Drag to resize',
+	},
+	dragShowTooltip: {
+		id: 'app.quick-instance-switcher.drag-show-tooltip',
+		defaultMessage: 'Drag to show recent instances',
+	},
+	viewInstance: {
+		id: 'app.quick-instance-switcher.view-instance',
+		defaultMessage: 'View instance',
+	},
+	instanceActions: {
+		id: 'app.quick-instance-switcher.actions.label',
+		defaultMessage: 'Instance actions',
+	},
+	instanceLocked: {
+		id: 'app.quick-instance-switcher.instance-locked',
+		defaultMessage: 'This instance has been locked',
+	},
+	title: {
+		id: 'app.quick-instance-switcher.title',
+		defaultMessage: 'Recent instances',
+	},
+	pin: { id: 'app.library.instance.action.pin', defaultMessage: 'Pin to top' },
+	unpin: { id: 'app.library.instance.action.unpin', defaultMessage: 'Unpin' },
+	resetOrder: {
+		id: 'app.quick-instance-switcher.reset-order',
+		defaultMessage: 'Reset order',
+	},
+})
+
+const dividerTooltip = computed(() => {
+	if (!canDrag.value || dragging.value) {
+		return null
+	}
+	return formatMessage(visibleCount.value === 0 ? messages.dragShowTooltip : messages.dragTooltip)
+})
+
+async function checkProcesses() {
+	const processes = (await get_all().catch(handleError)) ?? []
+	runningInstances.value = processes.map((process) => process.instance_id)
+}
+
+async function playInstance(instance) {
+	if (instance.quarantined || instance.install_stage !== 'installed') return
+	await run(instance.id)
+		.catch((err) => handleSevereError(err, { instanceId: instance.id }))
+		.finally(() => {
+			trackEvent('InstanceStart', {
+				loader: instance.loader,
+				game_version: instance.game_version,
+				source: 'QuickInstanceSwitcher',
+			})
+		})
+}
+
+async function stopInstance(instance) {
+	await kill(instance.id).catch(handleError)
+	trackEvent('InstanceStop', {
+		loader: instance.loader,
+		game_version: instance.game_version,
+		source: 'QuickInstanceSwitcher',
+	})
+}
+
+function openContextMenu(event, instance) {
+	const playing = runningInstances.value.includes(instance.id)
+	const pinned = pinnedIds.value.includes(instance.id)
+	instanceOptions.value?.open(event, [
+		playing
+			? {
+					id: 'stop',
+					label: formatMessage(commonMessages.stopButton),
+					icon: StopCircleIcon,
+					tone: 'red',
+					action: () => stopInstance(instance),
+				}
+			: {
+					id: 'play',
+					label: formatMessage(commonMessages.playButton),
+					icon: PlayIcon,
+					tone: 'brand',
+					disabled: instance.quarantined || instance.install_stage !== 'installed',
+					tooltip: instance.quarantined ? formatMessage(messages.instanceLocked) : undefined,
+					action: () => playInstance(instance),
+				},
+		{ type: 'divider' },
+		{
+			id: 'open-instance',
+			label: formatMessage(messages.viewInstance),
+			icon: EyeIcon,
+			action: () => router.push(`/instance/${encodeURIComponent(instance.id)}`),
+		},
+		{
+			id: 'open-folder',
+			label: formatMessage(commonMessages.openFolderButton),
+			icon: FolderOpenIcon,
+			action: () => showInstanceInFolder(instance.id),
+		},
+		{
+			id: pinned ? 'unpin_instance' : 'pin_instance',
+			label: formatMessage(pinned ? messages.unpin : messages.pin),
+			icon: PinIcon,
+			action: () => togglePin(instance.id),
+		},
+		...(manualOrder.value.length > 0
+			? [
+					{
+						id: 'reset_order',
+						label: formatMessage(messages.resetOrder),
+						icon: RefreshCwIcon,
+						action: resetOrder,
+					},
+				]
+			: []),
+	])
+}
+</script>
+
+<template>
+	<div ref="container" class="flex min-h-0 flex-1 flex-col gap-1">
+		<Transition name="top-divider">
+			<div
+				v-if="recentInstances.length > 0"
+				class="top-divider shrink-0 flex items-center justify-center overflow-hidden"
+			>
+				<div class="h-px w-8 bg-surface-5 shrink-0"></div>
+			</div>
+		</Transition>
+		<div :aria-label="formatMessage(messages.title)">
+			<TransitionGroup
+				ref="instanceList"
+				name="quick-instance"
+				tag="div"
+				class="flex shrink-0 flex-col items-center"
+				:class="{ 'is-reordering': reorderingId }"
+				@click.capture="onItemClickCapture"
+			>
+				<NavButton
+					v-for="instance in recentInstances"
+					:key="instance.id"
+					v-tooltip.right="reorderingId ? null : instance.name"
+					class="quick-instance-item relative touch-none"
+					:class="{ 'is-lifted': reorderingId === instance.id }"
+					:to="`/instance/${encodeURIComponent(instance.id)}`"
+					@contextmenu.prevent.stop="(event) => openContextMenu(event, instance)"
+					@pointerdown="(event) => onItemPointerDown(event, instance)"
+					@pointermove="onItemPointerMove"
+					@pointerup="onItemPointerUp"
+					@pointercancel="onItemPointerUp"
+					@dragstart.prevent
+				>
+					<Avatar
+						:src="getInstanceIconUrl(instance.icon_path)"
+						size="28px"
+						:tint-by="instance.id"
+						:class="`transition-all ${instance.install_stage !== 'installed' ? `brightness-[0.25] scale-[0.85]` : `group-hover:brightness-75`}`"
+						pad-transparent-corners
+					/>
+					<PinIcon
+						v-if="isPinned(instance.id)"
+						class="pointer-events-none absolute left-0 top-1/2 z-10 size-3 -translate-y-1/2 rounded-full bg-bg-raised text-brand [fill:currentColor]"
+					/>
+					<div
+						v-if="instance.install_stage !== 'installed'"
+						class="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+					>
+						<SpinnerIcon class="animate-spin w-4 h-4" />
+					</div>
+				</NavButton>
+			</TransitionGroup>
+			<div
+				v-if="bedrockVisible && bedrockProfiles.length"
+				ref="bedrockSection"
+				class="flex shrink-0 flex-col items-center"
+			>
+				<NavButton
+					v-for="profile in bedrockProfiles"
+					:key="`bedrock-${profile.id}`"
+					v-tooltip.right="`${profile.name} (Bedrock)`"
+					class="quick-instance-item relative"
+					:to="`/bedrock/${encodeURIComponent(profile.id)}`"
+				>
+					<Avatar
+						:src="bedrockIconUrl(profile)"
+						size="28px"
+						:tint-by="profile.id"
+						class="transition-all group-hover:brightness-75"
+						pad-transparent-corners
+					/>
+					<TagLoaderBedrockIcon
+						class="pointer-events-none absolute bottom-1.5 right-1.5 size-3.5 rounded-sm bg-bg-raised p-px text-brand"
+					/>
+				</NavButton>
+			</div>
+		</div>
+		<ContextMenu ref="instanceOptions" :label="formatMessage(messages.instanceActions)" />
+		<div
+			v-tooltip.right="dividerTooltip"
+			role="separator"
+			aria-orientation="horizontal"
+			:tabindex="canDrag ? 0 : undefined"
+			:aria-valuemin="canDrag ? 0 : undefined"
+			:aria-valuemax="canDrag ? maxVisible : undefined"
+			:aria-valuenow="canDrag ? visibleCount : undefined"
+			class="flex shrink-0 items-center justify-center py-2 select-none"
+			:class="canDrag ? 'cursor-ns-resize touch-none group' : ''"
+			@pointerdown="onDividerPointerDown"
+			@pointermove="onDividerPointerMove"
+			@pointerup="onDividerPointerUp"
+			@pointercancel="onDividerPointerUp"
+			@keydown.up.prevent="nudgeLimit(-1)"
+			@keydown.down.prevent="nudgeLimit(1)"
+		>
+			<div
+				class="h-px w-8 transition-colors duration-200"
+				:class="
+					showOverdrag
+						? 'bg-red'
+						: canDrag
+							? 'bg-surface-5 group-hover:bg-secondary group-focus-visible:bg-secondary'
+							: 'bg-surface-5'
+				"
+			></div>
+		</div>
+		<div ref="footer" class="flex shrink-0 flex-col items-center">
+			<slot />
+		</div>
+	</div>
+</template>
+
+<style scoped lang="scss">
+.top-divider {
+	height: calc(1rem + 1px);
+}
+
+.top-divider-enter-active,
+.top-divider-leave-active {
+	transition:
+		opacity 0.25s ease,
+		height 0.25s ease;
+}
+
+.top-divider-enter-from,
+.top-divider-leave-to {
+	opacity: 0;
+	height: 0;
+}
+
+.quick-instance-item {
+	height: 3rem;
+	overflow: hidden;
+
+	& + & {
+		margin-top: 0.25rem;
+	}
+}
+
+.quick-instance-item.is-lifted {
+	z-index: 20;
+	overflow: visible;
+	transform: scale(1.1);
+	opacity: 0.85;
+	transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.quick-instance-move {
+	transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.quick-instance-enter-active,
+.quick-instance-leave-active {
+	transition:
+		opacity 0.25s ease,
+		transform 0.25s ease,
+		height 0.25s ease,
+		margin-top 0.25s ease;
+}
+
+.quick-instance-enter-from,
+.quick-instance-leave-to {
+	opacity: 0;
+	transform: scale(0.5);
+	height: 0;
+	margin-top: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.top-divider-enter-active,
+	.top-divider-leave-active,
+	.quick-instance-enter-active,
+	.quick-instance-leave-active,
+	.quick-instance-move,
+	.quick-instance-item.is-lifted {
+		transition: none;
+	}
+
+	.top-divider-enter-from,
+	.top-divider-leave-to {
+		opacity: 1;
+		height: calc(1rem + 1px);
+	}
+
+	.quick-instance-enter-from,
+	.quick-instance-leave-to {
+		opacity: 1;
+		transform: none;
+		height: 3rem;
+		margin-top: unset !important;
+	}
+}
+</style>
+
+<style lang="scss">
+body.quick-instance-dragging,
+body.quick-instance-dragging * {
+	cursor: ns-resize !important;
+}
+
+body.quick-instance-reordering,
+body.quick-instance-reordering * {
+	cursor: grabbing !important;
+	user-select: none;
+}
+</style>

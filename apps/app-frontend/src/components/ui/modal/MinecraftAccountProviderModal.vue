@@ -1,0 +1,151 @@
+<script setup lang="ts">
+/**
+ * Asks which kind of Minecraft account is being added.
+ *
+ * Portalrinth signs in with two account systems, Microsoft and Ely.by, and plays
+ * without one at all under a name of the player's choosing. The accounts card
+ * offers all three, but everything else that says "sign in to Minecraft" — the
+ * getting started checklist, most of all, which is the first thing a new
+ * install shows — went straight to Microsoft, leaving no way in for anybody
+ * else.
+ */
+import { MicrosoftColorIcon, UserIcon } from '@modrinth/assets'
+import { Button, defineMessages, NewModal, useVIntl } from '@modrinth/ui'
+import { ref } from 'vue'
+
+const emit = defineEmits<{
+	microsoft: []
+	ely: []
+	offline: []
+}>()
+
+const { formatMessage } = useVIntl()
+
+const messages = defineMessages({
+	header: {
+		id: 'app.account-provider.header',
+		defaultMessage: 'Add an account',
+	},
+	description: {
+		id: 'app.account-provider.description',
+		defaultMessage: 'Which account do you play with?',
+	},
+	microsoft: {
+		id: 'app.account-provider.microsoft',
+		defaultMessage: 'Microsoft account',
+	},
+	microsoftHint: {
+		id: 'app.account-provider.microsoft-hint',
+		defaultMessage: 'A Minecraft account bought from Mojang.',
+	},
+	ely: {
+		id: 'app.account-provider.ely',
+		defaultMessage: 'Ely.by account',
+	},
+	offline: {
+		id: 'app.account-provider.offline',
+		defaultMessage: 'Offline account',
+	},
+	offlineHint: {
+		id: 'app.account-provider.offline-hint',
+		defaultMessage: 'Just a name. Singleplayer and servers in offline mode.',
+	},
+	elyHint: {
+		id: 'app.account-provider.ely-hint',
+		defaultMessage: 'Plays on servers that accept Ely.by.',
+	},
+})
+
+const modal = ref<InstanceType<typeof NewModal>>()
+
+function choose(provider: 'microsoft' | 'ely' | 'offline'): void {
+	modal.value?.hide()
+	emit(provider)
+}
+
+defineExpose({
+	show: () => modal.value?.show(),
+	hide: () => modal.value?.hide(),
+})
+</script>
+
+<template>
+	<NewModal ref="modal" :header="formatMessage(messages.header)" max-width="480px" width="100%">
+		<div class="flex w-full flex-col gap-4">
+			<p class="m-0 text-base leading-6 text-primary">
+				{{ formatMessage(messages.description) }}
+			</p>
+			<div class="flex flex-col gap-2">
+				<Button
+					type="colored"
+					color="brand"
+					size="lg"
+					class="!h-auto !justify-start !py-3"
+					native-type="button"
+					@click="choose('microsoft')"
+				>
+					<span class="provider-mark bg-white"><MicrosoftColorIcon aria-hidden="true" /></span>
+					<span class="flex min-w-0 flex-col items-start">
+						<span class="font-semibold leading-5">{{ formatMessage(messages.microsoft) }}</span>
+						<span class="text-sm font-normal leading-5 opacity-80">
+							{{ formatMessage(messages.microsoftHint) }}
+						</span>
+					</span>
+				</Button>
+				<Button
+					size="lg"
+					class="!h-auto !justify-start !py-3"
+					native-type="button"
+					@click="choose('ely')"
+				>
+					<span class="provider-mark ely-mark" aria-hidden="true">E</span>
+					<span class="flex min-w-0 flex-col items-start">
+						<span class="font-semibold leading-5">{{ formatMessage(messages.ely) }}</span>
+						<span class="text-sm font-normal leading-5 text-secondary">
+							{{ formatMessage(messages.elyHint) }}
+						</span>
+					</span>
+				</Button>
+				<Button
+					size="lg"
+					class="!h-auto !justify-start !py-3"
+					native-type="button"
+					@click="choose('offline')"
+				>
+					<span class="provider-mark bg-surface-4"><UserIcon aria-hidden="true" /></span>
+					<span class="flex min-w-0 flex-col items-start">
+						<span class="font-semibold leading-5">{{ formatMessage(messages.offline) }}</span>
+						<span class="text-sm font-normal leading-5 text-secondary">
+							{{ formatMessage(messages.offlineHint) }}
+						</span>
+					</span>
+				</Button>
+			</div>
+		</div>
+	</NewModal>
+</template>
+
+<style scoped>
+.provider-mark {
+	display: flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	border-radius: 0.5rem;
+
+	svg {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+}
+
+/* Ely.by's own green, as its mark wears it. */
+.ely-mark {
+	background: #207e5c;
+	color: #fff;
+	font-weight: 800;
+	font-size: 1.1rem;
+}
+</style>

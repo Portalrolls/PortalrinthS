@@ -1,0 +1,193 @@
+package com.modrinth.theseus.agent.skins;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.nio.charset.Charset;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+
+/**
+ * Mojang's own answer for a name, for the players a skin system does not have.
+ *
+ * <p>Ely.by proxies Mojang for names it has never heard of, which is what covers licensed players
+ * most of the time — but the proxy is not always there, and a licensed player standing in front of
+ * an Ely.by player is exactly the case that goes wrong when it is not. Asking Mojang directly is
+ * two requests: a name buys an id, and an id buys a profile with the same textures payload in it
+ * that a server would have sent.
+ */
+final class MojangSource implements SkinSource.Source {
+    /** What names this one in {@code portalrinth.skins.source}. */
+    static final String NAME = "mojang";
+
+    private static final String PROFILES_URL = "https://api.mojang.com/users/profiles/minecraft/";
+    private static final String SESSION_URL = "https://sessionserver.mojang.com/session/minecraft/profile/";
+
+    /** How long a name is taken to still belong to the same account. */
+    private static final long ID_TTL_MS = 30 * 60 * 1000L;
+
+    private static final int MAX_CACHED_IDS = 512;
+
+    private static final Map<String, CachedId> IDS = new ConcurrentHashMap<>();
+
+    private static final MojangSource DEFAULT = new MojangSource();
+
+    /** Name lookups being made right now, for whoever asks about the same name meanwhile. */
+    private static final Map<String, FutureTask<String>> PENDING = new ConcurrentHashMap<>();
+
+    private final String profilesUrl;
+    private final String sessionUrl;
+
+    MojangSource() {
+        this(PROFILES_URL, SESSION_URL);
+    }
+
+    /** Both ends are arguments so that a test can stand somewhere else in for them. */
+    MojangSource(String profilesUrl, String sessionUrl) {
+        this.profilesUrl = profilesUrl;
+        this.sessionUrl = sessionUrl;
+    }
+
+    @Override
+    public Map<String, SkinSource.Texture> textures(String username) throws Exception {
+        final String id = id(username);
+        if (id == null) {
+            return Collections.emptyMap();
+        }
+
+        final JsonElement profile = Http.getJson(sessionUrl + Http.encode(id));
+        final String packed = packedTextures(profile);
+        if (packed == null) {
+            return Collections.emptyMap();
+        }
+
+        // The property is the same base64 payload a server sends with a profile:
+        // the textures sit one level in, under "textures".
+        final String decoded = new String(Base64.getDecoder().decode(packed), Charset.forName("UTF-8"));
+        final JsonElement payload = JsonParser.parseString(decoded);
+        if (payload == null || !payload.isJsonObject()) {
+            return Collections.emptyMap();
+        }
+
+        return SkinSource.readTextures(payload.getAsJsonObject().get("textures"));
+    }
+
+    /**
+     * The id Mojang issued for a name, or null when nobody owns it — for the sources that ask by
+     * id, from the same memory this source keeps.
+     */
+    static String idOf(String username) throws Exception {
+        return DEFAULT.id(username);
+    }
+
+    /**
+     * The id behind a name, from memory where possible.
+     *
+     * <p>Every skin here costs two requests, and the first of them answers with something that
+     * hardly ever changes. Remembering it means a skin that is looked at again — which is what
+     * happens every time somebody walks back into view — costs one.
+     */
+    private String id(String username) throws Exception {
+        final long now = System.currentTimeMillis();
+        final CachedId cached = IDS.get(username);
+        if (cached != null && cached.expiresAt > now) {
+            return cached.id;
+        }
+
+        final String id = lookUpOnce(username);
+
+        // Remembered either way. A name Mojang has never heard of is every
+        // player on an account system of their own, and every one of them would
+        // otherwise cost a request here each time they are looked at.
+        if (IDS.size() >= MAX_CACHED_IDS) {
+            IDS.values().removeIf(entry -> entry.expiresAt <= now);
+            if (IDS.size() >= MAX_CACHED_IDS) {
+                IDS.clear();
+            }
+        }
+        IDS.put(username, new CachedId(id, now + ID_TTL_MS));
+
+        return id;
+    }
+
+    /**
+     * Asks Mojang for a name's id, sharing the answer with whoever asks about the same name at the
+     * same time.
+     *
+     * <p>The cape services ask by id too, and they are all asked about a player at once: without
+     * this, one player walking into view costs Mojang's name lookup — the one with a tight limit —
+     * four requests instead of one.
+     */
+    private String lookUpOnce(String username) throws Exception {
+        final FutureTask<String> mine =
+                new FutureTask<>(() -> string(Http.getJson(profilesUrl + Http.encode(username)), "id"));
+        final FutureTask<String> running = PENDING.putIfAbsent(username, mine);
+        final FutureTask<String> answer = running == null ? mine : running;
+
+        if (running == null) {
+            try {
+                mine.run();
+            } finally {
+                PENDING.remove(username, mine);
+            }
+        }
+
+        try {
+            return answer.get();
+        } catch (ExecutionException failed) {
+            final Throwable cause = failed.getCause();
+            throw cause instanceof Exception ? (Exception) cause : failed;
+        }
+    }
+
+    /** The value of the {@code textures} property, or null if the profile carries none. */
+    private static String packedTextures(JsonElement profile) {
+        if (profile == null || !profile.isJsonObject()) {
+            return null;
+        }
+
+        final JsonElement properties = profile.getAsJsonObject().get("properties");
+        if (properties == null || !properties.isJsonArray()) {
+            return null;
+        }
+
+        for (final JsonElement element : properties.getAsJsonArray()) {
+            if (element.isJsonObject() && "textures".equals(string(element, "name"))) {
+                return string(element, "value");
+            }
+        }
+
+        return null;
+    }
+
+    private static String string(JsonElement object, String key) {
+        if (object == null || !object.isJsonObject()) {
+            return null;
+        }
+
+        final JsonObject json = object.getAsJsonObject();
+        final JsonElement value = json.get(key);
+        return value != null && value.isJsonPrimitive() ? value.getAsString() : null;
+    }
+
+    @Override
+    public String toString() {
+        return NAME;
+    }
+
+    private static final class CachedId {
+        /** Null for a name Mojang has never heard of. */
+        final String id;
+
+        final long expiresAt;
+
+        CachedId(String id, long expiresAt) {
+            this.id = id;
+            this.expiresAt = expiresAt;
+        }
+    }
+}

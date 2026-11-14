@@ -1,0 +1,78 @@
+//! API for interacting with Theseus
+pub mod bedrock;
+pub mod cache;
+pub mod config_guard;
+pub mod crash_analysis;
+pub mod crash_culprits;
+pub mod curseforge_blocked;
+pub mod curseforge_browse;
+pub mod curseforge_metadata;
+pub mod curseforge_search;
+pub mod debug_info;
+pub mod ely_auth;
+pub mod friends;
+pub mod gpu;
+pub mod handler;
+pub mod hosted_servers;
+pub mod instance;
+pub mod instance_recovery;
+pub mod java_providers;
+pub mod jre;
+pub mod lan;
+pub mod launcher_search;
+pub mod logs;
+pub mod metadata;
+pub mod minecraft_auth;
+pub mod minecraft_skins;
+pub mod mr_auth;
+pub mod offline_auth;
+pub mod onboarding_checklist;
+pub mod pack;
+pub mod player_capes;
+pub mod process;
+pub mod reports;
+pub mod server_address;
+pub mod settings;
+pub mod tags;
+pub mod upload;
+pub mod users;
+pub mod worlds;
+
+pub mod data {
+    pub use crate::state::{
+        AppliedContentSetPatch, CacheBehaviour, CacheValueType, ContentFile,
+        ContentItem, ContentItemOwner, ContentItemProject, ContentItemVersion,
+        CreateInstance, Credentials, Dependency, DirectoryInfo, EditInstance,
+        ElyCredentials, Hooks, InstanceIconBackground, InstanceIconConfig,
+        InstanceInstallCandidate, InstanceInstallTarget,
+        InstanceLaunchOverridesPatch, InstanceLink, InstanceMetadata,
+        InstanceSyncedOption, InstanceSyncedOptions, InstanceTabVisibility,
+        JavaVersion, LinkedModpackInfo, MemorySettings, ModLoader,
+        ModrinthCredentials, OfflineCredentials, OnboardingChecklist,
+        Organization, OwnerType, ProcessMetadata, Project, ProjectType,
+        ProjectV3, SearchResult, SearchResults, SearchResultsV3, Settings,
+        SharedInstanceAttachment, SharedInstanceRole, TeamMember, Theme, User,
+        UserFriend, Version, WindowSize,
+    };
+    pub use ariadne::users::UserStatus;
+    pub use modrinth_content_management::{
+        ContentType, ResolutionPreferences, ResolveContentPlan,
+        ResolveContentRequest,
+    };
+}
+
+pub mod prelude {
+    pub use crate::{
+        State,
+        data::*,
+        ely_auth,
+        event::CommandPayload,
+        gpu, install, instance, jre, metadata, minecraft_auth, mr_auth,
+        onboarding_checklist, pack, process, settings,
+        state::{ReleaseChannel, db_backup::app_db_backup_dir},
+        util::{
+            io::{IOError, canonicalize},
+            network::{is_network_metered, tcp_listen_any_loopback},
+        },
+    };
+}

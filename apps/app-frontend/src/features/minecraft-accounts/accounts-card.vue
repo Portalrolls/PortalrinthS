@@ -1,0 +1,613 @@
+<template>
+	<div
+		v-if="allAccounts.length === 0"
+		class="flex flex-col gap-3 bg-button-bg border border-solid border-surface-5 rounded-xl p-3 mt-2"
+	>
+		<span>{{ formatMessage(messages.notSignedIn) }}</span>
+		<Button type="colored" color="brand" :disabled="loginDisabled" @click="emit('add-account')">
+			<LogInIcon v-if="!loginDisabled" />
+			<SpinnerIcon v-else class="animate-spin" />
+			{{ formatMessage(messages.signInToMinecraft) }}
+		</Button>
+	</div>
+	<Accordion
+		v-else
+		class="w-full mt-2 bg-button-bg border border-solid border-surface-5 rounded-xl overflow-clip"
+		button-class="button-base w-full bg-transparent px-3 py-2 border-0 cursor-pointer"
+		:open-by-default="false"
+	>
+		<template #title>
+			<div class="flex gap-2 w-full min-w-0">
+				<Avatar
+					size="36px"
+					:src="
+						selectedAccount
+							? avatarUrl
+							: 'https://launcher-files.modrinth.com/assets/steve_head.png'
+					"
+				/>
+				<div class="flex flex-col items-start w-full min-w-0">
+					<span class="truncate text-left w-full">{{
+						selectedAccount ? selectedAccount.profile.name : formatMessage(messages.selectAccount)
+					}}</span>
+					<span class="flex items-center gap-1 text-secondary text-xs">
+						<AccountProviderIcon v-if="selectedAccount" :provider="providerOf(selectedAccount)" />
+						{{ selectedAccountTypeLabel }}
+					</span>
+				</div>
+			</div>
+		</template>
+		<div class="bg-button-bg pt-1 pb-2 border-0 border-t border-solid border-surface-5">
+			<template v-if="allAccounts.length > 0">
+				<div
+					v-for="account in allAccounts"
+					:key="account.profile.id"
+					class="flex gap-1 items-center"
+				>
+					<button
+						class="flex items-center flex-shrink flex-grow overflow-clip gap-2 p-2 border-0 bg-transparent cursor-pointer button-base min-w-0"
+						@click="setAccount(account)"
+					>
+						<RadioButtonCheckedIcon
+							v-if="isAccountSelected(account)"
+							class="w-5 h-5 text-brand shrink-0"
+						/>
+						<RadioButtonIcon v-else class="w-5 h-5 text-secondary shrink-0" />
+						<Avatar :src="getAccountAvatarUrl(account)" size="24px" />
+						<p
+							class="m-0 truncate min-w-0"
+							:class="isAccountSelected(account) ? 'text-contrast font-semibold' : 'text-primary'"
+						>
+							{{ account.profile.name }}
+						</p>
+						<span
+							class="ml-1 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+							:class="
+								isElyAccount(account)
+									? 'bg-brand-highlight text-brand'
+									: 'bg-surface-3 text-secondary'
+							"
+							:title="accountProviderLabel(account)"
+						>
+							<AccountProviderIcon :provider="providerOf(account)" />
+							{{ accountProviderLabel(account) }}
+						</span>
+					</button>
+					<IconButton
+						v-tooltip="formatMessage(messages.removeAccount)"
+						type="quiet"
+						color="red"
+						:label="formatMessage(messages.removeAccount)"
+						class="mr-2 !bg-button-bg !text-primary ![box-shadow:var(--shadow-button)] hover:!bg-red focus-visible:!bg-red hover:!text-[var(--color-accent-contrast)] focus-visible:!text-[var(--color-accent-contrast)]"
+						@click="logoutAccount(account)"
+					>
+						<TrashIcon />
+					</IconButton>
+				</div>
+			</template>
+			<div class="flex flex-col gap-2 px-2 pt-2">
+				<Button
+					v-if="allAccounts.length > 0"
+					class="w-full !bg-button-bg !text-primary ![box-shadow:var(--shadow-button)]"
+					:disabled="loginDisabled"
+					@click="emit('add-account')"
+				>
+					<SpinnerIcon v-if="loginDisabled" class="animate-spin" />
+					<PlusIcon v-else />
+					{{ formatMessage(messages.addAccount) }}
+				</Button>
+			</div>
+		</div>
+	</Accordion>
+	<ElyLoginModal ref="elyLoginModal" @logged-in="refreshValues" />
+	<OfflineAccountModal ref="offlineModal" @added="refreshValues" />
+</template>
+
+<script setup lang="ts">
+import {
+	LogInIcon,
+	PlusIcon,
+	RadioButtonCheckedIcon,
+	RadioButtonIcon,
+	SpinnerIcon,
+	TrashIcon,
+} from '@modrinth/assets'
+import {
+	Accordion,
+	Avatar,
+	Button,
+	defineMessages,
+	IconButton,
+	injectNotificationManager,
+	useVIntl,
+} from '@modrinth/ui'
+import { listen } from '@tauri-apps/api/event'
+import type { Ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
+
+import ElyLoginModal from '@/components/ui/modal/ElyLoginModal.vue'
+import OfflineAccountModal from '@/components/ui/modal/OfflineAccountModal.vue'
+import { useAppEvent } from '@/composables/use-app-event'
+import { handleSevereError } from '@/composables/use-error.js'
+import AccountProviderIcon from '@/features/minecraft-accounts/AccountProviderIcon.vue'
+import { trackEvent } from '@/helpers/analytics'
+import {
+	get_default_user,
+	login as login_flow,
+	remove_user,
+	set_default_user,
+	users,
+} from '@/helpers/auth'
+import {
+	ely_device_login,
+	ely_get_default_user,
+	ely_get_users,
+	ely_logout,
+	ely_set_default_user,
+	type ElyCredentials,
+} from '@/helpers/ely_auth'
+import { clearElySkinCache, getElyHeadUrl } from '@/helpers/ely_skins'
+import {
+	mojang_player_skin,
+	offline_get_default_user,
+	offline_remove,
+	offline_set_default_user,
+	offline_users,
+	type OfflineCredentials,
+} from '@/helpers/offline_auth'
+import { generatePlayerHeadBlob, getPlayerHeadUrl } from '@/helpers/rendering/player-head'
+import type { Skin } from '@/helpers/skins'
+import { get_available_skins } from '@/helpers/skins'
+
+const { formatMessage } = useVIntl()
+const { handleError } = injectNotificationManager()
+
+const emit = defineEmits<{
+	change: []
+	/** One button for every kind of account; the parent asks which. */
+	'add-account': []
+}>()
+
+type MinecraftCredential = {
+	profile: {
+		id: string
+		name: string
+	}
+}
+
+type AnyCredential = MinecraftCredential | ElyCredentials | OfflineCredentials
+type AccountProvider = 'microsoft' | 'ely_by' | 'offline'
+
+function isElyAccount(a: AnyCredential): a is ElyCredentials {
+	return 'auth_provider' in a && a.auth_provider === 'ely_by'
+}
+
+function isOfflineAccount(a: AnyCredential): a is OfflineCredentials {
+	return 'auth_provider' in a && a.auth_provider === 'offline'
+}
+
+/** Which of the three an account came from, for comparing like with like. */
+function providerOf(a: AnyCredential): AccountProvider {
+	if (isElyAccount(a)) return 'ely_by'
+	if (isOfflineAccount(a)) return 'offline'
+	return 'microsoft'
+}
+
+const accounts: Ref<MinecraftCredential[]> = ref([])
+const elyAccounts: Ref<ElyCredentials[]> = ref([])
+const loginDisabled = ref(false)
+const defaultUser = ref<string | undefined>()
+const elyDefaultUser = ref<string | undefined>()
+const offlineAccounts: Ref<OfflineCredentials[]> = ref([])
+const offlineDefaultUser = ref<string | undefined>()
+const selectedProvider = ref<AccountProvider>('microsoft')
+const equippedSkin = ref<Skin | null>(null)
+const elyHeadCache = ref(new Map<string, string>())
+/**
+ * Microsoft accounts' heads, cut from the skin Mojang has for each. The head
+ * service asked before holds on to old skins for a long time, and showed a
+ * changed one as Steve.
+ */
+const microsoftHeadCache = ref(new Map<string, string>())
+
+function loadMicrosoftHeads() {
+	for (const account of accounts.value) {
+		const id = account.profile.id
+		if (microsoftHeadCache.value.has(id)) continue
+		mojang_player_skin(id)
+			.then(async (texture) => {
+				if (!texture) return
+				const blob = await generatePlayerHeadBlob(texture, 64)
+				microsoftHeadCache.value.set(id, URL.createObjectURL(blob))
+			})
+			.catch((error) => console.warn('Failed to render the head for', account.profile.name, error))
+	}
+}
+const elyLoginModal = ref<InstanceType<typeof ElyLoginModal>>()
+const offlineModal = ref<InstanceType<typeof OfflineAccountModal>>()
+
+const allAccounts = computed<AnyCredential[]>(() => {
+	const combined: AnyCredential[] = [
+		...accounts.value,
+		...elyAccounts.value,
+		...offlineAccounts.value,
+	]
+	combined.sort((a, b) => (a.profile?.name ?? '').localeCompare(b.profile?.name ?? ''))
+	return combined
+})
+
+/**
+ * Loads Ely.by accounts. This provider is fully optional and additive: any
+ * failure here is swallowed (logged to console only) so it can never surface
+ * error popups to, block, or otherwise disrupt users of Microsoft accounts.
+ */
+/**
+ * Accounts that are only a name, which are read from this machine and cannot
+ * fail for any reason worth telling anybody about.
+ */
+async function loadOfflineAccounts() {
+	try {
+		offlineDefaultUser.value = (await offline_get_default_user()) ?? undefined
+		offlineAccounts.value = (await offline_users()) ?? []
+	} catch (error) {
+		console.warn('Failed to load offline accounts:', error)
+		offlineAccounts.value = []
+		offlineDefaultUser.value = undefined
+	}
+}
+
+async function loadElyAccounts() {
+	try {
+		elyDefaultUser.value = (await ely_get_default_user()) ?? undefined
+		const elyUserList = await ely_get_users()
+		elyAccounts.value = Array.isArray(elyUserList) ? [...elyUserList] : []
+	} catch (error) {
+		console.warn('Failed to load Ely.by accounts:', error)
+		elyAccounts.value = []
+		elyDefaultUser.value = undefined
+	}
+
+	// Render Ely.by heads in the background — never await, so account display
+	// is never delayed by skin-texture network requests.
+	for (const account of elyAccounts.value) {
+		getElyHeadUrl(account.profile.name)
+			.then((headUrl) => elyHeadCache.value.set(account.profile.id, headUrl))
+			.catch((error) =>
+				console.warn('Failed to render Ely.by head for', account.profile.name, error),
+			)
+	}
+}
+const equippedHeadUrl = ref<string>()
+let headRequest = 0
+
+async function updateHeadUrl(skin: Skin | null) {
+	const request = ++headRequest
+	if (equippedHeadUrl.value) URL.revokeObjectURL(equippedHeadUrl.value)
+	equippedHeadUrl.value = undefined
+	if (!skin) return
+	const url = await getPlayerHeadUrl(skin)
+	if (request !== headRequest) URL.revokeObjectURL(url)
+	else equippedHeadUrl.value = url
+}
+
+onUnmounted(() => {
+	headRequest++
+	if (equippedHeadUrl.value) URL.revokeObjectURL(equippedHeadUrl.value)
+})
+
+async function refreshValues() {
+	// Microsoft accounts — the primary provider. Behavior left unchanged.
+	defaultUser.value = (await get_default_user().catch(handleError)) ?? undefined
+	const userList = await users().catch(handleError)
+	accounts.value = Array.isArray(userList) ? [...userList] : []
+	loadMicrosoftHeads()
+
+	// Ely.by accounts — isolated, optional, never blocks the above.
+	await loadElyAccounts()
+
+	// And the ones that are only a name, which nothing can fail to load.
+	await loadOfflineAccounts()
+
+	// Pick a provider only when the current choice has no valid default account
+	// (e.g. initial load or after the selected account was removed). An explicit
+	// selection made via setAccount() is preserved as long as it still resolves.
+	const currentProviderValid =
+		(selectedProvider.value === 'microsoft' && defaultUser.value !== undefined) ||
+		(selectedProvider.value === 'ely_by' && elyDefaultUser.value !== undefined) ||
+		(selectedProvider.value === 'offline' && offlineDefaultUser.value !== undefined)
+	if (!currentProviderValid) {
+		if (defaultUser.value) {
+			selectedProvider.value = 'microsoft'
+		} else if (elyDefaultUser.value) {
+			selectedProvider.value = 'ely_by'
+		} else if (offlineDefaultUser.value) {
+			selectedProvider.value = 'offline'
+		}
+	}
+
+	// The Mojang skin system only works for the active Microsoft account.
+	// Skip the call entirely when a Microsoft account is not the active one
+	// (e.g. an Ely.by account is selected) to avoid spurious backend errors.
+	if (!defaultUser.value) {
+		equippedSkin.value = null
+		void updateHeadUrl(null)
+	} else {
+		try {
+			const skins = await get_available_skins()
+			equippedSkin.value = skins.find((skin) => skin.is_equipped) ?? null
+
+			await updateHeadUrl(equippedSkin.value)
+		} catch {
+			equippedSkin.value = null
+			void updateHeadUrl(null)
+		}
+	}
+}
+
+async function setEquippedSkin(skin: Skin) {
+	equippedSkin.value = skin
+
+	try {
+		await updateHeadUrl(skin)
+	} catch (error) {
+		console.warn('Failed to get head render for equipped skin:', error)
+	}
+}
+
+function setLoginDisabled(value: boolean) {
+	loginDisabled.value = value
+}
+
+const selectedAccount = computed<AnyCredential | undefined>(() => {
+	if (selectedProvider.value === 'ely_by') {
+		return elyAccounts.value.find((account) => account.profile.id === elyDefaultUser.value)
+	}
+	if (selectedProvider.value === 'offline') {
+		return offlineAccounts.value.find((account) => account.profile.id === offlineDefaultUser.value)
+	}
+	return accounts.value.find((account) => account.profile.id === defaultUser.value)
+})
+
+defineExpose({
+	refreshValues,
+	setEquippedSkin,
+	setLoginDisabled,
+	login,
+	// So anything offering a choice of account — the getting started checklist,
+	// for one — can open the Ely.by dialog this card owns.
+	showElyLogin: loginEly,
+	showOfflineLogin: () => offlineModal.value?.show(),
+	loginDisabled,
+	selectedAccount,
+	// The head the collapsed rail shows, so the rail can carry the same face
+	// the account card does rather than a second picture of its own.
+	//
+	// A getter and not the ref itself: the ref is declared further down,
+	// and naming it here would reach for it before it exists. A card that
+	// throws while it is being set up draws nothing at all.
+	get avatarUrl() {
+		return avatarUrl.value
+	},
+})
+await refreshValues()
+
+const STEVE_HEAD_URL = 'https://launcher-files.modrinth.com/assets/steve_head.png'
+
+/**
+ * Head-render URL for a Microsoft account. mc-heads.net expects an
+ * undashed UUID (or a username) — passing a dashed UUID can silently fail,
+ * so dashes are stripped here.
+ */
+function microsoftHeadUrl(id: string): string {
+	return (
+		microsoftHeadCache.value.get(id) ?? `https://mc-heads.net/avatar/${id.replace(/-/g, '')}/128`
+	)
+}
+
+const avatarUrl = computed(() => {
+	// An offline account has no skin to fetch and no id anybody could look up.
+	if (selectedAccount.value && isOfflineAccount(selectedAccount.value)) {
+		return STEVE_HEAD_URL
+	}
+	if (selectedAccount.value && isElyAccount(selectedAccount.value)) {
+		return elyHeadCache.value.get(selectedAccount.value.profile.id) ?? STEVE_HEAD_URL
+	}
+	if (equippedSkin.value?.texture_key) {
+		const cachedUrl = equippedHeadUrl.value
+		if (cachedUrl) {
+			return cachedUrl
+		}
+		// No rendered head cached yet — fall through to the UUID-based head below.
+		// (mc-heads.net only accepts a username/UUID, not a Mojang texture hash,
+		// so a `texture_key` URL would just render a default Steve.)
+	}
+	if (selectedAccount.value?.profile?.id) {
+		return microsoftHeadUrl(selectedAccount.value.profile.id)
+	}
+	return STEVE_HEAD_URL
+})
+
+function getAccountAvatarUrl(account: AnyCredential) {
+	if (isOfflineAccount(account)) {
+		return STEVE_HEAD_URL
+	}
+	if (isElyAccount(account)) {
+		return elyHeadCache.value.get(account.profile.id) ?? STEVE_HEAD_URL
+	}
+	if (
+		account.profile.id === selectedAccount.value?.profile?.id &&
+		equippedSkin.value?.texture_key
+	) {
+		const cachedUrl = equippedHeadUrl.value
+		if (cachedUrl) {
+			return cachedUrl
+		}
+	}
+	return microsoftHeadUrl(account.profile.id)
+}
+
+/** Short provider label shown on the account badge. */
+function accountProviderLabel(account: AnyCredential): string {
+	if (isElyAccount(account)) return 'Ely.by'
+	if (isOfflineAccount(account)) return formatMessage(messages.offlineAccountShort)
+	return 'Microsoft'
+}
+
+/** Subtitle under the selected account name in the accordion header. */
+const selectedAccountTypeLabel = computed(() => {
+	if (!selectedAccount.value) {
+		return formatMessage(messages.minecraftAccount)
+	}
+	if (isElyAccount(selectedAccount.value)) return formatMessage(messages.elyByAccount)
+	if (isOfflineAccount(selectedAccount.value)) return formatMessage(messages.offlineAccount)
+	return formatMessage(messages.microsoftAccount)
+})
+
+function isAccountSelected(account: AnyCredential): boolean {
+	const selected = selectedAccount.value
+	if (!selected) return false
+	return selected.profile.id === account.profile.id && providerOf(selected) === providerOf(account)
+}
+
+async function setAccount(account: AnyCredential) {
+	if (isOfflineAccount(account)) {
+		await offline_set_default_user(account.profile.id).catch(handleError)
+		offlineDefaultUser.value = account.profile.id
+		selectedProvider.value = 'offline'
+	} else if (isElyAccount(account)) {
+		await ely_set_default_user(account.profile.id).catch(handleError)
+		elyDefaultUser.value = account.profile.id
+		selectedProvider.value = 'ely_by'
+	} else {
+		await set_default_user(account.profile.id).catch(handleError)
+		defaultUser.value = account.profile.id
+		selectedProvider.value = 'microsoft'
+	}
+	await refreshValues()
+	emit('change')
+}
+
+async function login() {
+	loginDisabled.value = true
+	const loggedIn = await login_flow().catch(handleSevereError)
+
+	if (loggedIn) {
+		await setAccount(loggedIn)
+	}
+
+	trackEvent('AccountLogIn')
+	loginDisabled.value = false
+}
+
+/**
+ * Opens Ely.by's sign-in window straight away, the way Microsoft's opens. The
+ * password form is only for when that window cannot do it.
+ */
+async function loginEly() {
+	loginDisabled.value = true
+	try {
+		const credentials = await ely_device_login()
+		if (credentials) {
+			await refreshValues()
+			await setAccount(credentials)
+			trackEvent('AccountLogIn')
+		}
+	} catch (error) {
+		elyLoginModal.value?.showWithError(error)
+	} finally {
+		loginDisabled.value = false
+	}
+}
+
+async function logoutAccount(account: AnyCredential) {
+	const wasSelected =
+		selectedAccount.value !== undefined &&
+		selectedAccount.value.profile.id === account.profile.id &&
+		providerOf(selectedAccount.value) === providerOf(account)
+
+	if (isOfflineAccount(account)) {
+		await offline_remove(account.profile.id).catch(handleError)
+	} else if (isElyAccount(account)) {
+		await ely_logout(account.profile.id).catch(handleError)
+	} else {
+		await remove_user(account.profile.id).catch(handleError)
+	}
+	await refreshValues()
+	if (wasSelected && !selectedAccount.value && allAccounts.value.length > 0) {
+		await setAccount(allAccounts.value[0])
+	} else {
+		emit('change')
+	}
+	trackEvent('AccountLogOut')
+}
+
+useAppEvent('process', async (e) => {
+	if (e.event === 'launched') {
+		await refreshValues()
+	}
+})
+
+// When the embedded Ely.by skin window closes, the skin may have changed —
+// drop the texture caches and re-render the account head avatars.
+const unlistenElySkinWindow = await listen('ely-skin-window-closed', () => {
+	clearElySkinCache()
+	void loadElyAccounts()
+})
+
+// The process listener this used to unhook is now `useAppEvent`, which cleans
+// itself up, so only the Ely window listener is left to tear down.
+onUnmounted(() => {
+	unlistenElySkinWindow()
+})
+
+const messages = defineMessages({
+	notSignedIn: {
+		id: 'minecraft-account.not-signed-in',
+		defaultMessage: 'Not signed in',
+	},
+	addAccount: {
+		id: 'minecraft-account.add-account',
+		defaultMessage: 'Add account',
+	},
+	addElyAccount: {
+		id: 'minecraft-account.add-ely-account',
+		defaultMessage: 'Add Ely.by account',
+	},
+	removeAccount: {
+		id: 'minecraft-account.remove-account',
+		defaultMessage: 'Remove account',
+	},
+	selectAccount: {
+		id: 'minecraft-account.select-account',
+		defaultMessage: 'Select account',
+	},
+	minecraftAccount: {
+		id: 'minecraft-account.label',
+		defaultMessage: 'Minecraft account',
+	},
+	microsoftAccount: {
+		id: 'minecraft-account.label-microsoft',
+		defaultMessage: 'Microsoft account',
+	},
+	elyByAccount: {
+		id: 'minecraft-account.label-ely-by',
+		defaultMessage: 'Ely.by account',
+	},
+	signInToMinecraft: {
+		id: 'minecraft-account.sign-in',
+		defaultMessage: 'Sign in to Minecraft',
+	},
+	addOfflineAccount: {
+		id: 'minecraft-account.add-offline-account',
+		defaultMessage: 'Add offline account',
+	},
+	offlineAccount: {
+		id: 'minecraft-account.label-offline',
+		defaultMessage: 'Offline account',
+	},
+	offlineAccountShort: {
+		id: 'minecraft-account.label-offline-short',
+		defaultMessage: 'Offline',
+	},
+})
+</script>

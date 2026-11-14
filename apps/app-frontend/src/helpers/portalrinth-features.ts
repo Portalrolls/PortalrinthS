@@ -1,0 +1,45 @@
+/**
+ * Portalrinth's own toggleable desktop features: the built-in search
+ * window and the title-bar clock. Everything the
+ * player can switch off lives in one localStorage blob behind one
+ * reactive ref, so the title bar and the settings read the same truth.
+ */
+import { ref, watch } from 'vue'
+
+export interface PortalrinthFeatures {
+        /** The clock at the top center of the title bar. */
+        clock: boolean
+        /** Build notes pop up when the game launches. */
+        notesPopup: boolean
+}
+
+const FEATURES_KEY = 'portalrinth-features'
+
+const DEFAULT_FEATURES: PortalrinthFeatures = {
+        clock: true,
+        notesPopup: true,
+}
+
+function readFeatures(): PortalrinthFeatures {
+        try {
+                const raw = localStorage.getItem(FEATURES_KEY)
+                if (!raw) return { ...DEFAULT_FEATURES }
+                return { ...DEFAULT_FEATURES, ...JSON.parse(raw) }
+        } catch {
+                return { ...DEFAULT_FEATURES }
+        }
+}
+
+export const portalrinthFeatures = ref<PortalrinthFeatures>(readFeatures())
+
+watch(
+        portalrinthFeatures,
+        (value) => {
+                try {
+                        localStorage.setItem(FEATURES_KEY, JSON.stringify(value))
+                } catch {
+                        /* a full quota should never take the widgets down */
+                }
+        },
+        { deep: true },
+)

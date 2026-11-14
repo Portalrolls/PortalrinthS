@@ -1,0 +1,230 @@
+/**
+ * Ely.by skin helpers.
+ *
+ * Ely.by's skin server (skinsystem.ely.by) sends no CORS headers, so a skin
+ * image loaded directly into a <canvas> taints it and toDataURL() throws.
+ * To avoid that, textures are fetched by the Rust backend, which also retries
+ * a dropped request; ely.by is not in the HTTP plugin's allowlist, so the
+ * frontend has no way of its own. The raw bytes are turned into a data: URL,
+ * which is same-origin and never taints the canvas.
+ */
+import { invoke } from '@tauri-apps/api/core'
+
+const skinTextureCache = new Map<string, Promise<string>>()
+const capeTextureCache = new Map<string, Promise<string | null>>()
+const headCache = new Map<string, string>()
+
+/**
+ * Bundled classic Steve texture — shown when a user has no custom Ely.by
+ * skin (the skin server returns 404) or every fetch path failed, so the
+ * preview never hangs on an eternal loading state.
+ */
+export const ELY_FALLBACK_SKIN =
+	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAE5klEQVR4Xu1aMWsUQRgVVJCAoIIgglaJBG2UGIKCOU0hJHZKijRBsAnaWSjaiNjESgtTpT0bmxQWNvkJ+U9n3ube8ubNt7e5xOzdxX3wmNmZb/fmvflmdtm9M2dqcOfmxR44N325KFnn8ecXDwbSrzdxoODO7auleNTdgHfP5hKeKgNUsJff1zqZeBJ9fr2Jg4vW9Ef5Xxiga9+XAkRWLYFTYYDOuGYDxIMU6psf2r6tL54OA3wPUEIkBFeVfr2Jg4r2DRGk2OWZSwnZ7tcbO2hqU9j0tQtJyjMLlGqCnqPX0WtEcSh9PI0jGiBIIVpX8V7yvEg04/z6aPPxNA4V4QNm2/ar5d7vD+u9P1/eFOWvt2tF2/2ZK1ksyGO2aZ0msM3H0zg4IB2oziSEQjCEUzyJvkhUdE3WGc9jH0/j0IGxxC0M4iACQoHnj76WolEHcIwYtOGc6Fo0NDJoLAzwGaIgJWf89eO7BTUDlBTlM6/7gxqCYx9P4+BAUHLmeQ//8XKxfKDBre390nzBpRtTSQxvecwEvaYb4Mc+nsbBpzYV7yaghGiYwJKiaZCey+vpk+Gt61MJ2e7jGTke3vvaUy4sLBScnZ0t6PEZ9vbK5aHGog19fn2nXy7Dzk6vZLebLNHiN44LHxCF0wiPz7AvUsWrCSdhgO5H+B0PHxo+oKNkwEkbMLW7mxkwVhlwoktgX3S0BI6cAU/mt3sgfhzl04c/S7KNJan957a2EurMYFCl+P7Aq+LBpF2FiuCSbPv0KaWfUwcKPKwB2g9isOc3NwuWgvpCmZbeHsUnIr2N7S4ehOiNjQPSAI2rwyCBnh3eD0LI2Y8fC6Je/nC/9DaPdxPcrEwQ2T3ImNAAPacOgwRWGaB1iiHrBHl8IoyiVISnuJPi1QRlHVwgj6M27SNdUDLjZoDOfmRAtva7B5scyQ1Vy4h6juvN4Ab4DEeG6LGndGlAX4gb4PGeIaX4/rHe4nTH1zYVrfHF5luHyABfBoP6KYr0FNZZ9dgo3s+NRKkRkQFad70ZKKxKYJ0BGKSKKTJAZ5TZ0Bfk8aEBEh8ZoEaoASg9xvVm8PRW4UqPIylIxVG4i2OMxyUGiHjE6Ky6OBqgRniM682wsrLSA31zczLOqaIiM1Sgx5YGiGgVD6pYFxeZ4P2uNwMebzudTiJqdXU1E4oYj0Vdl4gapplDIyjMY3T5aAwyscoAzQw3QGNdbwY+41OcC6TwKA51NYDUZcSSM+rxvtcwhu0qxkWCfmv0GNfbokWLFi1atJgc4AVoFf3xmU+dSUyLFi1atGjRokVT8FdpQ39c1XeE+/S3QB4+dnADhv68bgbwTc+hX3GNGm7AUTOAj7qaARNpwLEyYL+uGTCWS0Df/vpLTu/TfsZkHzODbwS6JDKOGocRyWzwPjD5wqsGDDJB20YNNwClG6D9dQaUH0uqBLsho4YLdJHer22FAXXf9+uoWdI3xt8bVPGfGOjieRy1aR/p3/b9Q4d/8FCiz8fTOKoE+2xrv8arGL3f687vt8Kxui1GAuuWgNINGCRc+1j38TQOF4gyMiAyB4xS3YW7AUofT+Pw9PeZ1vZomURr3EUOygofT+Pgl2QKrKJ/bifrxFcJHxsD+LlcRQ3z/4LIABfsx9rm42kc0f8GVCCFR3GoQ0jVPuBZEfX5eIbFX3srPNN8aUvJAAAAAElFTkSuQmCC'
+
+export function getElyCapeUrl(username: string): string {
+	return `https://skinsystem.ely.by/cloaks/${encodeURIComponent(username)}.png`
+}
+
+function bytesToDataUrl(bytes: number[] | Uint8Array): string {
+	const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+	let binary = ''
+	for (let i = 0; i < arr.length; i++) {
+		binary += String.fromCharCode(arr[i])
+	}
+	return `data:image/png;base64,${btoa(binary)}`
+}
+
+function fetchTextureDataUrl(url: string): Promise<string> {
+	return invoke<number[]>('plugin:ely-auth|ely_get_texture', { url }).then(bytesToDataUrl)
+}
+
+/**
+ * Fetches the Ely.by skin texture for a user and returns it as a data: URL.
+ * Cached per username. Rejects when the user has no custom skin (HTTP 404) or
+ * Ely.by could not be reached, and a later call tries again.
+ */
+export function getElySkinTexture(username: string): Promise<string> {
+	const cached = skinTextureCache.get(username)
+	if (cached) return cached
+
+	const promise = invoke<number[]>('plugin:ely-auth|ely_get_skin_texture', { username })
+		.then((bytes) => bytesToDataUrl(bytes))
+		.catch((error) => {
+			skinTextureCache.delete(username)
+			throw error
+		})
+
+	skinTextureCache.set(username, promise)
+	return promise
+}
+
+/**
+ * Fetches the Ely.by cape texture for a user as a data: URL, or null when
+ * the user has no cape (the skin server answers 404). Cached per username.
+ */
+export function getElyCapeTexture(username: string): Promise<string | null> {
+	const cached = capeTextureCache.get(username)
+	if (cached) return cached
+
+	const promise = fetchTextureDataUrl(getElyCapeUrl(username)).catch((error) => {
+		// No cape is an answer worth keeping; a request that did not get through is not.
+		if (!String(error).includes('404')) capeTextureCache.delete(username)
+		return null
+	})
+
+	capeTextureCache.set(username, promise)
+	return promise
+}
+
+/**
+ * Renders a Minecraft head (face + hat overlay) from an Ely.by skin texture
+ * and returns a data: URL. Results are cached per username+size.
+ */
+export async function getElyHeadUrl(username: string, size = 128): Promise<string> {
+	const cacheKey = `${username}:${size}`
+	const cached = headCache.get(cacheKey)
+	if (cached) return cached
+
+	const textureDataUrl = await getElySkinTexture(username)
+
+	const url = await new Promise<string>((resolve, reject) => {
+		const img = new Image()
+		// Source is a data: URL (same-origin) — the canvas is never tainted.
+		img.src = textureDataUrl
+		img.onload = () => {
+			try {
+				const canvas = document.createElement('canvas')
+				canvas.width = size
+				canvas.height = size
+				const ctx = canvas.getContext('2d')
+				if (!ctx) {
+					reject(new Error('Failed to create canvas context'))
+					return
+				}
+				ctx.imageSmoothingEnabled = false
+				// A standard skin texture is 64px wide. Ely.by also allows
+				// high-resolution skins (128, 256, ...), so the head regions
+				// must be scaled proportionally to the actual texture width
+				// rather than using hard-coded 64px coordinates.
+				const unit = (img.naturalWidth || 64) / 8
+				// Base head face: region at (1,1)-(2,2) in 8-unit grid.
+				ctx.drawImage(img, unit, unit, unit, unit, 0, 0, size, size)
+				// Hat / overlay layer: region at (5,1)-(6,2) in 8-unit grid.
+				ctx.drawImage(img, unit * 5, unit, unit, unit, 0, 0, size, size)
+				resolve(canvas.toDataURL('image/png'))
+			} catch (e) {
+				reject(e instanceof Error ? e : new Error(String(e)))
+			}
+		}
+		img.onerror = () => reject(new Error(`Failed to load Ely.by skin for ${username}`))
+	})
+
+	headCache.set(cacheKey, url)
+	return url
+}
+
+/** Clears all cached Ely.by skin/cape/head data (e.g. after a skin change). */
+export function clearElySkinCache(): void {
+	skinTextureCache.clear()
+	capeTextureCache.clear()
+	headCache.clear()
+}
+
+/** A skin the account has uploaded to Ely.by's public catalogue. */
+export interface ElyUploadedSkin {
+	id: number
+	skin_url: string
+	is_slim: boolean
+}
+
+/** Lists the skins an Ely.by account has uploaded. */
+export async function listElySkins(username: string): Promise<ElyUploadedSkin[]> {
+	return await invoke('plugin:ely-auth|ely_list_skins', { username })
+}
+
+/**
+ * Puts one of `username`'s uploaded skins on.
+ *
+ * Ely.by has no skin API; this drives the website's own wear call from
+ * inside the embedded window, which is where the site session lives. Like
+ * every write here it refuses, with an error saying why, when the site is
+ * signed in as anyone but `username` — with several Ely.by accounts that is
+ * what keeps a change off the wrong one. Whether the site then took it is
+ * not reported; reload the texture to find out.
+ */
+export async function wearElySkin(username: string, skinId: number): Promise<void> {
+	await invoke('plugin:ely-auth|ely_wear_skin', { username, skinId })
+}
+
+/** Storage URL of the skin the account currently wears, if it has a custom one. */
+export async function getElyCurrentSkinUrl(username: string): Promise<string | null> {
+	return await invoke('plugin:ely-auth|ely_current_skin_url', { username })
+}
+
+const catalogueTextureCache = new Map<string, Promise<string>>()
+
+/**
+ * Resolves a catalogue texture URL to a data: URL.
+ *
+ * The grid bakes previews on a canvas, and ely.by serves textures without CORS
+ * headers, so a direct URL taints the canvas and the tile comes out blank.
+ * Going through the backend keeps the bytes same-origin.
+ */
+export function getElyCatalogueTexture(url: string): Promise<string> {
+	const cached = catalogueTextureCache.get(url)
+	if (cached) return cached
+
+	const promise = fetchTextureDataUrl(url).catch((error) => {
+		catalogueTextureCache.delete(url)
+		throw error
+	})
+	catalogueTextureCache.set(url, promise)
+	return promise
+}
+
+/**
+ * Uploads a PNG to the account's Ely.by catalogue and wears it.
+ *
+ * Runs as two website calls inside the embedded window, where the site session
+ * lives. Like {@link wearElySkin} it cannot report the outcome — reload the
+ * texture to find out.
+ */
+export async function uploadElySkin(username: string, dataUrl: string): Promise<void> {
+	await invoke('plugin:ely-auth|ely_upload_skin', { username, dataUrl })
+}
+
+/** Removes one of `username`'s skins from the Ely.by catalogue. */
+export async function removeElySkin(username: string, skinId: number): Promise<void> {
+	await invoke('plugin:ely-auth|ely_remove_skin', { username, skinId })
+}
+
+/** What {@link editElySkin} can change. Anything left out stays as it is. */
+export interface ElySkinEdit {
+	/** The three-pixel-arm model — Alex on Ely.by, slim everywhere else. */
+	isSlim: boolean
+	name?: string
+	description?: string
+}
+
+/**
+ * Rewrites a skin's details on Ely.by.
+ *
+ * The website's edit form posts every field at once, so the backend reads the
+ * skin's current details first and sends them back untouched around whatever
+ * changed here. Like the rest of the Ely.by writes it runs inside the embedded
+ * window and cannot report the outcome — re-read the listing to find out.
+ */
+export async function editElySkin(
+	username: string,
+	skinId: number,
+	edit: ElySkinEdit,
+): Promise<void> {
+	await invoke('plugin:ely-auth|ely_edit_skin', {
+		username,
+		skinId,
+		isSlim: edit.isSlim,
+		name: edit.name ?? null,
+		description: edit.description ?? null,
+	})
+}

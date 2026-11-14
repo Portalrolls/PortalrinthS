@@ -1,0 +1,106 @@
+import type { Kyros } from '@modrinth/api-client'
+import type { ComputedRef, Ref } from 'vue'
+
+import { createContext } from '#ui/providers/create-context'
+
+import type {
+	EditingFile,
+	ExtractDryRunResult,
+	FileItem,
+	FileItemDescription,
+	FileOperation,
+	TransferInstance,
+	UploadState,
+} from '../types'
+
+export interface FileManagerContext {
+	items: Ref<FileItem[]>
+	loading: Ref<boolean>
+	error: Ref<Error | null>
+
+	currentPath: Ref<string>
+	navigateTo: (path: string) => void
+
+	editingFile: Ref<EditingFile | null>
+	startEditing: (file: EditingFile) => void
+	stopEditing: () => void
+
+	createItem: (name: string, type: 'file' | 'directory') => Promise<void>
+	renameItem: (path: string, newName: string) => Promise<void>
+	moveItem: (source: string, destination: string) => Promise<void>
+	deleteItem: (path: string, recursive: boolean) => Promise<void>
+
+	/** The instance these files belong to, for transfers between instances. */
+	instanceId?: Ref<string> | ComputedRef<string>
+	/** Other instances a file can be moved to, or replaced in. */
+	transferInstances?: Ref<TransferInstance[]> | ComputedRef<TransferInstance[]>
+	/** Moves many items into one folder of this instance. */
+	moveItems?: (
+		sources: { name: string; path: string; type: string }[],
+		destinationFolder: string,
+	) => Promise<void>
+	/** Moves items into another instance, keeping their relative folder. */
+	moveItemsToInstance?: (
+		sources: { name: string; path: string }[],
+		targetInstanceId: string,
+	) => Promise<void>
+	/** Replaces the file at each target with the one from the source instance. */
+	replaceFiles?: (
+		replacements: {
+			sourceInstanceId: string
+			sourcePath: string
+			targetInstanceId: string
+			targetPath: string
+		}[],
+	) => Promise<void>
+
+	readFile: (path: string) => Promise<string>
+	readFileAsBlob: (path: string) => Promise<Blob>
+	writeFile: (path: string, content: string) => Promise<void>
+	downloadFile: (path: string, fileName: string) => Promise<void>
+	statFile?: (path: string) => Promise<Kyros.Files.v1.FileStatResponse>
+	zipFolder?: (path: string) => Promise<void>
+	zipPaths?: (parent: string, include: string[], target: string) => Promise<void>
+
+	uploadFiles: (files: File[]) => void
+	cancelUpload?: () => void
+	uploadState?: Ref<UploadState> | ComputedRef<UploadState>
+
+	refresh: () => void
+
+	isBusy?: Ref<boolean> | ComputedRef<boolean>
+	busyTooltip?: Ref<string | undefined> | ComputedRef<string | undefined>
+	busyWarning?: Ref<string | null> | ComputedRef<string | null>
+	isReadOnly?: (path: string) => boolean
+	/** What a file is, for the row to draw instead of a bare file name. */
+	describeItem?: (item: FileItem) => FileItemDescription | undefined
+	readOnlyReason?: Ref<string> | ComputedRef<string>
+
+	extractFile?: (
+		path: string,
+		override: boolean,
+		dry: boolean,
+	) => Promise<ExtractDryRunResult | void>
+	activeOperations?: Ref<FileOperation[]> | ComputedRef<FileOperation[]>
+	dismissOperation?: (id: string, action: 'dismiss' | 'cancel') => void
+
+	prefetchDirectory?: (path: string) => void
+	prefetchFile?: (path: string) => void
+
+	showInstallFromUrl?: boolean
+	basePath?: Ref<string> | ComputedRef<string>
+	openInFolder?: (path: string) => void
+
+	downloadButtonLabel?: string
+	uploadingLabel?: (completed: number, total: number) => string
+
+	canRestart?: boolean
+	restartServer?: () => Promise<void>
+	canShareToMclogs?: boolean
+	shareToMclogs?: (content: string) => Promise<void>
+}
+
+export const [injectFileManager, provideFileManager] = createContext<FileManagerContext>(
+	'FilePageLayout',
+	'fileManagerContext',
+)

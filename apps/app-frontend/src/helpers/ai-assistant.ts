@@ -2857,6 +2857,12 @@ export async function aiComplete(request: AiRequest): Promise<AiResult> {
 	let providerTried = ''
 	let lastError: unknown
 	const doneActions: string[] = []
+	// Repeat guard, the UAgent way: a call with the very same name and
+	// arguments answered once this turn will answer the same way again, so
+	// re-running it only burns time. The model gets an honest note instead
+	// of a fresh run, and after enough repeats it is told to wrap up.
+	const seenCalls = new Set<string>()
+	let repeatStalls = 0
 	// Promises-without-action nudges spent in this turn (two at most).
 	let promiseNudges = 0
 	// Code-dump nudges: the same budget idea for «вот код, вставь сам».
@@ -3111,14 +3117,29 @@ export async function aiComplete(request: AiRequest): Promise<AiResult> {
 							cursor = end
 							for (const action of group) request.onActionStart?.(action.tool, action.args)
 							const results = await Promise.all(
-								group.map((action) =>
-									askModeBlocks(action.tool)
+								group.map((action) => {
+									// A call that already ran this turn gets an honest note
+									// instead of a fresh run: the result would be identical.
+									const callKey = `${action.tool}::${action.args}`
+									if (seenCalls.has(callKey)) {
+										repeatStalls += 1
+										return Promise.resolve(
+											'Такой вызов уже был в этом ходе - результат не изменится. Опирайся на прошлый результат, действуй иначе или подведи итог.',
+										)
+									}
+									seenCalls.add(callKey)
+									return askModeBlocks(action.tool)
 										? Promise.resolve(
 												'Режим Ask: действия выключены. Ответь текстом и предложи переключиться в Build, если нужно сделать это в лаунчере.',
 											)
-										: runTool(action.tool, action.args),
-								),
+										: runTool(action.tool, action.args)
+								}),
 							)
+							if (repeatStalls >= 3) {
+								notes.push(
+									'Повторы не помогают - одинаковые вызовы дают одинаковый результат. Подведи итог того, что уже сделано.',
+								)
+							}
 							group.forEach((action, index) => {
 								const result = results[index]
 								// A chip that says «сделал» while the tool said
@@ -4340,18 +4361,20 @@ registerAiToolHandler(async (tool, args) => {
 				facets.push(modrinthLoadersFor('mod', loader).map((item) => `categories:${item}`))
 			return encodeURIComponent(JSON.stringify(facets))
 		}
-		const pick = async (
+		// The UAgent trick: never bet the whole item on the single top search
+		// hit. Ask for the five best matches, try them one by one and stop at
+		// the first that actually installs under this build.
+		const searchCandidates = async (
 			query: string,
 			type: string,
-		): Promise<{ id: string; title: string } | null> => {
+		): Promise<{ id: string; title: string }[]> => {
 			const response = await proxiedFetch(
-				`https://api.modrinth.com/v2/search?limit=1&index=relevance&query=${encodeURIComponent(query)}&facets=${facetsFor(type)}`,
+				`https://api.modrinth.com/v2/search?limit=5&index=relevance&query=${encodeURIComponent(query)}&facets=${facetsFor(type)}`,
 				{ headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(12000) },
 			)
-			if (!response.ok) return null
+			if (!response.ok) return []
 			const data = (await response.json()) as { hits?: { project_id: string; title: string }[] }
-			const hit = data.hits?.[0]
-			return hit ? { id: hit.project_id, title: hit.title } : null
+			return data.hits?.map((hit) => ({ id: hit.project_id, title: hit.title })) ?? []
 		}
 
 		const jobs: { query: string; type: string }[] = wanted.map((query) => ({ query, type: 'mod' }))
@@ -4398,18 +4421,42 @@ registerAiToolHandler(async (tool, args) => {
 		for (const job of jobs) {
 			if (playerTookOver()) break
 			try {
-				const hit = await pick(job.query, job.type)
-				if (!hit) {
+				const candidates = (await searchCandidates(job.query, job.type)).filter(
+					(candidate) => !seen.has(candidate.id),
+				)
+				if (candidates.length === 0) {
 					failed.push(`«${job.query}» — нет версии под ${version} ${loader}`)
 					continue
 				}
-				if (seen.has(hit.id)) continue
-				seen.add(hit.id)
 				const kind = job.type === 'shader' ? 'shader' : job.type
-				const result = await installOneProject(hit.id, kind, instanceId)
-				const marker = result.indexOf('@@MOD@@')
-				if (marker >= 0) cards.push(result.slice(marker))
-				done.push(hit.title)
+				let lastError = ''
+				let settled = false
+				// Try the best matches one by one: the top hit often has no file
+				// for this exact version-loader pair, the runner-up usually does.
+				for (const candidate of candidates.slice(0, 4)) {
+					seen.add(candidate.id)
+					try {
+						const result = await installOneProject(candidate.id, kind, instanceId)
+						if (FAILED_RESULT.test(result.trim())) {
+							lastError = result.trim().slice(0, 120)
+							continue
+						}
+						const marker = result.indexOf('@@MOD@@')
+						if (marker >= 0) cards.push(result.slice(marker))
+						done.push(candidate.title)
+						settled = true
+						break
+					} catch (error) {
+						lastError = String(error)
+							.replace(/^Error:\s*/, '')
+							.slice(0, 120)
+					}
+				}
+				if (!settled) {
+					failed.push(
+						`«${job.query}» — ${lastError || `нет совместимой версии под ${version} ${loader}`}`,
+					)
+				}
 			} catch (error) {
 				failed.push(
 					`«${job.query}» — ${String(error)

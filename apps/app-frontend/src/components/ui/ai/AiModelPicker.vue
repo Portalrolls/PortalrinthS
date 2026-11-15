@@ -16,9 +16,12 @@ import { Input, Toggle, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
 import {
+	AGENT_MODES,
+	agentModeById,
 	AI_PROVIDERS,
 	type AiProvider,
 	aiSettings,
+	applyAgentMode,
 	chosenModel,
 	isModelEnabled,
 	saveAiSettings,
@@ -34,6 +37,8 @@ const { formatMessage } = useVIntl()
 const catalog = useAiCatalogText()
 const messages = {
 	search: { id: 'app.ai.picker.search', defaultMessage: 'Найти модель' },
+	modes: { id: 'app.ai.picker.modes', defaultMessage: 'Режимы агента — все бесплатные' },
+	customMode: { id: 'app.ai.picker.custom-mode', defaultMessage: 'Свой выбор' },
 	providers: { id: 'app.ai.picker.providers', defaultMessage: 'Провайдеры' },
 	models: { id: 'app.ai.picker.models', defaultMessage: 'Модели' },
 	active: { id: 'app.ai.picker.active', defaultMessage: 'Сейчас отвечает' },
@@ -72,6 +77,13 @@ const messages = {
 }
 
 const viewedId = ref(aiSettings.value.provider)
+
+const activeMode = computed(() => agentModeById(aiSettings.value.agentMode))
+
+function chooseMode(id: string) {
+	const mode = AGENT_MODES.find((row) => row.id === id)
+	if (mode) applyAgentMode(mode)
+}
 const query = ref('')
 const managing = ref(false)
 const keyVisible = ref(false)
@@ -220,6 +232,33 @@ async function runTest() {
 
 <template>
 	<div class="ai-picker">
+		<div class="ai-picker-modes">
+			<p class="ai-picker-caption">{{ formatMessage(messages.modes) }}</p>
+			<div class="ai-picker-modes-row">
+				<button
+					v-for="mode in AGENT_MODES"
+					:key="mode.id"
+					type="button"
+					class="ai-picker-mode"
+					:data-tone="mode.tone"
+					:class="{ 'ai-picker-mode--on': activeMode?.id === mode.id }"
+					:title="mode.description"
+					@click="chooseMode(mode.id)"
+				>
+					<span class="ai-picker-mode-tier">{{ mode.tier }}</span>
+					<span class="ai-picker-mode-label">{{ mode.label }}</span>
+				</button>
+				<span
+					v-if="!activeMode"
+					class="ai-picker-mode ai-picker-mode--on ai-picker-mode--custom"
+					:title="formatMessage(messages.customMode)"
+				>
+					<span class="ai-picker-mode-tier">★</span>
+					<span class="ai-picker-mode-label">{{ formatMessage(messages.customMode) }}</span>
+				</span>
+			</div>
+		</div>
+
 		<div class="ai-picker-top">
 			<Input
 				v-model="query"
@@ -466,6 +505,92 @@ async function runTest() {
 </template>
 
 <style scoped>
+.ai-picker-modes {
+	padding: 0.5rem 0.75rem 0.25rem;
+	border-bottom: 1px solid var(--color-button-bg);
+}
+
+.ai-picker-modes-row {
+	display: flex;
+	gap: 0.4rem;
+	margin-top: 0.35rem;
+	flex-wrap: wrap;
+}
+
+.ai-picker-mode {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	border: 1px solid var(--color-button-bg);
+	background: var(--color-button-bg);
+	border-radius: 2rem;
+	padding: 0.3rem 0.7rem;
+	cursor: pointer;
+	font-size: 0.8rem;
+	color: var(--color-text);
+	transition:
+		transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+		background-color 0.18s ease,
+		border-color 0.18s ease,
+		color 0.18s ease;
+	animation: ai-mode-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ai-picker-mode:hover {
+	transform: translateY(-2px) scale(1.03);
+}
+
+.ai-picker-mode:active {
+	transform: scale(0.97);
+}
+
+@keyframes ai-mode-pop {
+	from {
+		opacity: 0;
+		transform: scale(0.85);
+	}
+}
+
+.ai-picker-mode-tier {
+	font-weight: 800;
+	font-size: 0.72rem;
+	letter-spacing: 0.03em;
+}
+
+.ai-picker-mode-label {
+	font-weight: 600;
+}
+
+.ai-picker-mode--on {
+	border-color: var(--color-brand);
+	background: color-mix(in srgb, var(--color-brand) 14%, transparent);
+	color: var(--color-contrast);
+}
+
+.ai-picker-mode[data-tone='flash'] .ai-picker-mode-tier {
+	color: #34d399;
+}
+
+.ai-picker-mode[data-tone='lite'] .ai-picker-mode-tier {
+	color: #60a5fa;
+}
+
+.ai-picker-mode[data-tone='pro'] .ai-picker-mode-tier {
+	color: #a78bfa;
+}
+
+.ai-picker-mode[data-tone='ultra'] .ai-picker-mode-tier {
+	color: #fbbf24;
+}
+
+.ai-picker-mode--custom {
+	border-style: dashed;
+}
+
+.ai-picker-mode--custom .ai-picker-mode-tier {
+	color: var(--color-text-inactive);
+}
+
 .ai-picker {
 	display: flex;
 	flex-direction: column;

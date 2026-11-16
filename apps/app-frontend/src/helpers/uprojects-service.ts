@@ -257,10 +257,80 @@ export function resolveServiceMedia(url: string | null | undefined): string {
 }
 
 /**
- * Голова игрока для аватарки: сервис отдаёт skinUrl, но иногда пустой — тогда
- * рисуем голову прямо из текстуры скина Minecraft-серверов.
+ * Голова игрока для аватарки: сервис отдаёт skinUrl — лист текстуры скина,
+ * а не готовую голову. Рисуем голову сами (лицо 8,8 + шляпа 40,8), как в
+ * оригинальном клиенте. Пустой skinUrl закрываем по uuid/нику.
  */
 const avatarCache = new Map<string, string>()
+const avatarInflight = new Map<string, Promise<string>>()
+
+const STEVE_HEAD = 'https://mc-heads.net/avatar/MHF_Steve/64'
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+	return new Promise((resolve, reject) => {
+		const image = new Image()
+		image.onload = () => resolve(image)
+		image.onerror = () => reject(new Error('decode'))
+		image.src = src
+	})
+}
+
+/** Кроп головы из листа скина 64×32/64×64 (и кратных ему HD-вариантов). */
+async function cropSkinHead(src: string, size = 64): Promise<string> {
+	try {
+		const probe = await proxiedFetch(src, { connectTimeout: 8000 })
+		if (!probe.ok) return ''
+		const blob = await probe.blob()
+		const objectUrl = URL.createObjectURL(blob)
+		try {
+			const image = await loadImage(objectUrl)
+			const width = image.naturalWidth || image.width
+			const height = image.naturalHeight || image.height
+			if (width < 64 || width % 64 !== 0) return ''
+			const scale = width / 64
+			const rows = height / scale
+			if (Math.abs(rows - 64) > 0.5 && Math.abs(rows - 32) > 0.5) return ''
+			const canvas = document.createElement('canvas')
+			canvas.width = size
+			canvas.height = size
+			const context = canvas.getContext('2d')
+			if (!context) return ''
+			context.imageSmoothingEnabled = false
+			const face = 8 * scale
+			context.drawImage(image, 8 * scale, 8 * scale, face, face, 0, 0, size, size)
+			context.drawImage(image, 40 * scale, 8 * scale, face, face, 0, 0, size, size)
+			return canvas.toDataURL('image/png')
+		} finally {
+			URL.revokeObjectURL(objectUrl)
+		}
+	} catch {
+		return ''
+	}
+}
+
+/** Готовая голова от сервисов рендера — кропать не нужно. */
+function isFinishedHeadUrl(raw: string): boolean {
+	return (
+		/crafatar\.com\/(avatars|renders)\//i.test(raw) ||
+		/mc-heads\.net\/(avatar|helm|head)\//i.test(raw) ||
+		/minotar\.net\/(avatar|helm|cube)\//i.test(raw) ||
+		/mineatar\.io\/(face|body)\//i.test(raw) ||
+		/\/api\/messenger\/avatars\//i.test(raw) ||
+		/\/avatar\//i.test(raw)
+	)
+}
+
+/** Внешняя голова по uuid/нику — когда своего скина нет. */
+function serviceHead(key: string, size: number): string {
+	const trimmed = key.replace(/-/g, '').toLowerCase()
+	if (trimmed.length >= 32) {
+		return `https://mc-heads.net/avatar/${trimmed}/${size}`
+	}
+	if (key) {
+		return `https://mc-heads.net/avatar/${encodeURIComponent(key)}/${size}`
+	}
+	return STEVE_HEAD
+}
 
 export async function resolveAvatar(
 	user: {
@@ -272,32 +342,46 @@ export async function resolveAvatar(
 	},
 	size = 64,
 ): Promise<string> {
-	const direct = resolveServiceMedia(user.avatar || user.skinUrl)
-	if (direct) return direct
 	const key = String(user.uuid || user.username || user.name || '')
-	if (!key) return ''
-	const cached = avatarCache.get(key)
-	if (cached) return cached
-	const trimmed = key.replace(/-/g, '').toLowerCase()
-	const candidates = [
-		`https://crafatar.com/avatars/${trimmed}?size=${size}&overlay`,
-		`https://mc-heads.net/avatar/${trimmed}/${size}`,
-		`https://api.mineatar.io/face/${trimmed}?scale=${Math.max(4, Math.floor(size / 8))}`,
-	]
-	for (const candidate of candidates) {
-		try {
-			const probe = await proxiedFetch(candidate, { connectTimeout: 6000 })
-			if (!probe.ok) continue
-			const blob = await probe.blob()
-			if (blob.size < 200) continue
-			const url = URL.createObjectURL(blob)
-			avatarCache.set(key, url)
-			return url
-		} catch {
-			/* пробуем следующий сервис */
-		}
+	const inflight = avatarInflight.get(key)
+	if (inflight) return inflight
+	const task = buildAvatar(user, key, size).then((url) => {
+		if (key && url) avatarCache.set(key, url)
+		avatarInflight.delete(key)
+		return url
+	})
+	if (key) avatarInflight.set(key, task)
+	return task
+}
+
+async function buildAvatar(
+	user: { skinUrl?: string | null; avatar?: string | null },
+	key: string,
+	size: number,
+): Promise<string> {
+	if (key) {
+		const cached = avatarCache.get(key)
+		if (cached) return cached
 	}
-	return ''
+	// avatar бывает уже готовой головой (иконка клана, загруженный файл) —
+	// тогда кроп не сработает и картинка уйдёт как есть.
+	const direct = String(user.avatar || '').trim()
+	if (direct) {
+		const resolved = resolveServiceMedia(direct)
+		if (isFinishedHeadUrl(resolved) || isFinishedHeadUrl(direct)) return resolved
+		const cropped = await cropSkinHead(resolved, size)
+		if (cropped) return cropped
+		if (resolved) return resolved
+	}
+	const skin = String(user.skinUrl || '').trim()
+	if (skin) {
+		const resolved = resolveServiceMedia(skin)
+		const cropped = await cropSkinHead(resolved, size)
+		if (cropped) return cropped
+		if (resolved) return resolved
+	}
+	if (!key) return ''
+	return serviceHead(key, size)
 }
 
 /** Сжимает картинку в JPEG нужного размера (base64) — так сервис принимает вложения постов. */

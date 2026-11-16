@@ -64,6 +64,65 @@ type FeedAuthor = {
 	skinUrl?: string | null
 	avatar?: string | null
 	verified?: boolean
+	isClan?: boolean
+	isStudio?: boolean
+}
+
+/** Аватар официального аккаунта студии — как в ленте Undefined Client. */
+const STUDIO_AVATAR =
+	'https://uprojects.site/client/api/messenger/avatars/91c843c7-3252-49d2-93ab-70d314cffbe3.png'
+
+/** Автор поста из сервиса: user / clan / launcher — приводим к одному виду. */
+function normAuthor(raw: unknown): FeedAuthor | undefined {
+	if (!raw || typeof raw !== 'object') return undefined
+	const row = raw as LooseRecord & {
+		user?: LooseRecord
+		clan?: LooseRecord
+	}
+	if (row.type === 'clan' && row.clan) {
+		return {
+			type: 'clan',
+			isClan: true,
+			name: String(row.clan.name || row.name || ''),
+			username: '',
+			avatar: String(row.clan.iconUrl || '') || null,
+			verified: Boolean(row.clan.verified),
+		}
+	}
+	if (row.type === 'launcher') {
+		return {
+			type: 'launcher',
+			isStudio: true,
+			name: String(row.name || 'Undefined Studio'),
+			username: '',
+			avatar: STUDIO_AVATAR,
+			verified: true,
+		}
+	}
+	const user = row.user
+	if (user && typeof user === 'object') {
+		return {
+			type: 'user',
+			id: user.id as string | number | undefined,
+			uuid: user.uuid as string | undefined,
+			name: String(user.username || row.name || 'Игрок'),
+			username: String(user.username || ''),
+			skinUrl: (user.skinUrl as string | null) ?? null,
+			avatar: (user.avatar as string | null) ?? null,
+			verified: Boolean(user.verified),
+		}
+	}
+	// плоский автор (комментарии, подсказки «кого читать»)
+	return {
+		type: 'user',
+		id: row.id as string | number | undefined,
+		uuid: row.uuid as string | undefined,
+		name: String(row.username || row.name || 'Игрок'),
+		username: String(row.username || row.name || ''),
+		skinUrl: (row.skinUrl as string | null) ?? null,
+		avatar: (row.avatar as string | null) ?? null,
+		verified: Boolean(row.verified),
+	}
 }
 
 type FeedComment = {
@@ -204,15 +263,12 @@ async function avatarFor(key: string, author?: FeedAuthor): Promise<string> {
 }
 
 function postAuthor(post: FeedPost): FeedAuthor | undefined {
-	return post.author || post.user
+	return normAuthor(post.author) ?? normAuthor(post.user)
 }
 
 function authorName(author?: FeedAuthor): string {
-	return String(
-		author?.username ||
-			author?.name ||
-			(author?.type === 'launcher' ? 'Undefined Studio' : 'Игрок'),
-	).trim()
+	if (author?.isClan || author?.isStudio) return String(author.name || '').trim()
+	return String(author?.username || author?.name || 'Игрок').trim()
 }
 
 function postText(post: FeedPost): string {
@@ -319,6 +375,15 @@ async function loadFeed() {
 		if (response.ok) {
 			posts.value = Array.isArray(response.data?.posts) ? response.data.posts : []
 			suggestions.value = Array.isArray(response.data?.suggestions) ? response.data.suggestions : []
+			for (const user of suggestions.value.slice(0, 6)) {
+				void avatarFor(`sug:${String(user.id ?? user.username ?? '')}`, {
+					skinUrl: user.skinUrl,
+					avatar: user.avatar,
+					uuid: user.uuid,
+					username: user.username,
+					name: user.name,
+				})
+			}
 			followingIds.value = Array.isArray(response.data?.followingIds)
 				? response.data.followingIds.map(String)
 				: []
@@ -414,7 +479,9 @@ async function toggleComments(post: FeedPost) {
 		const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/comments`, {
 			query: { limit: 50 },
 		})
-		comments.value = Array.isArray(response.data?.comments) ? response.data.comments : []
+		comments.value = (Array.isArray(response.data?.comments) ? response.data.comments : []).map(
+			(entry) => ({ ...entry, author: normAuthor(entry.author) }),
+		)
 	} finally {
 		commentsLoading.value = false
 	}
@@ -433,7 +500,9 @@ async function sendComment(post: FeedPost) {
 		const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/comments`, {
 			query: { limit: 50 },
 		})
-		comments.value = Array.isArray(response.data?.comments) ? response.data.comments : []
+		comments.value = (Array.isArray(response.data?.comments) ? response.data.comments : []).map(
+			(entry) => ({ ...entry, author: normAuthor(entry.author) }),
+		)
 	} finally {
 		commentsLoading.value = false
 	}
@@ -870,11 +939,13 @@ onActivated(breadcrumb.reset)
 			<section v-if="session && suggestions.length" class="nr-card">
 				<h3>{{ formatMessage({ id: 'app.news.suggestions', defaultMessage: 'Кого читать' }) }}</h3>
 				<div v-for="user in suggestions.slice(0, 6)" :key="String(user.id)" class="nr-who">
-					<span class="nr-who__ava nr-who__ava--stub">{{
-						String(user.username || user.name || '?')
-							.slice(0, 1)
-							.toUpperCase()
-					}}</span>
+					<span class="nr-who__ava">
+						<img
+							v-if="avatarUrls[`sug:${String(user.id ?? user.username ?? '')}`]"
+							:src="avatarUrls[`sug:${String(user.id ?? user.username ?? '')}`]"
+							alt=""
+						/>
+					</span>
 					<span class="nr-who__text">
 						<span class="nr-who__name">{{ user.username || user.name }}</span>
 						<span class="nr-who__meta">

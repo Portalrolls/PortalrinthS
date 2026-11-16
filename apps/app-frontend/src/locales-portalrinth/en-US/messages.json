@@ -3417,9 +3417,7 @@
 	"app.news.heading": {
 		"message": "News"
 	},
-	"app.news.tabFeed": {
-		"message": "Feed"
-	},
+	"app.news.tabFeed": "For you",
 	"app.news.tabOfficial": {
 		"message": "Official news"
 	},
@@ -3614,5 +3612,21 @@
 	},
 	"app.messenger.profile.following": {
 		"message": "Following"
-	}
+	},
+	"app.news.tabFollowing": "Following",
+	"app.news.tabArticles": "Articles",
+	"app.news.unfollow": "Unfollow",
+	"app.news.followShort": "Follow",
+	"app.news.popular": "Popular",
+	"app.news.tags": "Hashtags",
+	"app.news.whoMeta": "Undefined player",
+	"app.news.railEmpty": "The feed is still warming up.",
+	"app.news.railNote": "Shared feed with Undefined Client — posts are visible to everyone.",
+	"app.news.followingEmpty": "Nothing in your follows yet. Hit Follow on an author.",
+	"app.news.searchEmpty": "Nothing found.",
+	"app.news.feedEmpty": "Quiet for now.",
+	"app.news.searchPlaceholder": "Search the feed...",
+	"app.messenger.wantsFriend": "Wants to be friends",
+	"app.messenger.online": "online",
+	"app.messenger.chatStatus": "Direct messages"
 }

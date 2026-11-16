@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import {
+	CheckIcon,
 	MessagesSquareIcon,
 	RefreshCwIcon,
 	SearchIcon,
 	SendIcon,
 	UserIcon,
 	UserPlusIcon,
+	XIcon,
 } from '@modrinth/assets'
 import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
@@ -501,20 +503,6 @@ async function signOut() {
 
 <template>
 	<div class="msgr">
-		<div class="msgr-head">
-			<span class="msgr-title">{{ formatMessage(messages.heading) }}</span>
-			<button
-				v-if="session"
-				class="msgr-refresh"
-				:class="{ 'is-busy': refreshing }"
-				aria-label="Обновить"
-				@click="livePulse"
-			>
-				<RefreshCwIcon v-if="!refreshing" />
-				<span v-else class="msgr-spinner" />
-			</button>
-		</div>
-
 		<div v-if="loading" class="msgr-state">
 			{{
 				formatMessage({ id: 'app.messenger.loading', defaultMessage: 'Соединяемся с сервисом…' })
@@ -529,7 +517,7 @@ async function signOut() {
 					formatMessage({
 						id: 'app.messenger.gateText',
 						defaultMessage:
-							'Чаты и друзья прямо в лаунчере — как у Undefined Client. Нужен аккаунт Microsoft или Ely.by: мессенджер общий, переписка видна и их игрокам, и нашим. Написано на их живом сервисе — обновления придут сами.',
+							'Чаты и друзья прямо в лаунчере — как у Undefined Client. Нужен аккаунт Microsoft или Ely.by: мессенджер общий, переписка видна и их игрокам, и нашим.',
 					})
 				}}
 			</p>
@@ -539,139 +527,214 @@ async function signOut() {
 		</div>
 
 		<div v-else class="msgr-body">
-			<aside class="msgr-rail">
-				<div class="msgr-rail__tabs">
-					<button :class="{ 'is-on': railTab === 'chats' }" @click="railTab = 'chats'">
+			<aside class="msgr-side">
+				<div class="msgr-side__head">
+					<span class="msgr-side__title">{{ formatMessage(messages.heading) }}</span>
+					<button
+						class="msgr-refresh"
+						:class="{ 'is-busy': refreshing }"
+						aria-label="Обновить"
+						@click="livePulse"
+					>
+						<RefreshCwIcon v-if="!refreshing" />
+						<span v-else class="msgr-spinner" />
+					</button>
+				</div>
+
+				<div class="msgr-side__tabs" role="tablist">
+					<button
+						:class="{ 'is-on': railTab === 'chats' }"
+						role="tab"
+						:aria-selected="railTab === 'chats'"
+						@click="railTab = 'chats'"
+					>
 						{{ formatMessage({ id: 'app.messenger.tabChats', defaultMessage: 'Чаты' }) }}
 					</button>
-					<button :class="{ 'is-on': railTab === 'friends' }" @click="railTab = 'friends'">
+					<button
+						:class="{ 'is-on': railTab === 'friends' }"
+						role="tab"
+						:aria-selected="railTab === 'friends'"
+						@click="railTab = 'friends'"
+					>
 						{{ formatMessage({ id: 'app.messenger.tabFriends', defaultMessage: 'Друзья' }) }}
 					</button>
 				</div>
 
-				<template v-if="railTab === 'chats'">
-					<TransitionGroup v-if="conversations.length" name="msgr-pop" tag="div" class="msgr-list">
-						<button
-							v-for="chat in conversations"
-							:key="chat.id"
-							class="msgr-row"
-							:class="{ 'is-on': chat.id === activeId }"
-							@click="openChat(chat)"
+				<div class="msgr-side__scroll">
+					<template v-if="railTab === 'chats'">
+						<TransitionGroup
+							v-if="conversations.length"
+							name="msgr-pop"
+							tag="div"
+							class="msgr-list"
 						>
-							<img
-								v-if="avatarUrl(railAvatarStore, avatarVersion, `chat:${chat.id}`)"
-								:src="avatarUrl(railAvatarStore, avatarVersion, `chat:${chat.id}`)"
-								alt=""
-							/>
-							<span v-else class="msgr-row__stub" />
-							<span class="msgr-row__text">
-								<b>{{ chat.title }}</b>
-								<small>{{ chat.preview }}</small>
-							</span>
-						</button>
-					</TransitionGroup>
-					<p v-else class="msgr-empty">
-						{{
-							formatMessage({
-								id: 'app.messenger.noChats',
-								defaultMessage: 'Чатов пока нет — найдите друга во вкладке «Друзья».',
-							})
-						}}
-					</p>
-				</template>
-
-				<template v-else>
-					<label class="msgr-search">
-						<SearchIcon />
-						<input
-							v-model="searchQuery"
-							:placeholder="
-								formatMessage({
-									id: 'app.messenger.searchPlaceholder',
-									defaultMessage: 'Ник игрока…',
-								})
-							"
-							@input="runSearch"
-						/>
-					</label>
-					<div v-if="searchResults.length" class="msgr-list">
-						<div
-							v-for="user in searchResults"
-							:key="`search-${user.id}`"
-							class="msgr-row msgr-row--static"
-						>
-							<span class="msgr-row__stub" />
-							<span class="msgr-row__text"
-								><b>{{ user.username || user.name }}</b></span
-							>
-							<button class="msgr-mini" :aria-label="openProfileLabel" @click="openProfile(user)">
-								<UserIcon />
-							</button>
-							<button class="msgr-mini" @click="addFriend(user)">
-								<UserPlusIcon />
-							</button>
-							<button class="msgr-mini" @click="startDm(user)">
-								<MessagesSquareIcon />
-							</button>
-						</div>
-					</div>
-
-					<div v-if="incoming.length" class="msgr-requests">
-						<b>{{ formatMessage({ id: 'app.messenger.requests', defaultMessage: 'Заявки' }) }}</b>
-						<div
-							v-for="friend in incoming"
-							:key="`in-${friend.id}`"
-							class="msgr-row msgr-row--static"
-						>
-							<span class="msgr-row__stub" />
-							<span class="msgr-row__text"
-								><b>{{ friend.name }}</b></span
-							>
-							<button class="msgr-mini msgr-mini--ok" @click="acceptFriend(friend)">✓</button>
-							<button class="msgr-mini" @click="declineFriend(friend)">✕</button>
-						</div>
-					</div>
-
-					<TransitionGroup v-if="friends.length" name="msgr-pop" tag="div" class="msgr-list">
-						<div
-							v-for="friend in friends"
-							:key="friend.id"
-							class="msgr-row"
-							role="button"
-							tabindex="0"
-							:class="{
-								'is-on': friend.id === conversations.find((chat) => chat.id === activeId)?.peerId,
-							}"
-							@click="startDm({ id: friend.id, username: friend.name })"
-							@keydown.enter="startDm({ id: friend.id, username: friend.name })"
-						>
-							<img
-								v-if="avatarUrl(railAvatarStore, avatarVersion, `friend:${friend.id}`)"
-								:src="avatarUrl(railAvatarStore, avatarVersion, `friend:${friend.id}`)"
-								alt=""
-							/>
-							<span v-else class="msgr-row__stub" />
-							<span class="msgr-row__text"
-								><b>{{ friend.name }}</b></span
-							>
 							<button
-								class="msgr-mini"
-								:aria-label="openProfileLabel"
-								@click.stop="openProfile(friend)"
+								v-for="chat in conversations"
+								:key="chat.id"
+								class="msgr-row"
+								:class="{ 'is-on': chat.id === activeId }"
+								@click="openChat(chat)"
 							>
-								<UserIcon />
+								<span class="msgr-row__ava">
+									<img
+										v-if="avatarUrl(railAvatarStore, avatarVersion, `chat:${chat.id}`)"
+										:src="avatarUrl(railAvatarStore, avatarVersion, `chat:${chat.id}`)"
+										alt=""
+									/>
+								</span>
+								<span class="msgr-row__text">
+									<b>{{ chat.title }}</b>
+									<small>{{ chat.preview }}</small>
+								</span>
 							</button>
+						</TransitionGroup>
+						<p v-else class="msgr-empty">
+							{{
+								formatMessage({
+									id: 'app.messenger.noChats',
+									defaultMessage: 'Чатов пока нет — найдите друга во вкладке «Друзья».',
+								})
+							}}
+						</p>
+					</template>
+
+					<template v-else>
+						<label class="msgr-search">
+							<SearchIcon />
+							<input
+								v-model="searchQuery"
+								:placeholder="
+									formatMessage({
+										id: 'app.messenger.searchPlaceholder',
+										defaultMessage: 'Ник игрока…',
+									})
+								"
+								@input="runSearch"
+							/>
+						</label>
+						<div v-if="searchResults.length" class="msgr-list">
+							<div
+								v-for="user in searchResults"
+								:key="`search-${user.id}`"
+								class="msgr-row msgr-row--static"
+							>
+								<span class="msgr-row__ava">
+									<span class="msgr-row__letter">{{
+										String(user.username || user.name || '?')
+											.slice(0, 1)
+											.toUpperCase()
+									}}</span>
+								</span>
+								<span class="msgr-row__text">
+									<b>{{ user.username || user.name }}</b>
+								</span>
+								<span class="msgr-row__tools">
+									<button
+										class="msgr-mini"
+										:aria-label="openProfileLabel"
+										@click="openProfile(user)"
+									>
+										<UserIcon />
+									</button>
+									<button
+										class="msgr-mini msgr-mini--ok"
+										aria-label="Добавить в друзья"
+										@click="addFriend(user)"
+									>
+										<UserPlusIcon />
+									</button>
+									<button class="msgr-mini" aria-label="Написать" @click="startDm(user)">
+										<MessagesSquareIcon />
+									</button>
+								</span>
+							</div>
 						</div>
-					</TransitionGroup>
-					<p v-else class="msgr-empty">
-						{{
-							formatMessage({
-								id: 'app.messenger.noFriends',
-								defaultMessage: 'Пока никого. Найдите игрока по нику выше.',
-							})
-						}}
-					</p>
-				</template>
+
+						<div v-if="incoming.length" class="msgr-requests">
+							<b>{{ formatMessage({ id: 'app.messenger.requests', defaultMessage: 'Заявки' }) }}</b>
+							<div
+								v-for="friend in incoming"
+								:key="`in-${friend.id}`"
+								class="msgr-row msgr-row--static"
+							>
+								<span class="msgr-row__ava">
+									<img
+										v-if="avatarUrl(railAvatarStore, avatarVersion, `friend:${friend.id}`)"
+										:src="avatarUrl(railAvatarStore, avatarVersion, `friend:${friend.id}`)"
+										alt=""
+									/>
+								</span>
+								<span class="msgr-row__text">
+									<b>{{ friend.name }}</b>
+									<small>{{
+										formatMessage({
+											id: 'app.messenger.wantsFriend',
+											defaultMessage: 'Хочет дружить',
+										})
+									}}</small>
+								</span>
+								<span class="msgr-row__tools">
+									<button
+										class="msgr-mini msgr-mini--ok"
+										aria-label="Принять"
+										@click="acceptFriend(friend)"
+									>
+										<CheckIcon />
+									</button>
+									<button class="msgr-mini" aria-label="Отклонить" @click="declineFriend(friend)">
+										<XIcon />
+									</button>
+								</span>
+							</div>
+						</div>
+
+						<TransitionGroup v-if="friends.length" name="msgr-pop" tag="div" class="msgr-list">
+							<div
+								v-for="friend in friends"
+								:key="friend.id"
+								class="msgr-row"
+								role="button"
+								tabindex="0"
+								:class="{
+									'is-on': friend.id === conversations.find((chat) => chat.id === activeId)?.peerId,
+								}"
+								@click="startDm({ id: friend.id, username: friend.name })"
+								@keydown.enter="startDm({ id: friend.id, username: friend.name })"
+							>
+								<span class="msgr-row__ava">
+									<img
+										v-if="avatarUrl(railAvatarStore, avatarVersion, `friend:${friend.id}`)"
+										:src="avatarUrl(railAvatarStore, avatarVersion, `friend:${friend.id}`)"
+										alt=""
+									/>
+								</span>
+								<span class="msgr-row__text">
+									<b>{{ friend.name }}</b>
+									<small>{{
+										formatMessage({ id: 'app.messenger.online', defaultMessage: 'в сети' })
+									}}</small>
+								</span>
+								<span class="msgr-row__tools">
+									<button
+										class="msgr-mini"
+										:aria-label="openProfileLabel"
+										@click.stop="openProfile(friend)"
+									>
+										<UserIcon />
+									</button>
+								</span>
+							</div>
+						</TransitionGroup>
+						<p v-else class="msgr-empty">
+							{{
+								formatMessage({
+									id: 'app.messenger.noFriends',
+									defaultMessage: 'Пока никого. Найдите игрока по нику выше.',
+								})
+							}}
+						</p>
+					</template>
+				</div>
 
 				<button class="msgr-logout" @click="signOut">
 					{{ formatMessage({ id: 'app.messenger.logout', defaultMessage: 'Выйти из сессии' }) }}
@@ -681,15 +744,27 @@ async function signOut() {
 			<section class="msgr-chat">
 				<template v-if="activeId">
 					<header class="msgr-chat__head">
-						<button
-							v-if="activePeer"
-							class="msgr-chat__peer"
-							:aria-label="openProfileLabel"
-							@click="openProfile(activePeer)"
-						>
-							<b>{{ activePeerName }}</b>
-						</button>
-						<b v-else>{{ activePeerName }}</b>
+						<span class="msgr-chat__ava">
+							<img
+								v-if="avatarUrl(railAvatarStore, avatarVersion, `chat:${activeId}`)"
+								:src="avatarUrl(railAvatarStore, avatarVersion, `chat:${activeId}`)"
+								alt=""
+							/>
+						</span>
+						<div class="msgr-chat__who">
+							<button
+								v-if="activePeer"
+								class="msgr-chat__peer"
+								:aria-label="openProfileLabel"
+								@click="openProfile(activePeer)"
+							>
+								{{ activePeerName }}
+							</button>
+							<b v-else>{{ activePeerName }}</b>
+							<span class="msgr-chat__status">{{
+								formatMessage({ id: 'app.messenger.chatStatus', defaultMessage: 'Личный чат' })
+							}}</span>
+						</div>
 					</header>
 					<div ref="threadEl" class="msgr-thread">
 						<div v-if="threadLoading" class="msgr-state">
@@ -707,16 +782,21 @@ async function signOut() {
 								class="msgr-msg"
 								:class="{ 'is-mine': message.mine }"
 							>
-								<img
-									v-if="
-										avatarUrl(threadAvatarStore, avatarVersion, `msg:${message.senderId}`) &&
-										!message.mine
-									"
-									:src="avatarUrl(threadAvatarStore, avatarVersion, `msg:${message.senderId}`)"
-									alt=""
-								/>
-								<div class="msgr-msg__bubble">
-									<small v-if="!message.mine">{{ message.senderName }}</small>
+								<span class="msgr-msg__ava">
+									<img
+										v-if="avatarUrl(threadAvatarStore, avatarVersion, `msg:${message.senderId}`)"
+										:src="avatarUrl(threadAvatarStore, avatarVersion, `msg:${message.senderId}`)"
+										alt=""
+									/>
+									<span v-else class="msgr-msg__letter">{{
+										(message.senderName || '?').slice(0, 1).toUpperCase()
+									}}</span>
+								</span>
+								<div class="msgr-msg__body">
+									<div class="msgr-msg__top">
+										<span class="msgr-msg__name">{{ message.senderName }}</span>
+										<span class="msgr-msg__time">{{ message.time }}</span>
+									</div>
 									<p v-if="message.text">{{ message.text }}</p>
 									<a
 										v-if="message.attachment"
@@ -728,7 +808,6 @@ async function signOut() {
 											formatMessage({ id: 'app.messenger.attachment', defaultMessage: 'Вложение' })
 										}}
 									</a>
-									<span class="msgr-msg__time">{{ message.time }}</span>
 								</div>
 							</div>
 						</TransitionGroup>
@@ -763,63 +842,41 @@ async function signOut() {
 </template>
 
 <style scoped>
+/* ===== Оболочка: во всю высоту вкладки, без рамок ===== */
+
 .msgr {
 	display: flex;
 	flex-direction: column;
-	gap: 1rem;
 	height: 100%;
-	padding: 1.5rem 1rem 1rem;
-	max-width: 60rem;
-	margin: 0 auto;
+	min-height: 0;
 }
 
-.msgr-head {
+.msgr-body {
+	flex: 1;
+	min-height: 0;
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
+	background: #202020;
+	border-radius: 8px 0 0 0;
+	overflow: hidden;
 }
 
-.msgr-title {
-	font-size: 1.15rem;
-	font-weight: 700;
-	color: var(--color-contrast);
+.msgr-state {
+	padding: 2rem;
+	text-align: center;
+	color: var(--color-text-inactive);
 }
 
-.msgr-refresh {
-	border: none;
-	background: var(--color-bg);
-	color: var(--color-text);
-	border-radius: 0.75rem;
-	width: 2.5rem;
-	height: 2.5rem;
+.msgr-state--pad {
+	flex: 1;
 	display: grid;
 	place-items: center;
-	cursor: pointer;
-	transition: transform 0.3s ease;
 }
 
-.msgr-refresh:hover {
-	transform: rotate(60deg);
+.msgr-state--error {
+	color: var(--color-red, #ed4245);
 }
 
-.msgr-refresh.is-busy {
-	pointer-events: none;
-}
-
-.msgr-spinner {
-	width: 1rem;
-	height: 1rem;
-	border: 2px solid var(--color-brand);
-	border-top-color: transparent;
-	border-radius: 50%;
-	animation: msgr-spin 0.8s linear infinite;
-}
-
-@keyframes msgr-spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
+/* ===== Вход без аккаунта ===== */
 
 .msgr-gate {
 	display: flex;
@@ -851,248 +908,395 @@ async function signOut() {
 	font-size: 0.9rem;
 }
 
-.msgr-body {
-	display: grid;
-	grid-template-columns: 17rem 1fr;
-	gap: 1rem;
-	flex: 1;
-	min-height: 0;
-}
+/* ===== Левая панель — как канал-лист Discord ===== */
 
-.msgr-rail {
+.msgr-side {
+	width: 274px;
+	flex: none;
+	min-height: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 0.75rem;
-	background: var(--color-bg);
-	border-radius: 1rem;
-	padding: 0.75rem;
+	background: #191919;
+	border-right: 1px solid #1b1b1b;
+}
+
+.msgr-side__head {
+	height: 54px;
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 12px;
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.24);
+}
+
+.msgr-side__title {
+	flex: 1;
+	min-width: 0;
+	font-size: 15px;
+	font-weight: 700;
+	color: #fff;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.msgr-refresh {
+	width: 28px;
+	height: 28px;
+	flex: none;
+	display: grid;
+	place-items: center;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.6);
+	cursor: pointer;
+	transition: background-color 0.12s ease;
+}
+
+.msgr-refresh:hover {
+	background: rgba(255, 255, 255, 0.06);
+	color: #fff;
+}
+
+.msgr-refresh.is-busy {
+	pointer-events: none;
+}
+
+.msgr-spinner {
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--color-brand);
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: msgr-spin 0.8s linear infinite;
+}
+
+@keyframes msgr-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.msgr-side__tabs {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 2px;
+	margin: 10px 10px 8px;
+	padding: 3px;
+	border: 1px solid #303030;
+	border-radius: 10px;
+	background: #1f1f1f;
+}
+
+.msgr-side__tabs button {
+	height: 28px;
+	border: none;
+	border-radius: 7px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.45);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.msgr-side__tabs button.is-on {
+	background: #3c3c3c;
+	color: #fff;
+}
+
+.msgr-side__scroll {
+	flex: 1;
 	min-height: 0;
 	overflow-y: auto;
-}
-
-.msgr-rail__tabs {
-	display: flex;
-	gap: 0.25rem;
-	background: var(--color-button-bg);
-	border-radius: 0.75rem;
-	padding: 0.2rem;
-}
-
-.msgr-rail__tabs button {
-	flex: 1;
-	border: none;
-	background: transparent;
-	color: var(--color-text-inactive);
-	padding: 0.4rem;
-	border-radius: 0.55rem;
-	cursor: pointer;
-	font-weight: 600;
-	font-size: 0.85rem;
-	transition:
-		background-color 0.18s ease,
-		color 0.18s ease;
-}
-
-.msgr-rail__tabs button.is-on {
-	background: var(--color-brand);
-	color: var(--color-brand-invert);
+	padding: 0 8px 8px;
 }
 
 .msgr-list {
 	display: flex;
 	flex-direction: column;
-	gap: 0.25rem;
+	gap: 1px;
 }
 
-.msgr-row {
+.msgr-empty {
+	margin: 12px 8px;
+	color: rgba(255, 255, 255, 0.38);
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+/* ===== Поиск ===== */
+
+.msgr-search {
 	display: flex;
 	align-items: center;
-	gap: 0.6rem;
+	gap: 8px;
+	margin: 2px 2px 10px;
+	padding: 0 10px;
+	height: 34px;
+	background: #1a1a1a;
+	border-radius: 8px;
+	color: rgba(255, 255, 255, 0.4);
+}
+
+.msgr-search:focus-within {
+	box-shadow: 0 0 0 1px var(--color-brand);
+}
+
+.msgr-search svg {
+	flex: none;
+	width: 15px;
+	height: 15px;
+}
+
+.msgr-search input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
 	border: none;
 	background: transparent;
-	border-radius: 0.75rem;
-	padding: 0.5rem 0.6rem;
-	cursor: pointer;
-	text-align: left;
+	color: #fff;
+	font: inherit;
+	font-size: 13px;
+	outline: none;
+}
+
+.msgr-search input::placeholder {
+	color: rgba(255, 255, 255, 0.35);
+}
+
+/* ===== Строки списка ===== */
+
+.msgr-row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
 	width: 100%;
-	transition:
-		background-color 0.18s ease,
-		transform 0.18s ease;
+	margin: 0;
+	padding: 7px 8px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: background-color 0.1s ease;
 }
 
 .msgr-row:hover {
-	background: var(--color-button-bg);
-	transform: translateX(2px);
+	background: rgba(255, 255, 255, 0.05);
 }
 
 .msgr-row.is-on {
-	background: var(--color-button-bg);
+	background: #262626;
 }
 
-.msgr-row img,
-.msgr-row__stub {
-	width: 2.25rem;
-	height: 2.25rem;
-	border-radius: 0.55rem;
-	flex-shrink: 0;
+.msgr-row--static {
+	cursor: default;
+}
+
+.msgr-row--static:hover {
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.msgr-row__ava {
+	width: 40px;
+	height: 40px;
+	flex: none;
+	border-radius: 50%;
+	background: #2b2b2b;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+}
+
+.msgr-row__ava img {
+	width: 100%;
+	height: 100%;
 	object-fit: cover;
 	image-rendering: pixelated;
 }
 
-.msgr-row__stub {
-	background: var(--color-button-bg);
+.msgr-row__letter {
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 15px;
+	font-weight: 600;
 }
 
 .msgr-row__text {
+	flex: 1;
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	min-width: 0;
-	flex: 1;
+	gap: 1px;
 }
 
 .msgr-row__text b {
-	color: var(--color-contrast);
-	font-size: 0.9rem;
+	font-size: 14px;
+	font-weight: 500;
+	color: #fff;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
 .msgr-row__text small {
-	color: var(--color-text-inactive);
-	font-size: 0.78rem;
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.4);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
+.msgr-row__tools {
+	flex: none;
+	display: flex;
+	gap: 2px;
+}
+
 .msgr-mini {
-	border: none;
-	background: var(--color-button-bg);
-	color: var(--color-text);
-	width: 1.75rem;
-	height: 1.75rem;
-	border-radius: 0.5rem;
+	width: 26px;
+	height: 26px;
 	display: grid;
 	place-items: center;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.55);
 	cursor: pointer;
 	transition:
-		background-color 0.18s ease,
-		color 0.18s ease,
-		transform 0.18s ease;
+		background-color 0.12s ease,
+		color 0.12s ease;
 }
 
 .msgr-mini:hover {
-	background: var(--color-brand);
-	color: var(--color-brand-invert);
-	transform: scale(1.08);
+	background: rgba(255, 255, 255, 0.08);
+	color: #fff;
 }
 
-.msgr-mini svg {
-	width: 0.9rem;
-	height: 0.9rem;
-}
-
-.msgr-mini--ok {
-	color: var(--color-green);
-	font-weight: 800;
+.msgr-mini--ok:hover {
+	color: var(--color-brand, #4ac364);
 }
 
 .msgr-requests {
 	display: flex;
 	flex-direction: column;
-	gap: 0.4rem;
+	gap: 4px;
+	margin: 4px 0 10px;
 }
 
 .msgr-requests > b {
-	font-size: 0.78rem;
+	padding: 4px 8px;
+	font-size: 11px;
+	font-weight: 700;
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	color: var(--color-text-inactive);
+	letter-spacing: 0.04em;
+	color: rgba(255, 255, 255, 0.4);
 }
 
-.msgr-search {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	background: var(--color-button-bg);
-	border-radius: 0.75rem;
-	padding: 0.45rem 0.7rem;
-	color: var(--color-text-inactive);
-}
-
-.msgr-search svg {
-	width: 1rem;
-	height: 1rem;
-	flex-shrink: 0;
-}
-
-.msgr-search input {
-	background: transparent;
-	border: none;
-	outline: none;
-	color: var(--color-contrast);
-	font: inherit;
-	width: 100%;
-}
-
-.msgr-empty {
-	color: var(--color-text-inactive);
-	font-size: 0.85rem;
-	padding: 0.5rem 0.25rem;
-}
+/* ===== Выйти ===== */
 
 .msgr-logout {
-	margin-top: auto;
+	flex: none;
+	margin: 4px 8px 8px;
+	padding: 8px 10px;
 	border: none;
+	border-radius: 8px;
 	background: transparent;
-	color: var(--color-text-inactive);
-	font-size: 0.8rem;
+	color: rgba(255, 255, 255, 0.38);
+	font: inherit;
+	font-size: 13px;
+	text-align: left;
 	cursor: pointer;
-	padding: 0.4rem;
-	border-radius: 0.5rem;
-	transition: color 0.18s ease;
+	transition: background-color 0.12s ease;
 }
 
 .msgr-logout:hover {
-	color: var(--color-red);
+	background: rgba(217, 56, 56, 0.12);
+	color: #ff4848;
 }
 
+/* ===== Окно чата ===== */
+
 .msgr-chat {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
 	display: flex;
 	flex-direction: column;
-	background: var(--color-bg);
-	border-radius: 1rem;
-	min-height: 0;
-	overflow: hidden;
+	background: #202020;
 }
 
 .msgr-chat__head {
-	padding: 0.85rem 1.1rem;
-	border-bottom: 1px solid var(--color-button-bg);
-	color: var(--color-contrast);
+	height: 54px;
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 0 12px;
+	border-bottom: 1px solid #2a2a2a;
+	position: relative;
+	z-index: 2;
+}
+
+.msgr-chat__ava {
+	width: 32px;
+	height: 32px;
+	flex: none;
+	border-radius: 50%;
+	background: #2b2b2b;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+}
+
+.msgr-chat__ava img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	image-rendering: pixelated;
+}
+
+.msgr-chat__who {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
 }
 
 .msgr-chat__peer {
 	border: none;
+	padding: 0;
 	background: transparent;
-	color: inherit;
-	padding: 0.15rem 0.4rem;
-	margin: -0.15rem -0.4rem;
-	border-radius: 0.55rem;
-	cursor: pointer;
+	color: #fff;
+	font: inherit;
+	font-size: 15px;
+	font-weight: 700;
 	text-align: left;
-	transition: background-color 0.18s ease;
+	cursor: pointer;
 }
 
 .msgr-chat__peer:hover {
-	background: var(--color-button-bg);
+	text-decoration: underline;
 }
+
+.msgr-chat__status {
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.4);
+}
+
+/* ===== Сообщения — строки Discord, без пузырей ===== */
 
 .msgr-thread {
 	flex: 1;
+	min-height: 0;
 	overflow-y: auto;
-	padding: 1rem;
+	padding: 12px 0 10px;
 	display: flex;
 	flex-direction: column;
 }
@@ -1100,150 +1304,184 @@ async function signOut() {
 .msgr-thread__list {
 	display: flex;
 	flex-direction: column;
-	gap: 0.6rem;
+	flex: 1;
+	justify-content: flex-end;
 }
 
 .msgr-msg {
 	display: flex;
-	gap: 0.5rem;
-	align-items: flex-end;
-	max-width: 78%;
+	gap: 12px;
+	padding: 2px 16px 2px 12px;
+	margin-top: 8px;
+	transition: background 0.08s ease;
 }
 
-.msgr-msg img {
-	width: 1.9rem;
-	height: 1.9rem;
-	border-radius: 0.5rem;
+.msgr-msg:first-child {
+	margin-top: 0;
+}
+
+.msgr-msg:hover {
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.msgr-msg__ava {
+	width: 40px;
+	height: 40px;
+	flex: none;
+	border-radius: 50%;
+	background: #2b2b2b;
+	display: grid;
+	place-items: center;
+	overflow: hidden;
+}
+
+.msgr-msg__ava img {
+	width: 100%;
+	height: 100%;
 	object-fit: cover;
 	image-rendering: pixelated;
 }
 
-.msgr-msg.is-mine {
-	align-self: flex-end;
-	flex-direction: row-reverse;
+.msgr-msg__letter {
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 15px;
+	font-weight: 600;
 }
 
-.msgr-msg__bubble {
-	background: var(--color-button-bg);
-	border-radius: 0.9rem;
-	padding: 0.5rem 0.8rem;
+.msgr-msg__body {
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 0.15rem;
-	animation: msgr-msg-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.msgr-msg.is-mine .msgr-msg__bubble {
-	background: var(--color-brand);
-	color: var(--color-brand-invert);
+.msgr-msg__top {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
 }
 
-.msgr-msg__bubble small {
-	font-size: 0.72rem;
-	opacity: 0.75;
+.msgr-msg__name {
+	font-size: 14px;
+	font-weight: 600;
+	color: rgba(255, 255, 255, 0.85);
 }
 
-.msgr-msg__bubble p {
-	margin: 0;
-	word-break: break-word;
-	white-space: pre-wrap;
-	font-size: 0.92rem;
-}
-
-.msgr-msg__bubble a {
-	color: inherit;
-	font-size: 0.85rem;
-	text-decoration: underline;
+.msgr-msg.is-mine .msgr-msg__name {
+	color: var(--color-brand, #4ac364);
 }
 
 .msgr-msg__time {
-	font-size: 0.68rem;
-	opacity: 0.65;
-	align-self: flex-end;
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.35);
 }
 
-@keyframes msgr-msg-in {
-	from {
-		opacity: 0;
-		transform: translateY(8px) scale(0.97);
-	}
+.msgr-msg__body p {
+	margin: 1px 0 0;
+	color: rgba(255, 255, 255, 0.9);
+	font-size: 14px;
+	line-height: 1.4;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
 }
+
+.msgr-msg__body a {
+	color: #6fa6d3;
+	font-size: 13px;
+}
+
+/* ===== Композер ===== */
 
 .msgr-composer {
+	flex: none;
 	display: flex;
-	gap: 0.5rem;
-	padding: 0.75rem;
-	border-top: 1px solid var(--color-button-bg);
+	gap: 8px;
+	padding: 0 12px 12px;
 }
 
 .msgr-composer input {
 	flex: 1;
-	background: var(--color-button-bg);
-	border: none;
-	border-radius: 0.75rem;
-	padding: 0.55rem 0.85rem;
-	color: var(--color-contrast);
+	min-width: 0;
+	height: 42px;
+	padding: 0 14px;
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.03);
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+	color: #fff;
 	font: inherit;
+	font-size: 14px;
 	outline: none;
+	transition:
+		border-color 0.15s ease,
+		background 0.15s ease;
+}
+
+.msgr-composer input:focus {
+	border-color: rgba(255, 255, 255, 0.08);
+}
+
+.msgr-composer input::placeholder {
+	color: rgba(255, 255, 255, 0.38);
 }
 
 .msgr-send {
-	border: none;
-	background: var(--color-brand);
-	color: var(--color-brand-invert);
-	width: 2.5rem;
-	border-radius: 0.75rem;
+	width: 42px;
+	height: 42px;
+	flex: none;
 	display: grid;
 	place-items: center;
+	border: none;
+	border-radius: 12px;
+	background: var(--color-brand, #1bd96a);
+	color: #0b0e11;
 	cursor: pointer;
-	transition:
-		transform 0.18s ease,
-		opacity 0.18s ease;
+	transition: transform 0.15s ease;
 }
 
 .msgr-send:hover:not(:disabled) {
-	transform: scale(1.06);
+	transform: scale(1.05);
 }
 
 .msgr-send:disabled {
-	opacity: 0.5;
+	opacity: 0.45;
 	cursor: default;
 }
 
-.msgr-send svg {
-	width: 1.1rem;
-	height: 1.1rem;
-}
-
-.msgr-state {
-	color: var(--color-text-inactive);
-	padding: 1.25rem;
-	text-align: center;
-}
-
-.msgr-state--pad {
-	margin: auto;
-}
-
-.msgr-state--error {
-	color: var(--color-red);
-	padding: 0;
-}
+/* ===== Анимации ===== */
 
 .msgr-pop-enter-active,
-.msgr-pop-leave-active,
-.msgr-pop-move {
+.msgr-pop-leave-active {
 	transition:
-		transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-		opacity 0.25s ease;
+		opacity 0.18s ease,
+		transform 0.18s ease;
 }
 
 .msgr-pop-enter-from {
 	opacity: 0;
-	transform: translateY(8px);
+	transform: translateX(-6px);
 }
 
-.msgr-pop-leave-to {
+.msgr-msg-enter-active {
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+.msgr-msg-enter-from {
 	opacity: 0;
+	transform: translateY(6px);
+}
+
+@media (max-width: 720px) {
+	.msgr-body {
+		flex-direction: column;
+	}
+
+	.msgr-side {
+		width: auto;
+		max-height: 40vh;
+		border-right: none;
+		border-bottom: 1px solid #1b1b1b;
+	}
 }
 </style>

@@ -5958,9 +5958,7 @@
 	"app.news.heading": {
 		"message": "Новости"
 	},
-	"app.news.tabFeed": {
-		"message": "Лента"
-	},
+	"app.news.tabFeed": "Рекомендации",
 	"app.news.tabOfficial": {
 		"message": "Официальные новости"
 	},
@@ -6155,5 +6153,21 @@
 	},
 	"app.messenger.profile.following": {
 		"message": "Вы подписаны"
-	}
+	},
+	"app.news.tabFollowing": "Подписки",
+	"app.news.tabArticles": "Статьи",
+	"app.news.unfollow": "Отписаться",
+	"app.news.followShort": "Читать",
+	"app.news.popular": "Популярное",
+	"app.news.tags": "Хэштеги",
+	"app.news.whoMeta": "Игрок Undefined",
+	"app.news.railEmpty": "Лента ещё наполняется.",
+	"app.news.railNote": "Лента общая с Undefined Client — посты видны всем.",
+	"app.news.followingEmpty": "В подписках пока пусто. Нажмите «Подписаться» у автора.",
+	"app.news.searchEmpty": "Ничего не нашли.",
+	"app.news.feedEmpty": "Пока тихо.",
+	"app.news.searchPlaceholder": "Поиск в ленте...",
+	"app.messenger.wantsFriend": "Хочет дружить",
+	"app.messenger.online": "в сети",
+	"app.messenger.chatStatus": "Личный чат"
 }

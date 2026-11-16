@@ -4,6 +4,7 @@ import {
 	ImagesIcon,
 	NewspaperIcon,
 	RefreshCwIcon,
+	SearchIcon,
 	SendIcon,
 	XIcon,
 } from '@modrinth/assets'
@@ -132,7 +133,9 @@ type OfficialArticle = {
 	link?: string
 }
 
-const tab = ref<'feed' | 'official'>('feed')
+type FeedTab = 'feed' | 'following' | 'articles'
+const tab = ref<FeedTab>('feed')
+const search = ref('')
 const loading = ref(true)
 const loadError = ref('')
 const session = ref<ServiceSession | null>(null)
@@ -140,6 +143,7 @@ const me = ref<ServiceUser | null>(null)
 const myAvatar = ref('')
 const posts = ref<FeedPost[]>([])
 const suggestions = ref<ServiceUser[]>([])
+const followingIds = ref<string[]>([])
 const postingBanned = ref(false)
 
 const composerText = ref('')
@@ -253,6 +257,43 @@ function reactionCount(post: FeedPost): number {
 	return 0
 }
 
+/** Вкладки и поиск работают как в оригинале: лента фильтруется на месте. */
+const visiblePosts = computed<FeedPost[]>(() => {
+	const followed = new Set(followingIds.value)
+	const query = search.value.trim().toLowerCase()
+	return posts.value.filter((post) => {
+		if (tab.value === 'following') {
+			const id = postAuthor(post)?.id
+			if (id == null || !followed.has(String(id))) return false
+		}
+		if (!query) return true
+		const author = authorName(postAuthor(post)).toLowerCase()
+		return postText(post).toLowerCase().includes(query) || author.includes(query)
+	})
+})
+
+/** Правая колонка: самые горячие посты ленты. */
+const popularPosts = computed<FeedPost[]>(() => {
+	return [...posts.value]
+		.sort((a, b) => reactionCount(b) + (b.views || 0) - reactionCount(a) - (a.views || 0))
+		.slice(0, 5)
+})
+
+/** Правая колонка: живые хэштеги из постов. */
+const feedTags = computed<string[]>(() => {
+	const counts = new Map<string, number>()
+	for (const post of posts.value) {
+		for (const tag of postText(post).matchAll(/#([\p{L}\p{N}_]{2,24})/gu)) {
+			const name = tag[1].toLowerCase()
+			counts.set(name, (counts.get(name) || 0) + 1)
+		}
+	}
+	return [...counts.entries()]
+		.sort((a, b) => b[1] - a[1])
+		.slice(0, 8)
+		.map(([name]) => `#${name}`)
+})
+
 async function loadFeed() {
 	loading.value = true
 	loadError.value = ''
@@ -278,6 +319,9 @@ async function loadFeed() {
 		if (response.ok) {
 			posts.value = Array.isArray(response.data?.posts) ? response.data.posts : []
 			suggestions.value = Array.isArray(response.data?.suggestions) ? response.data.suggestions : []
+			followingIds.value = Array.isArray(response.data?.followingIds)
+				? response.data.followingIds.map(String)
+				: []
 			postingBanned.value = Boolean(response.data?.postingBanned)
 			for (const post of posts.value) {
 				const author = postAuthor(post)
@@ -395,15 +439,23 @@ async function sendComment(post: FeedPost) {
 	}
 }
 
-async function follow(user: ServiceUser) {
+async function toggleFollow(user: { id?: string | number }) {
 	if (!user.id) return
-	await serviceRequest(`/social/users/${encodeURIComponent(String(user.id))}/follow`, {
-		method: 'POST',
+	const id = String(user.id)
+	const on = followingIds.value.includes(id)
+	const response = await serviceRequest(`/social/users/${encodeURIComponent(id)}/follow`, {
+		method: on ? 'DELETE' : 'POST',
 	})
-	await loadFeed()
+	if (!response.ok) return
+	followingIds.value = on
+		? followingIds.value.filter((entry) => entry !== id)
+		: [...followingIds.value, id]
+	if (!on) {
+		suggestions.value = suggestions.value.filter((entry) => String(entry.id) !== id)
+	}
 }
 
-function openArticle(article: OfficialArticle) {
+async function openArticle(article: OfficialArticle) {
 	if (article.link) window.open(article.link, '_blank')
 }
 
@@ -415,48 +467,116 @@ onActivated(breadcrumb.reset)
 </script>
 
 <template>
-	<div class="news-page">
-		<div class="news-head">
-			<div class="news-tabs" role="tablist">
+	<div class="nr-page" :data-tab="tab">
+		<div class="nr-main">
+			<div class="nr-tabs" role="tablist" :aria-label="formatMessage(messages.heading)">
 				<button
-					class="news-tab"
-					:class="{ 'is-on': tab === 'feed' }"
+					type="button"
+					class="nr-tabs__btn"
+					:class="{ 'is-active': tab === 'feed' }"
 					role="tab"
 					:aria-selected="tab === 'feed'"
 					@click="tab = 'feed'"
 				>
-					{{ formatMessage({ id: 'app.news.tabFeed', defaultMessage: 'Лента' }) }}
+					{{ formatMessage({ id: 'app.news.tabFeed', defaultMessage: 'Рекомендации' }) }}
 				</button>
 				<button
-					class="news-tab"
-					:class="{ 'is-on': tab === 'official' }"
+					type="button"
+					class="nr-tabs__btn"
+					:class="{ 'is-active': tab === 'following' }"
 					role="tab"
-					:aria-selected="tab === 'official'"
-					@click="tab = 'official'"
+					:aria-selected="tab === 'following'"
+					@click="tab = 'following'"
 				>
-					{{ formatMessage({ id: 'app.news.tabOfficial', defaultMessage: 'Официальные новости' }) }}
+					{{ formatMessage({ id: 'app.news.tabFollowing', defaultMessage: 'Подписки' }) }}
+				</button>
+				<button
+					type="button"
+					class="nr-tabs__btn"
+					:class="{ 'is-active': tab === 'articles' }"
+					role="tab"
+					:aria-selected="tab === 'articles'"
+					@click="tab = 'articles'"
+				>
+					{{ formatMessage({ id: 'app.news.tabArticles', defaultMessage: 'Статьи' }) }}
 				</button>
 			</div>
-			<button
-				class="news-refresh"
-				:class="{ 'is-busy': refreshing }"
-				aria-label="Обновить"
-				@click="refresh"
-			>
-				<RefreshCwIcon v-if="!refreshing" />
-				<span v-else class="news-spinner" />
-			</button>
-		</div>
 
-		<template v-if="tab === 'feed'">
-			<div v-if="!session" class="news-gate">
-				<NewspaperIcon />
-				<div>
-					<b>{{
+			<label class="nr-search">
+				<SearchIcon />
+				<input
+					v-model="search"
+					type="text"
+					:placeholder="
+						formatMessage({ id: 'app.news.searchPlaceholder', defaultMessage: 'Поиск в ленте...' })
+					"
+					autocomplete="off"
+					spellcheck="false"
+				/>
+				<button
+					v-if="refreshing"
+					type="button"
+					class="nr-search__spin"
+					aria-label="Обновляем"
+					disabled
+				/>
+			</label>
+
+			<div v-if="tab !== 'articles'" class="nr-tools">
+				<button
+					type="button"
+					class="nr-refresh"
+					:class="{ 'is-busy': refreshing }"
+					aria-label="Обновить"
+					@click="refresh"
+				>
+					<RefreshCwIcon v-if="!refreshing" />
+					<span v-else class="nr-spinner" />
+				</button>
+			</div>
+
+			<template v-if="tab === 'articles'">
+				<TransitionGroup name="nr-post" tag="div" class="nr-feed">
+					<article
+						v-for="article in officialArticles"
+						:key="article.id"
+						class="nr-post nr-post--article"
+						@click="openArticle(article)"
+					>
+						<img
+							v-if="article.thumbnail"
+							:src="article.thumbnail"
+							class="nr-post__cover"
+							alt=""
+							loading="lazy"
+						/>
+						<div class="nr-post__body">
+							<div class="nr-post__meta">
+								<span class="nr-source" :data-source="article.source.toLowerCase()">{{
+									article.source
+								}}</span>
+								<span class="nr-post__time">{{ article.date }}</span>
+							</div>
+							<p class="nr-post__title">{{ article.title }}</p>
+							<p v-if="article.summary" class="nr-post__text">{{ article.summary }}</p>
+						</div>
+					</article>
+				</TransitionGroup>
+				<p v-if="!officialArticles.length" class="nr-empty">
+					{{
 						formatMessage({
-							id: 'app.news.gateTitle',
-							defaultMessage: 'Посты и новости сообщества',
+							id: 'app.news.officialEmpty',
+							defaultMessage: 'Официальных новостей пока нет.',
 						})
+					}}
+				</p>
+			</template>
+
+			<template v-else>
+				<div v-if="!session && !loading" class="nr-gate">
+					<NewspaperIcon />
+					<b>{{
+						formatMessage({ id: 'app.news.gateTitle', defaultMessage: 'Новости сообщества' })
 					}}</b>
 					<p>
 						{{
@@ -468,796 +588,1225 @@ onActivated(breadcrumb.reset)
 						}}
 					</p>
 				</div>
-			</div>
 
-			<div v-else class="news-composer">
-				<img v-if="myAvatar" :src="myAvatar" class="news-avatar" alt="" />
-				<div v-else class="news-avatar news-avatar--empty" />
-				<div class="news-composer__body">
-					<textarea
-						v-model="composerText"
-						class="news-composer__input"
-						rows="2"
-						:placeholder="
-							formatMessage({
-								id: 'app.news.composerPlaceholder',
-								defaultMessage: 'Поделитесь новостями, сборкой или скриншотом…',
-							})
-						"
-					/>
-					<div v-if="composerImages.length" class="news-composer__thumbs">
-						<span v-for="(image, index) in composerImages" :key="index" class="news-thumb">
+				<form v-else-if="session" class="nr-compose" @submit.prevent="publish">
+					<div class="nr-compose__row">
+						<img v-if="myAvatar" :src="myAvatar" class="nr-compose__avatar" alt="" />
+						<span v-else class="nr-compose__avatar nr-compose__avatar--stub" />
+						<div class="nr-compose__field">
+							<textarea
+								v-model="composerText"
+								rows="1"
+								:placeholder="
+									formatMessage({
+										id: 'app.news.composerPlaceholder',
+										defaultMessage: 'Что нового у вас?',
+									})
+								"
+							/>
+							<label class="nr-compose__plus" aria-label="Добавить фото">
+								<ImagesIcon />
+								<input
+									type="file"
+									accept="image/png,image/jpeg,image/webp"
+									multiple
+									hidden
+									@change="attachImages"
+								/>
+							</label>
+						</div>
+						<button
+							type="submit"
+							class="nr-compose__publish"
+							:disabled="
+								publishing || postingBanned || (!composerText.trim() && !composerImages.length)
+							"
+							:aria-label="
+								formatMessage({ id: 'app.news.publish', defaultMessage: 'Опубликовать' })
+							"
+						>
+							<SendIcon />
+						</button>
+					</div>
+					<div v-if="composerImages.length" class="nr-compose__previews">
+						<span v-for="(image, index) in composerImages" :key="index" class="nr-compose__preview">
 							<img :src="image" alt="" />
-							<button :aria-label="'Убрать'" @click="composerImages.splice(index, 1)">
+							<button type="button" aria-label="Убрать" @click="composerImages.splice(index, 1)">
 								<XIcon />
 							</button>
 						</span>
 					</div>
-					<div class="news-composer__row">
-						<label class="news-attach">
-							<ImagesIcon />
-							<input
-								type="file"
-								accept="image/png,image/jpeg,image/webp"
-								multiple
-								hidden
-								@change="attachImages"
-							/>
-						</label>
-						<span v-if="composerNotice" class="news-composer__notice">{{ composerNotice }}</span>
-						<Button
-							class="news-publish"
-							:disabled="
-								publishing || postingBanned || (!composerText.trim() && !composerImages.length)
-							"
-							@click="publish"
-						>
-							<SendIcon />
-							{{ formatMessage({ id: 'app.news.publish', defaultMessage: 'Опубликовать' }) }}
-						</Button>
-					</div>
+					<p v-if="composerNotice" class="nr-compose__notice">{{ composerNotice }}</p>
+				</form>
+
+				<div v-if="loading" class="nr-empty">
+					{{ formatMessage({ id: 'app.news.loading', defaultMessage: 'Загружаем ленту…' }) }}
 				</div>
-			</div>
+				<div v-else-if="loadError" class="nr-empty nr-empty--error">
+					{{
+						formatMessage({ id: 'app.news.loadError', defaultMessage: 'Сервис пока не отвечает' })
+					}}
+					· {{ loadError }}
+				</div>
 
-			<div v-if="loading" class="news-state">
-				{{ formatMessage({ id: 'app.news.loading', defaultMessage: 'Загружаем ленту…' }) }}
-			</div>
-			<div v-else-if="loadError" class="news-state news-state--error">
-				{{ formatMessage({ id: 'app.news.loadError', defaultMessage: 'Сервис пока не отвечает' }) }}
-				· {{ loadError }}
-			</div>
-
-			<TransitionGroup v-else name="news-card" tag="div" class="news-feed">
-				<article
-					v-for="post in posts"
-					:key="post.id"
-					class="news-card"
-					@click="toggleComments(post)"
-				>
-					<div class="news-card__head">
-						<img
-							v-if="
-								avatarUrls[
-									`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
-								]
-							"
-							:src="
-								avatarUrls[
-									`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
-								]
-							"
-							class="news-avatar"
-							alt=""
-						/>
-						<div v-else class="news-avatar news-avatar--empty" />
-						<div class="news-card__who">
-							<button
-								class="news-card__name news-card__name--link"
-								:disabled="postAuthor(post)?.id == null"
-								:aria-label="openProfileLabel"
-								@click="openProfile(postAuthor(post))"
-							>
-								{{ authorName(postAuthor(post)) }}
-								<span
-									v-if="postAuthor(post)?.verified"
-									class="news-verified"
-									title="Проверенный автор"
-									>✓</span
-								>
-							</button>
-							<span class="news-card__time">{{ postTime(post) }}</span>
-						</div>
-						<button
-							v-if="
-								postAuthor(post)?.id &&
-								session &&
-								String(postAuthor(post)!.id) !== String(me?.id ?? '')
-							"
-							class="news-follow"
-							@click.stop="follow(postAuthor(post)!)"
-						>
-							{{ formatMessage({ id: 'app.news.follow', defaultMessage: 'Подписаться' }) }}
-						</button>
-					</div>
-					<p v-if="post.title" class="news-card__title">{{ post.title }}</p>
-					<p v-if="postText(post)" class="news-card__text">{{ postText(post) }}</p>
-					<div
-						v-if="postImages(post).length"
-						class="news-card__grid"
-						:class="{ 'is-many': postImages(post).length > 1 }"
+				<TransitionGroup v-else name="nr-post" tag="div" class="nr-feed">
+					<article
+						v-for="post in visiblePosts"
+						:key="post.id"
+						class="nr-post"
+						@click="toggleComments(post)"
 					>
-						<img
-							v-for="image in postImages(post)"
-							:key="image.id"
-							:src="image.url"
-							alt=""
-							loading="lazy"
-						/>
-					</div>
-					<div class="news-card__actions">
-						<button class="news-action" :title="'Реакция'" @click.stop="react(post)">
-							<HeartIcon />
-							<span>{{ reactionCount(post) || '' }}</span>
-						</button>
-						<button class="news-action" @click.stop="toggleComments(post)">
-							{{ formatMessage({ id: 'app.news.comments', defaultMessage: 'Комментарии' }) }}
-							<span v-if="post.commentCount ?? post.commentsCount">{{
-								post.commentCount ?? post.commentsCount
-							}}</span>
-						</button>
-						<span v-if="post.views" class="news-card__views">
-							{{ formatMessage(VIEWS_LABEL, { count: post.views }) }}
-						</span>
-					</div>
-					<div v-if="openComments === post.id" class="news-comments" @click.stop>
-						<div v-if="commentsLoading" class="news-comments__loading">
-							{{
-								formatMessage({
-									id: 'app.news.commentsLoading',
-									defaultMessage: 'Загружаем комментарии…',
-								})
-							}}
-						</div>
-						<template v-else>
-							<div v-for="comment in comments" :key="comment.id" class="news-comment">
-								<button
-									class="news-comment__author"
-									:disabled="comment.author?.id == null"
-									:aria-label="openProfileLabel"
-									@click="openProfile(comment.author)"
-								>
-									{{ authorName(comment.author) }}
-								</button>
-								<p>{{ comment.body || comment.bodyMd }}</p>
+						<div class="nr-post__head">
+							<img
+								v-if="
+									avatarUrls[
+										`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
+									]
+								"
+								:src="
+									avatarUrls[
+										`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
+									]
+								"
+								class="nr-post__avatar"
+								alt=""
+							/>
+							<span v-else class="nr-post__avatar nr-post__avatar--stub" />
+							<div class="nr-post__who">
+								<div class="nr-post__name-row">
+									<button
+										type="button"
+										class="nr-post__name"
+										:disabled="postAuthor(post)?.id == null"
+										:aria-label="openProfileLabel"
+										@click="openProfile(postAuthor(post))"
+									>
+										{{ authorName(postAuthor(post)) }}
+										<span
+											v-if="postAuthor(post)?.verified"
+											class="nr-post__verified"
+											title="Проверенный автор"
+											>✓</span
+										>
+									</button>
+									<span class="nr-post__time">{{ postTime(post) }}</span>
+								</div>
 							</div>
-							<p v-if="!comments.length" class="news-comments__empty">
+							<button
+								v-if="
+									postAuthor(post)?.id &&
+									session &&
+									String(postAuthor(post)!.id) !== String(me?.id ?? '') &&
+									postAuthor(post)?.type === 'user'
+								"
+								type="button"
+								class="nr-follow"
+								:class="{ 'is-on': followingIds.includes(String(postAuthor(post)!.id)) }"
+								@click.stop="toggleFollow({ id: postAuthor(post)!.id })"
+							>
+								{{
+									followingIds.includes(String(postAuthor(post)!.id))
+										? formatMessage({ id: 'app.news.unfollow', defaultMessage: 'Отписаться' })
+										: formatMessage({ id: 'app.news.follow', defaultMessage: 'Подписаться' })
+								}}
+							</button>
+						</div>
+						<p v-if="post.title" class="nr-post__title">{{ post.title }}</p>
+						<p v-if="postText(post)" class="nr-post__text">{{ postText(post) }}</p>
+						<div
+							v-if="postImages(post).length"
+							class="nr-post__media"
+							:class="{ 'is-many': postImages(post).length > 1 }"
+						>
+							<img
+								v-for="image in postImages(post)"
+								:key="image.id"
+								:src="image.url"
+								alt=""
+								loading="lazy"
+							/>
+						</div>
+						<div class="nr-post__footer">
+							<button type="button" class="nr-act" @click.stop="react(post)">
+								<HeartIcon />
+								<span class="nr-act__count">{{ reactionCount(post) || '' }}</span>
+							</button>
+							<button type="button" class="nr-act" @click.stop="toggleComments(post)">
+								{{ formatMessage({ id: 'app.news.comments', defaultMessage: 'Комментарии' }) }}
+								<span class="nr-act__count">{{
+									post.commentCount ?? post.commentsCount ?? ''
+								}}</span>
+							</button>
+							<span class="nr-post__spacer" />
+							<span v-if="post.views" class="nr-post__views">
+								{{ formatMessage(VIEWS_LABEL, { count: post.views }) }}
+							</span>
+						</div>
+						<div v-if="openComments === post.id" class="nr-comments" @click.stop>
+							<div v-if="commentsLoading" class="nr-comments__state">
 								{{
 									formatMessage({
-										id: 'app.news.noComments',
-										defaultMessage: 'Пока тихо — будьте первым.',
+										id: 'app.news.commentsLoading',
+										defaultMessage: 'Загружаем комментарии…',
 									})
 								}}
-							</p>
-							<div v-if="session" class="news-comment__form">
-								<input
-									v-model="commentDraft"
-									:placeholder="
-										formatMessage({
-											id: 'app.news.commentPlaceholder',
-											defaultMessage: 'Написать комментарий…',
-										})
-									"
-									@keydown.enter.prevent="sendComment(post)"
-								/>
-								<Button :disabled="!commentDraft.trim()" @click="sendComment(post)">
-									<SendIcon />
-								</Button>
 							</div>
-						</template>
-					</div>
-				</article>
-			</TransitionGroup>
+							<template v-else>
+								<div v-for="comment in comments" :key="comment.id" class="nr-comment">
+									<button
+										type="button"
+										class="nr-comment__author"
+										:disabled="comment.author?.id == null"
+										:aria-label="openProfileLabel"
+										@click="openProfile(comment.author)"
+									>
+										{{ authorName(comment.author) }}
+									</button>
+									<p>{{ comment.body || comment.bodyMd }}</p>
+								</div>
+								<p v-if="!comments.length" class="nr-comments__empty">
+									{{
+										formatMessage({
+											id: 'app.news.noComments',
+											defaultMessage: 'Пока тихо — будьте первым.',
+										})
+									}}
+								</p>
+								<div v-if="session" class="nr-comment__form">
+									<input
+										v-model="commentDraft"
+										:placeholder="
+											formatMessage({
+												id: 'app.news.commentPlaceholder',
+												defaultMessage: 'Написать комментарий…',
+											})
+										"
+										@keydown.enter.prevent="sendComment(post)"
+									/>
+									<Button :disabled="!commentDraft.trim()" @click="sendComment(post)">
+										<SendIcon />
+									</Button>
+								</div>
+							</template>
+						</div>
+					</article>
+				</TransitionGroup>
 
-			<div v-if="suggestions.length && session" class="news-suggestions">
-				<b>{{ formatMessage({ id: 'app.news.suggestions', defaultMessage: 'Кого читать' }) }}</b>
-				<div class="news-suggestions__row">
+				<p v-if="!loading && !visiblePosts.length" class="nr-empty">
+					{{
+						tab === 'following'
+							? formatMessage({
+									id: 'app.news.followingEmpty',
+									defaultMessage: 'В подписках пока пусто. Нажмите «Подписаться» у автора.',
+								})
+							: search.trim()
+								? formatMessage({ id: 'app.news.searchEmpty', defaultMessage: 'Ничего не нашли.' })
+								: formatMessage({ id: 'app.news.feedEmpty', defaultMessage: 'Пока тихо.' })
+					}}
+				</p>
+			</template>
+		</div>
+
+		<aside class="nr-rail" aria-label="Обзор ленты">
+			<section class="nr-card">
+				<h3>{{ formatMessage({ id: 'app.news.popular', defaultMessage: 'Популярное' }) }}</h3>
+				<button
+					v-for="(post, index) in popularPosts"
+					:key="post.id"
+					type="button"
+					class="nr-pop"
+					@click="toggleComments(post)"
+				>
+					<span class="nr-pop__n">{{ index + 1 }}</span>
+					<img
+						v-if="
+							avatarUrls[
+								`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
+							]
+						"
+						:src="
+							avatarUrls[
+								`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
+							]
+						"
+						class="nr-pop__ava"
+						alt=""
+					/>
+					<span v-else class="nr-pop__ava nr-pop__ava--stub" />
+					<span class="nr-pop__text">
+						<span class="nr-pop__title">{{ postText(post).slice(0, 64) || post.title }}</span>
+						<span class="nr-pop__meta">
+							{{ authorName(postAuthor(post)) }} ·
+							{{
+								formatMessage(VIEWS_LABEL, {
+									count: post.views || reactionCount(post),
+								})
+							}}
+						</span>
+					</span>
+				</button>
+				<p v-if="!popularPosts.length" class="nr-card__empty">
+					{{
+						formatMessage({ id: 'app.news.railEmpty', defaultMessage: 'Лента ещё наполняется.' })
+					}}
+				</p>
+			</section>
+
+			<section v-if="feedTags.length" class="nr-card">
+				<h3>{{ formatMessage({ id: 'app.news.tags', defaultMessage: 'Хэштеги' }) }}</h3>
+				<div class="nr-tags">
 					<button
-						v-for="user in suggestions.slice(0, 8)"
-						:key="String(user.id)"
-						class="news-suggestion"
-						@click="follow(user)"
+						v-for="tag in feedTags"
+						:key="tag"
+						type="button"
+						:class="{ 'is-on': search.trim().toLowerCase() === tag }"
+						@click="search = search.trim().toLowerCase() === tag ? '' : tag"
 					>
-						{{ user.username || user.name }}
+						{{ tag }}
 					</button>
 				</div>
-			</div>
-		</template>
+			</section>
 
-		<template v-else>
-			<TransitionGroup name="news-card" tag="div" class="news-feed">
-				<article
-					v-for="article in officialArticles"
-					:key="article.id"
-					class="news-card news-card--official"
-					@click="openArticle(article)"
-				>
-					<img
-						v-if="article.thumbnail"
-						:src="article.thumbnail"
-						class="news-card__cover"
-						alt=""
-						loading="lazy"
-					/>
-					<div class="news-card__head">
-						<span class="news-source" :data-source="article.source.toLowerCase()">{{
-							article.source
-						}}</span>
-						<span class="news-card__time">{{ article.date }}</span>
-					</div>
-					<p class="news-card__title">{{ article.title }}</p>
-					<p v-if="article.summary" class="news-card__text">{{ article.summary }}</p>
-				</article>
-			</TransitionGroup>
-			<div v-if="!officialArticles.length" class="news-state">
+			<section v-if="session && suggestions.length" class="nr-card">
+				<h3>{{ formatMessage({ id: 'app.news.suggestions', defaultMessage: 'Кого читать' }) }}</h3>
+				<div v-for="user in suggestions.slice(0, 6)" :key="String(user.id)" class="nr-who">
+					<span class="nr-who__ava nr-who__ava--stub">{{
+						String(user.username || user.name || '?')
+							.slice(0, 1)
+							.toUpperCase()
+					}}</span>
+					<span class="nr-who__text">
+						<span class="nr-who__name">{{ user.username || user.name }}</span>
+						<span class="nr-who__meta">
+							{{ formatMessage({ id: 'app.news.whoMeta', defaultMessage: 'Игрок Undefined' }) }}
+						</span>
+					</span>
+					<button type="button" class="nr-who__btn" @click="toggleFollow(user)">
+						{{
+							formatMessage({
+								id: 'app.news.followShort',
+								defaultMessage: 'Читать',
+							})
+						}}
+					</button>
+				</div>
+			</section>
+
+			<section class="nr-card nr-card--note">
 				{{
 					formatMessage({
-						id: 'app.news.officialEmpty',
-						defaultMessage: 'Официальных новостей пока нет.',
+						id: 'app.news.railNote',
+						defaultMessage: 'Лента общая с Undefined Client — посты видны всем.',
 					})
 				}}
-			</div>
-		</template>
+			</section>
+		</aside>
 
 		<UserProfileModal ref="profileModal" />
 	</div>
 </template>
 
 <style scoped>
-.news-page {
+.nr-page {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 280px;
+	gap: 16px;
+	align-items: start;
+	width: min(1080px, 100%);
+	margin: 0 auto;
+	padding: 16px 18px 24px;
+	flex: none;
+	align-self: center;
+	min-height: 100%;
+	box-sizing: border-box;
+}
+
+/* ===== Главная колонна ===== */
+
+.nr-main {
 	display: flex;
 	flex-direction: column;
-	gap: 1rem;
-	max-width: 46rem;
-	margin: 0 auto;
-	padding: 1.5rem 1rem 3rem;
+	min-width: 0;
+	min-height: 0;
 }
 
-.news-head {
+.nr-tabs {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	height: 40px;
+	flex-shrink: 0;
+	margin: 0 0 12px;
+	padding: 4px;
+	box-sizing: border-box;
+	border: 1px solid #303030;
+	border-radius: 12px;
+	background: #272727;
+	gap: 0;
+}
+
+.nr-tabs__btn {
+	position: relative;
+	height: 32px;
+	margin: 0;
+	padding: 0 8px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--color-text-inactive, rgba(255, 255, 255, 0.45));
+	font-size: 15px;
+	font-weight: 400;
+	line-height: 19px;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.nr-tabs__btn.is-active {
+	color: var(--color-contrast, #fff);
+	background: #3c3c3c;
+}
+
+.nr-tabs__btn.is-active::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	width: 40px;
+	height: 2px;
+	margin-left: -20px;
+	border-radius: 1px;
+	background: var(--color-contrast, #fff);
+}
+
+/* ===== Поиск ===== */
+
+.nr-search {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
+	gap: 8px;
+	height: 38px;
+	margin: 0 0 12px;
+	padding: 0 12px;
+	box-sizing: border-box;
+	background: var(--color-bg, #1f1f1f);
+	border: none;
+	border-radius: 10px;
+	color: var(--color-text-inactive, rgba(255, 255, 255, 0.45));
 }
 
-.news-tabs {
-	display: flex;
-	gap: 0.25rem;
-	background: var(--color-bg);
-	border-radius: 1rem;
-	padding: 0.25rem;
-	flex: 1;
+.nr-search:focus-within {
+	outline: 2px solid var(--color-brand);
+	outline-offset: -2px;
 }
 
-.news-tab {
+.nr-search svg {
+	flex-shrink: 0;
+	width: 16px;
+	height: 16px;
+}
+
+.nr-search input {
 	flex: 1;
+	min-width: 0;
+	height: 100%;
 	border: none;
 	background: transparent;
-	color: var(--color-text-inactive);
-	padding: 0.5rem 1rem;
-	border-radius: 0.75rem;
-	cursor: pointer;
-	font-weight: 600;
-	transition:
-		background-color 0.18s ease,
-		color 0.18s ease,
-		transform 0.18s ease;
+	color: var(--color-text, #fff);
+	font: inherit;
+	font-size: 14px;
+	outline: none;
 }
 
-.news-tab:hover {
-	color: var(--color-contrast);
-	transform: translateY(-1px);
+.nr-search input::placeholder {
+	color: var(--color-text-inactive, rgba(255, 255, 255, 0.4));
 }
 
-.news-tab.is-on {
-	background: var(--color-brand);
-	color: var(--color-brand-invert);
-}
-
-.news-refresh {
-	border: none;
-	background: var(--color-bg);
-	color: var(--color-text);
-	border-radius: 0.75rem;
-	width: 2.75rem;
-	height: 2.75rem;
-	display: grid;
-	place-items: center;
-	cursor: pointer;
-	transition: transform 0.3s ease;
-}
-
-.news-refresh:hover {
-	transform: rotate(60deg);
-}
-
-.news-refresh.is-busy {
-	pointer-events: none;
-}
-
-.news-spinner {
-	width: 1rem;
-	height: 1rem;
+.nr-search__spin {
+	width: 16px;
+	height: 16px;
 	border: 2px solid var(--color-brand);
 	border-top-color: transparent;
 	border-radius: 50%;
-	animation: news-spin 0.8s linear infinite;
+	animation: nr-spin 0.8s linear infinite;
 }
 
-@keyframes news-spin {
+/* ===== Кнопка обновления ===== */
+
+.nr-tools {
+	display: flex;
+	justify-content: flex-end;
+	margin: -4px 0 8px;
+}
+
+.nr-refresh {
+	width: 32px;
+	height: 32px;
+	display: grid;
+	place-items: center;
+	border: none;
+	border-radius: 10px;
+	background: #272727;
+	border: 1px solid #303030;
+	color: var(--color-text, #fff);
+	cursor: pointer;
+	transition: transform 0.25s ease;
+}
+
+.nr-refresh:hover {
+	transform: rotate(90deg);
+}
+
+.nr-refresh.is-busy {
+	pointer-events: none;
+}
+
+.nr-spinner {
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--color-brand);
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: nr-spin 0.8s linear infinite;
+}
+
+@keyframes nr-spin {
 	to {
 		transform: rotate(360deg);
 	}
 }
 
-.news-gate {
-	display: flex;
-	gap: 1rem;
-	align-items: flex-start;
-	background: var(--color-bg);
-	border: 1px dashed var(--color-button-bg);
-	border-radius: 1rem;
-	padding: 1rem 1.25rem;
-	color: var(--color-text);
-}
+/* ===== Строка создания поста ===== */
 
-.news-gate svg {
-	width: 1.75rem;
-	height: 1.75rem;
-	flex-shrink: 0;
-	color: var(--color-brand);
-}
-
-.news-gate p {
-	margin: 0.25rem 0 0;
-	color: var(--color-text-inactive);
-	font-size: 0.9rem;
-}
-
-.news-composer,
-.news-card {
-	background: var(--color-bg);
-	border-radius: 1rem;
-	padding: 1rem 1.25rem;
-	box-shadow: var(--shadow-card);
-}
-
-.news-composer {
-	display: flex;
-	gap: 0.75rem;
-}
-
-.news-avatar {
-	width: 2.5rem;
-	height: 2.5rem;
-	border-radius: 0.6rem;
-	object-fit: cover;
-	flex-shrink: 0;
-	image-rendering: pixelated;
-}
-
-.news-avatar--empty {
-	background: var(--color-button-bg);
-}
-
-.news-composer__body {
-	flex: 1;
+.nr-compose {
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
+	flex-shrink: 0;
+	margin: 0 0 12px;
+	padding: 9px;
+	border: 1px solid #383838;
+	border-radius: 12px;
+	background: #282828;
+	box-sizing: border-box;
+	min-height: 58px;
 }
 
-.news-composer__input {
-	background: var(--color-button-bg);
-	border: none;
-	border-radius: 0.75rem;
-	color: var(--color-contrast);
-	padding: 0.65rem 0.85rem;
-	resize: vertical;
-	min-height: 3rem;
-	font: inherit;
-}
-
-.news-composer__thumbs {
+.nr-compose__row {
 	display: flex;
-	gap: 0.5rem;
-	flex-wrap: wrap;
+	align-items: center;
+	gap: 9px;
 }
 
-.news-thumb {
-	position: relative;
-	width: 4.5rem;
-	height: 4.5rem;
-	border-radius: 0.6rem;
+.nr-compose__avatar {
+	width: 40px;
+	height: 40px;
+	border: 0;
+	border-radius: 4px;
+	object-fit: cover;
+	background: #363636;
+	image-rendering: pixelated;
+	flex-shrink: 0;
 	overflow: hidden;
 }
 
-.news-thumb img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+.nr-compose__avatar--stub {
+	display: inline-block;
 }
 
-.news-thumb button {
-	position: absolute;
-	top: 0.2rem;
-	right: 0.2rem;
-	border: none;
-	background: rgba(0, 0, 0, 0.6);
-	color: white;
-	border-radius: 50%;
-	width: 1.25rem;
-	height: 1.25rem;
-	display: grid;
-	place-items: center;
-	cursor: pointer;
-}
-
-.news-thumb button svg {
-	width: 0.75rem;
-	height: 0.75rem;
-}
-
-.news-composer__row {
+.nr-compose__field {
+	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
-}
-
-.news-attach {
-	display: grid;
-	place-items: center;
-	width: 2.25rem;
-	height: 2.25rem;
-	border-radius: 0.6rem;
-	background: var(--color-button-bg);
-	color: var(--color-text);
-	cursor: pointer;
-	transition:
-		background-color 0.18s ease,
-		color 0.18s ease;
-}
-
-.news-attach:hover {
-	background: var(--color-brand);
-	color: var(--color-brand-invert);
-}
-
-.news-attach svg {
-	width: 1.1rem;
-	height: 1.1rem;
-}
-
-.news-composer__notice {
-	color: var(--color-text-inactive);
-	font-size: 0.85rem;
-	flex: 1;
-}
-
-.news-publish {
-	margin-left: auto;
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-}
-
-.news-publish svg {
-	width: 0.9rem;
-	height: 0.9rem;
-}
-
-.news-feed {
-	display: flex;
-	flex-direction: column;
-	gap: 0.9rem;
-}
-
-.news-card {
-	cursor: pointer;
-	transition:
-		transform 0.18s ease,
-		box-shadow 0.18s ease;
-}
-
-.news-card:hover {
-	transform: translateY(-2px);
-	box-shadow: var(--shadow-floating);
-}
-
-.news-card__head {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-}
-
-.news-card__who {
-	display: flex;
-	flex-direction: column;
 	flex: 1;
 	min-width: 0;
+	min-height: 40px;
 }
 
-.news-card__name {
-	font-weight: 700;
-	color: var(--color-contrast);
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-}
-
-.news-card__name--link {
-	border: none;
-	background: transparent;
-	padding: 0.1rem 0.35rem;
-	margin: -0.1rem -0.35rem;
-	border-radius: 0.5rem;
-	cursor: pointer;
-	transition: background-color 0.18s ease;
-}
-
-.news-card__name--link:not(:disabled):hover {
-	background: var(--color-button-bg);
-}
-
-.news-card__name--link:disabled {
-	cursor: default;
-}
-
-.news-verified {
-	color: var(--color-brand);
-	font-weight: 800;
-}
-
-.news-card__time {
-	color: var(--color-text-inactive);
-	font-size: 0.8rem;
-}
-
-.news-follow {
-	border: 1px solid var(--color-brand);
-	background: transparent;
-	color: var(--color-brand);
-	border-radius: 2rem;
-	padding: 0.25rem 0.8rem;
-	font-size: 0.8rem;
-	font-weight: 600;
-	cursor: pointer;
-	transition:
-		background-color 0.18s ease,
-		color 0.18s ease,
-		transform 0.18s ease;
-}
-
-.news-follow:hover {
-	background: var(--color-brand);
-	color: var(--color-brand-invert);
-	transform: scale(1.04);
-}
-
-.news-card__title {
-	margin: 0.75rem 0 0;
-	font-weight: 700;
-	font-size: 1.05rem;
-	color: var(--color-contrast);
-}
-
-.news-card__text {
-	margin: 0.5rem 0 0;
-	white-space: pre-wrap;
-	word-break: break-word;
-	color: var(--color-text);
-}
-
-.news-card__grid {
-	display: grid;
-	gap: 0.4rem;
-	margin-top: 0.75rem;
-	border-radius: 0.75rem;
-	overflow: hidden;
-	grid-template-columns: 1fr;
-}
-
-.news-card__grid.is-many {
-	grid-template-columns: repeat(2, 1fr);
-}
-
-.news-card__grid img {
+.nr-compose textarea {
+	display: block;
 	width: 100%;
-	height: 100%;
-	max-height: 22rem;
-	object-fit: cover;
-}
-
-.news-card__cover {
-	width: 100%;
-	max-height: 14rem;
-	object-fit: cover;
-	border-radius: 0.75rem;
-	margin-bottom: 0.75rem;
-}
-
-.news-card__actions {
-	display: flex;
-	align-items: center;
-	gap: 1.25rem;
-	margin-top: 0.75rem;
-	color: var(--color-text-inactive);
-}
-
-.news-action {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
+	height: 40px;
+	min-height: 40px;
+	max-height: 140px;
+	padding: 10px 44px 10px 12px;
 	border: none;
-	background: transparent;
-	color: inherit;
-	cursor: pointer;
+	border-radius: 8px;
+	resize: none;
+	background: #1f1f1f;
+	color: var(--color-contrast, #fff);
 	font: inherit;
-	font-size: 0.85rem;
-	padding: 0.15rem 0;
-	transition:
-		color 0.18s ease,
-		transform 0.18s ease;
+	font-size: 15px;
+	line-height: 20px;
+	outline: none;
+	box-sizing: border-box;
+	vertical-align: top;
 }
 
-.news-action:hover {
-	color: var(--color-brand);
+.nr-compose textarea::placeholder {
+	color: rgba(255, 255, 255, 0.38);
+}
+
+.nr-compose__plus {
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 40px;
+	height: 40px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--color-text, #fff);
+	cursor: pointer;
+}
+
+.nr-compose__plus:hover {
+	color: var(--color-contrast, #fff);
+}
+
+.nr-compose__publish {
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: none;
+	border-radius: 16px;
+	background: var(--color-brand, #1bd96a);
+	color: var(--color-contrast, #fff);
+	cursor: pointer;
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: transform 0.15s ease;
+}
+
+.nr-compose__publish:hover:not(:disabled) {
 	transform: scale(1.06);
 }
 
-.news-action svg {
-	width: 1rem;
-	height: 1rem;
-}
-
-.news-card__views {
-	margin-left: auto;
-	font-size: 0.8rem;
-}
-
-.news-comments {
-	margin-top: 0.75rem;
-	border-top: 1px solid var(--color-button-bg);
-	padding-top: 0.75rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+.nr-compose__publish:disabled {
+	opacity: 0.55;
 	cursor: default;
 }
 
-.news-comment b,
-.news-comment__author {
-	font-size: 0.85rem;
-	color: var(--color-contrast);
-}
-
-.news-comment__author {
-	border: none;
-	background: transparent;
-	padding: 0.05rem 0.3rem;
-	margin: -0.05rem -0.3rem;
-	border-radius: 0.4rem;
-	cursor: pointer;
-	font-weight: 700;
-	transition: background-color 0.18s ease;
-}
-
-.news-comment__author:not(:disabled):hover {
-	background: var(--color-button-bg);
-}
-
-.news-comment__author:disabled {
-	cursor: default;
-}
-
-.news-comment p {
-	margin: 0.15rem 0 0;
-	font-size: 0.9rem;
-	color: var(--color-text);
-	word-break: break-word;
-}
-
-.news-comments__empty,
-.news-comments__loading {
-	color: var(--color-text-inactive);
-	font-size: 0.85rem;
-}
-
-.news-comment__form {
-	display: flex;
-	gap: 0.5rem;
-	margin-top: 0.5rem;
-}
-
-.news-comment__form input {
-	flex: 1;
-	background: var(--color-button-bg);
-	border: none;
-	border-radius: 0.6rem;
-	padding: 0.5rem 0.75rem;
-	color: var(--color-contrast);
-	font: inherit;
-}
-
-.news-suggestions {
-	background: var(--color-bg);
-	border-radius: 1rem;
-	padding: 0.9rem 1.25rem;
-}
-
-.news-suggestions__row {
+.nr-compose__previews {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem;
-	margin-top: 0.6rem;
+	gap: 8px;
+	margin: 8px 0 0 49px;
 }
 
-.news-suggestion {
-	border: 1px solid var(--color-button-bg);
-	background: var(--color-button-bg);
-	border-radius: 2rem;
-	padding: 0.3rem 0.9rem;
-	font-size: 0.85rem;
-	color: var(--color-text);
+.nr-compose__preview {
+	position: relative;
+	width: 72px;
+	height: 72px;
+}
+
+.nr-compose__preview img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: 8px;
+}
+
+.nr-compose__preview button {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	width: 20px;
+	height: 20px;
+	display: grid;
+	place-items: center;
+	border: none;
+	border-radius: 50%;
+	background: #3c3c3c;
+	color: #fff;
+	cursor: pointer;
+}
+
+.nr-compose__notice {
+	margin: 8px 0 0 49px;
+	color: var(--color-orange, #faa81a);
+	font-size: 13px;
+}
+
+/* ===== Карточка поста ===== */
+
+.nr-feed {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 0 0 16px;
+}
+
+.nr-post {
+	position: relative;
+	background: #282828;
+	border: 1px solid #383838;
+	border-radius: 12px;
+	padding: 0;
+	flex-shrink: 0;
+	cursor: pointer;
+	overflow: visible;
+}
+
+.nr-post--article {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.nr-post--article .nr-post__body {
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.nr-post__cover {
+	width: 100%;
+	max-height: 260px;
+	object-fit: cover;
+	border-radius: 12px 12px 0 0;
+}
+
+.nr-post__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px 12px 0;
+	box-sizing: border-box;
+}
+
+.nr-post__avatar {
+	width: 32px;
+	height: 32px;
+	border: 0;
+	border-radius: 4px;
+	object-fit: cover;
+	background: #363636;
+	display: block;
+	image-rendering: pixelated;
+	flex-shrink: 0;
+}
+
+.nr-post__avatar--stub {
+	display: inline-block;
+}
+
+.nr-post__who {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	min-width: 0;
+	flex: 1;
+}
+
+.nr-post__name-row {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	min-width: 0;
+	max-width: 100%;
+	flex-wrap: wrap;
+}
+
+.nr-post__name {
+	border: none;
+	padding: 0;
+	background: transparent;
+	color: var(--color-contrast, #fff);
+	font-size: 15px;
+	font-weight: 500;
+	line-height: 19px;
+	cursor: pointer;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.nr-post__name:disabled {
+	cursor: default;
+}
+
+.nr-post__verified {
+	color: var(--color-brand, #1bd96a);
+	font-size: 13px;
+}
+
+.nr-post__time {
+	font-size: 13px;
+	line-height: 17px;
+	color: rgba(255, 255, 255, 0.35);
+	white-space: nowrap;
+}
+
+.nr-follow {
+	height: 26px;
+	padding: 0 10px;
+	border: 1px solid #4c4c4c;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--color-text, #fff);
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+	flex-shrink: 0;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.nr-follow:hover {
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.nr-follow.is-on {
+	background: #3c3c3c;
+	border-color: #3c3c3c;
+	color: rgba(255, 255, 255, 0.6);
+}
+
+.nr-post__title {
+	margin: 10px 12px 0;
+	color: var(--color-contrast, #fff);
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.nr-post__text {
+	margin: 8px 12px 0;
+	color: var(--color-text, rgba(255, 255, 255, 0.85));
+	font-size: 14px;
+	line-height: 1.45;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+.nr-post__media {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 4px;
+	margin: 10px 12px 0;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.nr-post__media.is-many {
+	grid-template-columns: 1fr 1fr;
+}
+
+.nr-post__media img {
+	width: 100%;
+	max-height: 420px;
+	object-fit: cover;
+	display: block;
+	background: #1f1f1f;
+}
+
+.nr-post__footer {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 8px 8px 8px;
+	margin: 6px 0 0;
+}
+
+.nr-act {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 30px;
+	padding: 0 10px;
+	border: none;
+	border-radius: 8px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.55);
+	font: inherit;
+	font-size: 13px;
 	cursor: pointer;
 	transition:
-		border-color 0.18s ease,
-		color 0.18s ease,
-		transform 0.18s ease;
+		background-color 0.12s ease,
+		color 0.12s ease;
 }
 
-.news-suggestion:hover {
-	border-color: var(--color-brand);
-	color: var(--color-brand);
-	transform: translateY(-1px);
+.nr-act:hover {
+	background: rgba(255, 255, 255, 0.05);
+	color: #fff;
 }
 
-.news-source {
-	font-size: 0.75rem;
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-	color: var(--color-brand);
+.nr-act__count {
+	color: inherit;
 }
 
-.news-state {
+.nr-post__spacer {
+	flex: 1;
+}
+
+.nr-post__views {
+	color: rgba(255, 255, 255, 0.35);
+	font-size: 12px;
+	padding: 0 8px 0 0;
+}
+
+.nr-post__meta {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.nr-source {
+	padding: 2px 8px;
+	border-radius: 9999px;
+	font-size: 11px;
+	font-weight: 600;
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.nr-source[data-source='portalrinth'] {
+	background: rgba(27, 217, 106, 0.15);
+	color: #1bd96a;
+}
+
+.nr-source[data-source='noctrinth'] {
+	background: rgba(91, 142, 212, 0.15);
+	color: #5b8ed4;
+}
+
+/* ===== Комментарии ===== */
+
+.nr-comments {
+	margin: 4px 12px 12px;
+	padding: 10px;
+	border: 1px solid #333;
+	border-radius: 10px;
+	background: #222;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.nr-comments__state,
+.nr-comments__empty {
+	color: rgba(255, 255, 255, 0.4);
+	font-size: 13px;
+}
+
+.nr-comment {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.nr-comment__author {
+	align-self: flex-start;
+	border: none;
+	padding: 0;
+	background: transparent;
+	color: var(--color-brand, #1bd96a);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.nr-comment__author:disabled {
+	cursor: default;
+}
+
+.nr-comment p {
+	margin: 0;
+	color: var(--color-text, rgba(255, 255, 255, 0.85));
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.nr-comment__form {
+	display: flex;
+	gap: 8px;
+	margin-top: 4px;
+}
+
+.nr-comment__form input {
+	flex: 1;
+	height: 34px;
+	padding: 0 12px;
+	border: none;
+	border-radius: 8px;
+	background: #1a1a1a;
+	color: var(--color-text, #fff);
+	font: inherit;
+	font-size: 13px;
+	outline: none;
+}
+
+.nr-comment__form input:focus {
+	box-shadow: 0 0 0 2px var(--color-brand);
+}
+
+/* ===== Заглушки ===== */
+
+.nr-gate {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 	text-align: center;
-	color: var(--color-text-inactive);
-	padding: 2rem 0;
+	gap: 0.5rem;
+	padding: 2.5rem 2rem;
+	background: #282828;
+	border: 1px solid #383838;
+	border-radius: 12px;
+	color: var(--color-text-inactive, rgba(255, 255, 255, 0.5));
 }
 
-.news-state--error {
-	color: var(--color-red);
+.nr-gate svg {
+	width: 2rem;
+	height: 2rem;
+	color: var(--color-brand);
 }
 
-.news-card-enter-active,
-.news-card-leave-active,
-.news-card-move {
-	transition:
-		transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-		opacity 0.35s ease;
+.nr-gate b {
+	color: var(--color-contrast, #fff);
+	font-size: 1rem;
 }
 
-.news-card-enter-from {
-	opacity: 0;
-	transform: translateY(14px) scale(0.98);
+.nr-gate p {
+	margin: 0;
+	font-size: 0.85rem;
+	max-width: 34rem;
 }
 
-.news-card-leave-to {
-	opacity: 0;
-	transform: scale(0.97);
+.nr-empty {
+	padding: 1.5rem 1rem;
+	text-align: center;
+	color: var(--color-text-inactive, rgba(255, 255, 255, 0.45));
+	font-size: 14px;
 }
 
-.news-card-leave-active {
-	position: absolute;
+.nr-empty--error {
+	color: var(--color-red, #ed4245);
+}
+
+/* ===== Правая колонка ===== */
+
+.nr-rail {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+	width: 280px;
+	position: sticky;
+	top: 0;
+	max-height: calc(100vh - 32px);
+	overflow-y: auto;
+	padding-bottom: 4px;
+}
+
+.nr-card {
+	flex-shrink: 0;
+	padding: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.nr-card h3 {
+	margin: 0 0 10px;
+	color: var(--color-contrast, #fff);
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.nr-card--note {
+	color: rgba(255, 255, 255, 0.45);
+	font-size: 12px;
+}
+
+.nr-card__empty {
+	margin: 0;
+	color: rgba(255, 255, 255, 0.38);
+	font-size: 13px;
+}
+
+.nr-pop {
+	display: grid;
+	grid-template-columns: 18px 28px minmax(0, 1fr);
+	gap: 8px;
+	align-items: center;
 	width: 100%;
+	margin: 0;
+	padding: 6px 4px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.nr-pop:hover {
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.nr-pop__n {
+	color: rgba(255, 255, 255, 0.4);
+	font-size: 13px;
+}
+
+.nr-pop__ava {
+	width: 28px;
+	height: 28px;
+	border: 0;
+	border-radius: 3px;
+	object-fit: cover;
+	background: #2a2a2a;
+	image-rendering: pixelated;
+}
+
+.nr-pop__ava--stub {
+	display: inline-block;
+}
+
+.nr-pop__text {
+	min-width: 0;
+}
+
+.nr-pop__title {
+	display: block;
+	color: var(--color-contrast, #fff);
+	font-size: 13px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.nr-pop__meta {
+	display: block;
+	margin-top: 1px;
+	color: rgba(255, 255, 255, 0.4);
+	font-size: 11px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.nr-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 8px;
+}
+
+.nr-tags button {
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--color-brand, #1bd96a);
+	font: inherit;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.nr-tags button:hover,
+.nr-tags button.is-on {
+	text-decoration: underline;
+}
+
+.nr-who {
+	display: grid;
+	grid-template-columns: 32px minmax(0, 1fr) auto;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 8px;
+}
+
+.nr-who:last-child {
+	margin-bottom: 0;
+}
+
+.nr-who__ava {
+	width: 32px;
+	height: 32px;
+	display: grid;
+	place-items: center;
+	border-radius: 3px;
+	background: #2a2a2a;
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 14px;
+	font-weight: 600;
+	object-fit: cover;
+	image-rendering: pixelated;
+}
+
+.nr-who__text {
+	min-width: 0;
+}
+
+.nr-who__name {
+	display: block;
+	color: var(--color-contrast, #fff);
+	font-size: 13px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.nr-who__meta {
+	display: block;
+	color: rgba(255, 255, 255, 0.42);
+	font-size: 11px;
+}
+
+.nr-who__btn {
+	height: 26px;
+	padding: 0 10px;
+	border: 1px solid var(--color-brand, #1bd96a);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--color-brand, #1bd96a);
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.nr-who__btn:hover {
+	background: rgba(27, 217, 106, 0.12);
+}
+
+/* ===== Анимации ===== */
+
+.nr-post-enter-active,
+.nr-post-leave-active {
+	transition:
+		transform 0.25s ease,
+		opacity 0.25s ease;
+}
+
+.nr-post-enter-from {
+	transform: translateY(-6px);
+	opacity: 0;
+}
+
+.nr-post-leave-to {
+	opacity: 0;
+}
+
+@media (max-width: 900px) {
+	.nr-page {
+		grid-template-columns: 1fr;
+	}
+
+	.nr-rail {
+		position: static;
+		width: auto;
+		max-height: none;
+	}
 }
 </style>

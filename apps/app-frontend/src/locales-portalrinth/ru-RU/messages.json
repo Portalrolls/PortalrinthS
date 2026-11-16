@@ -6083,5 +6083,77 @@
 	},
 	"app.ai.picker.custom-mode": {
 		"message": "Свой выбор"
+	},
+	"app.messenger.profile.open": {
+		"message": "Открыть профиль"
+	},
+	"app.messenger.profile.loading": {
+		"message": "Загружаем профиль…"
+	},
+	"app.messenger.profile.failed": {
+		"message": "Профиль не загрузился — попробуйте ещё раз"
+	},
+	"app.messenger.profile.lastSeen": {
+		"message": "Был в сети"
+	},
+	"app.messenger.profile.playingNow": {
+		"message": "Сейчас играет в"
+	},
+	"app.messenger.profile.notPlaying": {
+		"message": "Не в игре"
+	},
+	"app.messenger.profile.lastBuild": {
+		"message": "Последняя сборка"
+	},
+	"app.messenger.profile.lastServer": {
+		"message": "Последний сервер"
+	},
+	"app.messenger.profile.noData": {
+		"message": "Нет данных"
+	},
+	"app.messenger.profile.favoriteBuild": {
+		"message": "Любимая сборка"
+	},
+	"app.messenger.profile.noFavorite": {
+		"message": "Нет любимой"
+	},
+	"app.messenger.profile.favoriteCount": {
+		"message": "{n} запусков"
+	},
+	"app.messenger.profile.marker": {
+		"message": "Маркер"
+	},
+	"app.messenger.profile.markerHint": {
+		"message": "цвет в игре"
+	},
+	"app.messenger.profile.account": {
+		"message": "Аккаунт"
+	},
+	"app.messenger.profile.joined": {
+		"message": "Дата регистрации"
+	},
+	"app.messenger.profile.online": {
+		"message": "В сети"
+	},
+	"app.messenger.profile.offline": {
+		"message": "Оффлайн"
+	},
+	"app.messenger.profile.posts": {
+		"message": "публикации"
+	},
+	"app.messenger.profile.friends": {
+		"message": "друзья"
+	},
+	"app.messenger.profile.followers": {
+		"message": "подписчики"
+	},
+	"app.messenger.profile.write": {
+		"message": "Написать"
+	},
+	"app.messenger.profile.follow": {
+		"message": "Подписаться"
+	},
+	"app.messenger.profile.following": {
+		"message": "Вы подписаны"
 	}
 }

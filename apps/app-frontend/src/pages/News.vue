@@ -10,6 +10,7 @@ import {
 import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, onActivated, onMounted, ref } from 'vue'
 
+import UserProfileModal from '@/components/ui/messenger/UserProfileModal.vue'
 import { useNoctrinthNews, usePortalrinthNews } from '@/features/news/portalrinth-news'
 import {
 	compressImageFile,
@@ -36,6 +37,22 @@ const breadcrumb = useRootBreadcrumb({
 	to: '/news',
 	visual: { type: 'icon', component: NewspaperIcon },
 })
+
+const profileModal = ref<InstanceType<typeof UserProfileModal> | null>(null)
+
+const openProfileLabel = formatMessage({
+	id: 'app.messenger.profile.open',
+	defaultMessage: 'Открыть профиль',
+})
+
+/** Полный профиль автора поста — та же карточка, что в MC Messenger. */
+function openProfile(author?: FeedAuthor) {
+	if (author?.id == null || author.id === '') return
+	profileModal.value?.show(
+		{ id: String(author.id), username: author.username, name: author.name, uuid: author.uuid },
+		{ canWrite: false, self: String(author.id) === String(me.value?.id ?? '') },
+	)
+}
 
 type FeedAuthor = {
 	uuid?: string
@@ -534,7 +551,12 @@ onActivated(breadcrumb.reset)
 						/>
 						<div v-else class="news-avatar news-avatar--empty" />
 						<div class="news-card__who">
-							<span class="news-card__name">
+							<button
+								class="news-card__name news-card__name--link"
+								:disabled="postAuthor(post)?.id == null"
+								:aria-label="openProfileLabel"
+								@click="openProfile(postAuthor(post))"
+							>
 								{{ authorName(postAuthor(post)) }}
 								<span
 									v-if="postAuthor(post)?.verified"
@@ -542,7 +564,7 @@ onActivated(breadcrumb.reset)
 									title="Проверенный автор"
 									>✓</span
 								>
-							</span>
+							</button>
 							<span class="news-card__time">{{ postTime(post) }}</span>
 						</div>
 						<button
@@ -598,7 +620,14 @@ onActivated(breadcrumb.reset)
 						</div>
 						<template v-else>
 							<div v-for="comment in comments" :key="comment.id" class="news-comment">
-								<b>{{ authorName(comment.author) }}</b>
+								<button
+									class="news-comment__author"
+									:disabled="comment.author?.id == null"
+									:aria-label="openProfileLabel"
+									@click="openProfile(comment.author)"
+								>
+									{{ authorName(comment.author) }}
+								</button>
 								<p>{{ comment.body || comment.bodyMd }}</p>
 							</div>
 							<p v-if="!comments.length" class="news-comments__empty">
@@ -678,6 +707,8 @@ onActivated(breadcrumb.reset)
 				}}
 			</div>
 		</template>
+
+		<UserProfileModal ref="profileModal" />
 	</div>
 </template>
 
@@ -962,6 +993,24 @@ onActivated(breadcrumb.reset)
 	gap: 0.3rem;
 }
 
+.news-card__name--link {
+	border: none;
+	background: transparent;
+	padding: 0.1rem 0.35rem;
+	margin: -0.1rem -0.35rem;
+	border-radius: 0.5rem;
+	cursor: pointer;
+	transition: background-color 0.18s ease;
+}
+
+.news-card__name--link:not(:disabled):hover {
+	background: var(--color-button-bg);
+}
+
+.news-card__name--link:disabled {
+	cursor: default;
+}
+
 .news-verified {
 	color: var(--color-brand);
 	font-weight: 800;
@@ -1084,9 +1133,29 @@ onActivated(breadcrumb.reset)
 	cursor: default;
 }
 
-.news-comment b {
+.news-comment b,
+.news-comment__author {
 	font-size: 0.85rem;
 	color: var(--color-contrast);
+}
+
+.news-comment__author {
+	border: none;
+	background: transparent;
+	padding: 0.05rem 0.3rem;
+	margin: -0.05rem -0.3rem;
+	border-radius: 0.4rem;
+	cursor: pointer;
+	font-weight: 700;
+	transition: background-color 0.18s ease;
+}
+
+.news-comment__author:not(:disabled):hover {
+	background: var(--color-button-bg);
+}
+
+.news-comment__author:disabled {
+	cursor: default;
 }
 
 .news-comment p {

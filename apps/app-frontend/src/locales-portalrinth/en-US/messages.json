@@ -3542,5 +3542,77 @@
 	},
 	"app.ai.picker.custom-mode": {
 		"message": "Custom pick"
+	},
+	"app.messenger.profile.open": {
+		"message": "Open profile"
+	},
+	"app.messenger.profile.loading": {
+		"message": "Loading profile…"
+	},
+	"app.messenger.profile.failed": {
+		"message": "Profile failed to load — try again"
+	},
+	"app.messenger.profile.lastSeen": {
+		"message": "Last seen"
+	},
+	"app.messenger.profile.playingNow": {
+		"message": "Now playing"
+	},
+	"app.messenger.profile.notPlaying": {
+		"message": "Not in game"
+	},
+	"app.messenger.profile.lastBuild": {
+		"message": "Last modpack"
+	},
+	"app.messenger.profile.lastServer": {
+		"message": "Last server"
+	},
+	"app.messenger.profile.noData": {
+		"message": "No data"
+	},
+	"app.messenger.profile.favoriteBuild": {
+		"message": "Favorite modpack"
+	},
+	"app.messenger.profile.noFavorite": {
+		"message": "No favorite"
+	},
+	"app.messenger.profile.favoriteCount": {
+		"message": "{n} launches"
+	},
+	"app.messenger.profile.marker": {
+		"message": "Marker"
+	},
+	"app.messenger.profile.markerHint": {
+		"message": "color in game"
+	},
+	"app.messenger.profile.account": {
+		"message": "Account"
+	},
+	"app.messenger.profile.joined": {
+		"message": "Joined"
+	},
+	"app.messenger.profile.online": {
+		"message": "Online"
+	},
+	"app.messenger.profile.offline": {
+		"message": "Offline"
+	},
+	"app.messenger.profile.posts": {
+		"message": "posts"
+	},
+	"app.messenger.profile.friends": {
+		"message": "friends"
+	},
+	"app.messenger.profile.followers": {
+		"message": "followers"
+	},
+	"app.messenger.profile.write": {
+		"message": "Message"
+	},
+	"app.messenger.profile.follow": {
+		"message": "Follow"
+	},
+	"app.messenger.profile.following": {
+		"message": "Following"
 	}
 }

@@ -4,11 +4,13 @@ import {
 	RefreshCwIcon,
 	SearchIcon,
 	SendIcon,
+	UserIcon,
 	UserPlusIcon,
 } from '@modrinth/assets'
 import { Button, defineMessages, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
 
+import UserProfileModal from '@/components/ui/messenger/UserProfileModal.vue'
 import {
 	ensureServiceSession,
 	forgetServiceSession,
@@ -82,6 +84,12 @@ const threadLoading = ref(false)
 const activePeerName = computed(
 	() => conversations.value.find((chat) => chat.id === activeId.value)?.title || '',
 )
+/** Собеседник активного чата — для полного профиля из заголовка. */
+const activePeer = computed(() => {
+	const chat = conversations.value.find((row) => row.id === activeId.value)
+	if (!chat?.peerId) return null
+	return { id: chat.peerId, username: chat.title }
+})
 const draft = ref('')
 const sending = ref(false)
 
@@ -418,6 +426,40 @@ function scrollThread() {
 	if (element) element.scrollTop = element.scrollHeight
 }
 
+const profileModal = ref<InstanceType<typeof UserProfileModal> | null>(null)
+
+const openProfileLabel = formatMessage({
+	id: 'app.messenger.profile.open',
+	defaultMessage: 'Открыть профиль',
+})
+
+/** Полный профиль игрока: карточка со скином, игровой активностью и маркером. */
+function openProfile(user: {
+	id?: string | number
+	username?: string
+	name?: string
+	uuid?: string
+}) {
+	if (user.id == null || user.id === '') return
+	const selfId = session.value?.user?.id
+	profileModal.value?.show(
+		{
+			id: String(user.id),
+			username: user.username,
+			name: user.name,
+			uuid: user.uuid,
+		},
+		{
+			canWrite: true,
+			self: selfId != null && String(selfId) === String(user.id),
+		},
+	)
+}
+
+async function writeFromProfile(user: { id: string; username?: string; name?: string }) {
+	await startDm({ id: user.id, username: user.username || user.name })
+}
+
 async function connect(force = false) {
 	loading.value = true
 	loadError.value = ''
@@ -562,6 +604,9 @@ async function signOut() {
 							<span class="msgr-row__text"
 								><b>{{ user.username || user.name }}</b></span
 							>
+							<button class="msgr-mini" :aria-label="openProfileLabel" @click="openProfile(user)">
+								<UserIcon />
+							</button>
 							<button class="msgr-mini" @click="addFriend(user)">
 								<UserPlusIcon />
 							</button>
@@ -588,14 +633,17 @@ async function signOut() {
 					</div>
 
 					<TransitionGroup v-if="friends.length" name="msgr-pop" tag="div" class="msgr-list">
-						<button
+						<div
 							v-for="friend in friends"
 							:key="friend.id"
 							class="msgr-row"
+							role="button"
+							tabindex="0"
 							:class="{
 								'is-on': friend.id === conversations.find((chat) => chat.id === activeId)?.peerId,
 							}"
 							@click="startDm({ id: friend.id, username: friend.name })"
+							@keydown.enter="startDm({ id: friend.id, username: friend.name })"
 						>
 							<img
 								v-if="avatarUrl(railAvatarStore, avatarVersion, `friend:${friend.id}`)"
@@ -606,7 +654,14 @@ async function signOut() {
 							<span class="msgr-row__text"
 								><b>{{ friend.name }}</b></span
 							>
-						</button>
+							<button
+								class="msgr-mini"
+								:aria-label="openProfileLabel"
+								@click.stop="openProfile(friend)"
+							>
+								<UserIcon />
+							</button>
+						</div>
 					</TransitionGroup>
 					<p v-else class="msgr-empty">
 						{{
@@ -626,7 +681,15 @@ async function signOut() {
 			<section class="msgr-chat">
 				<template v-if="activeId">
 					<header class="msgr-chat__head">
-						<b>{{ activePeerName }}</b>
+						<button
+							v-if="activePeer"
+							class="msgr-chat__peer"
+							:aria-label="openProfileLabel"
+							@click="openProfile(activePeer)"
+						>
+							<b>{{ activePeerName }}</b>
+						</button>
+						<b v-else>{{ activePeerName }}</b>
 					</header>
 					<div ref="threadEl" class="msgr-thread">
 						<div v-if="threadLoading" class="msgr-state">
@@ -694,6 +757,8 @@ async function signOut() {
 		</div>
 
 		<div v-if="loadError" class="msgr-state msgr-state--error">{{ loadError }}</div>
+
+		<UserProfileModal ref="profileModal" @write="writeFromProfile" />
 	</div>
 </template>
 
@@ -1006,6 +1071,22 @@ async function signOut() {
 	padding: 0.85rem 1.1rem;
 	border-bottom: 1px solid var(--color-button-bg);
 	color: var(--color-contrast);
+}
+
+.msgr-chat__peer {
+	border: none;
+	background: transparent;
+	color: inherit;
+	padding: 0.15rem 0.4rem;
+	margin: -0.15rem -0.4rem;
+	border-radius: 0.55rem;
+	cursor: pointer;
+	text-align: left;
+	transition: background-color 0.18s ease;
+}
+
+.msgr-chat__peer:hover {
+	background: var(--color-button-bg);
 }
 
 .msgr-thread {

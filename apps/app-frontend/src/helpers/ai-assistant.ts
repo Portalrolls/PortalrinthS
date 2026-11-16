@@ -240,6 +240,130 @@ export const AI_PROVIDERS: AiProvider[] = [
 	},
 ]
 
+/**
+ * Режимы агента — как у UAgent (Pixi): Lite, Pro, Ultra и Flash. Все четыре
+ * бесплатные: держатся на бесплатных провайдерах каталога, ключ не нужен.
+ * Режим связывает свою версию мозга (провайдер, модель, размышления) со своей
+ * версией инструментов: Flash и Lite отвечают без тяжёлых шагов, Pro и Ultra
+ * включают полный набор суперинструментов и длинные сборки.
+ */
+export type AgentModeId = 'flash' | 'lite' | 'pro' | 'ultra' | 'custom'
+
+export interface AgentMode {
+	id: Exclude<AgentModeId, 'custom'>
+	/** Значок, как у Pixi: Lite / Pro / Ultra / Flash. */
+	tier: string
+	label: string
+	description: string
+	/** Тон пилюли: свой цвет каждого режима. */
+	tone: 'lite' | 'pro' | 'ultra' | 'flash'
+	/** Куда встаёт мозг: бесплатный провайдер + модель. */
+	provider: string
+	model: string
+	deepThink: boolean
+	effort: 'low' | 'medium' | 'high'
+}
+
+export const AGENT_MODES: AgentMode[] = [
+	{
+		id: 'flash',
+		tier: 'Flash',
+		label: 'Флеш',
+		description: 'Самая быстрая: мгновенные ответы для коротких вопросов',
+		tone: 'flash',
+		provider: 'kilo',
+		model: 'nvidia/nemotron-3.5-lightning:free',
+		deepThink: false,
+		effort: 'low',
+	},
+	{
+		id: 'lite',
+		tier: 'Lite',
+		label: 'Лайт',
+		description: 'Лёгкий: быстрые ответы и базовые действия в лаунчере',
+		tone: 'lite',
+		provider: 'kilo',
+		model: 'kilo-auto/free',
+		deepThink: false,
+		effort: 'low',
+	},
+	{
+		id: 'pro',
+		tier: 'Pro',
+		label: 'Про',
+		description: 'Умный: размышления, сборки, поиск и правка файлов',
+		tone: 'pro',
+		provider: 'ovh',
+		model: 'Qwen3.5-397B-A17B',
+		deepThink: true,
+		effort: 'medium',
+	},
+	{
+		id: 'ultra',
+		tier: 'Ultra',
+		label: 'Ультра',
+		description: 'Максимальный: самая умная модель и все суперинструменты',
+		tone: 'ultra',
+		provider: 'kilo',
+		model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+		deepThink: true,
+		effort: 'high',
+	},
+]
+
+export function agentModeById(id: string | undefined): AgentMode | undefined {
+	return AGENT_MODES.find((mode) => mode.id === id)
+}
+
+/** Включить режим: мозг и его настройки применяются сразу и сохраняются. */
+export function applyAgentMode(mode: AgentMode): void {
+	aiSettings.value = {
+		...aiSettings.value,
+		agentMode: mode.id,
+		provider: mode.provider,
+		models: { ...aiSettings.value.models, [mode.provider]: mode.model },
+		deepThink: mode.deepThink,
+		effort: mode.effort,
+	}
+	saveAiSettings()
+}
+
+/** Строка промпта про текущий режим: его версия инструментов. */
+function agentModeHint(settings: AiSettings): string {
+	const mode = agentModeById(settings.agentMode)
+	if (!mode) return ''
+	const depth =
+		mode.id === 'flash' || mode.id === 'lite'
+			? 'Ты сейчас в режиме ' +
+				mode.tier +
+				': отвечай БЫСТРО и коротко (1-3 предложения), действуй базовым набором инструментов (list_instances, instance_info, launcher_search_mods, launcher_install, launch_instance, find_mod_in_build, launcher_info, web_search) — тяжёлые многоходовые сборки в этом режиме не собирай, а предлагай включить режим Pro или Ultra (игрок переключает его в панели моделей).'
+			: 'Ты сейчас в режиме ' +
+				mode.tier +
+				': полный набор инструментов и суперинструментов доступен, многоходовые задачи (сборки, компиляция, правка файлов) выполняй целиком в этом ходе.'
+	return depth + (settings.deepThink ? ' Размышления включены.' : '')
+}
+
+/** Приглашение суперинструментов — вставляется в промпт рядом с AI_LAUNCHER_HINT. */
+export const AI_SUPER_HINT = [
+	'Суперинструменты (слияние 2 в 1 — знаешь путь, структуру папок и живое состояние):',
+	'- <<instance_path|сборка>> — полный путь сборки на диске и карта её папок (mods, config, resourcepacks, shaderpacks, saves, logs, screenshots, crash-reports) — с чего начинать любой разбор файлов',
+	'- <<instance_ensure_dirs|сборка>> — создать недостающие стандартные папки сборки',
+	'- <<open_build_folder|сборка>> — открыть папку сборки в проводнике; <<open_build_subfolder|сборка::папка>> — конкретную папку (mods, config, saves…); <<open_launcher_folder|>> — папку данных лаунчера',
+	'- <<find_mod_in_build|мод или сокращение>> — найти мод или его сокращение (FTBQ, sodium…) СРАЗУ ВО ВСЕХ сборках: где стоит, какая версия, вкл/выкл',
+	'- <<list_java|>> — установленные Java в системе; <<list_mc_versions|>> — версии Minecraft; <<list_loader_versions|fabric/forge/neoforge/quilt>> — версии ядра',
+	'- <<list_configs|сборка>> — список конфигов сборки (потом читать через instance_read, править через instance_write)',
+	'- <<launcher_info|>> — визитка лаунчера: версия Portalrinth, папка данных, список сборок, выбранная сборка с описанием',
+].join('\n')
+
+/** Что агент знает про сам лаунчер: устройство, папки, границы — всегда в промпте. */
+export const AI_LAUNCHER_KNOWLEDGE = [
+	'Ты — Портус, агент лаунчера Portalrinth (форк Modrinth App: Tauri 2 + Vue 3 + Rust). Ты внутри лаунчера, не снаружи.',
+	'Устройство: сборки («инстансы») лежат каждая в своей папке; внутри стандартные папки — mods/ (моды), config/ (конфиги), resourcepacks/, shaderpacks/, saves/ (миры), logs/ (latest.log — рабочий лог, debug.log — подробный), crash-reports/ (краши со временем в имени), screenshots/. Путь любой сборки даёт <<instance_path|сборка>>, папку данных лаунчера — <<launcher_info|>>.',
+	'Правила файлов: большой файл (>7000 символов) читай ТОЛЬКО постранично (<<instance_read|сборка::файл::смещение>>) и после правки пиши ЦЕЛИКОМ через instance_write — запись того, что не читал полностью, отклоняется, чтобы не терять текст; запись атомарная, прежняя версия копится в portalrinth-backups/ai-edits/<сборка> (10 последних на файл). Конфиги ломаются от обрезания — всегда проверяй размер до правки.',
+	'Резервные копии: перед правкой файла ИИ прежняя версия сама уходит в portalrinth-backups/ai-edits/<сборка>/<имя> — «откатить правку» = прочитать копию оттуда и записать в сборку.',
+	'Игроки и аккаунты: Microsoft и Ely.by (и offline) — их список знает инструмент аккаунтов лаунчера; скины хранятся отдельно, страницы «Скины» и Discover-скины — отдельный раздел. Новости и MC Messenger — вкладки лаунчера на живом сервисе Undefined Client (uprojects.site), там общие посты и чаты с их игроками.',
+	'Границы честно: ты не запускаешь игру внутри игры и не жмёшь кнопки в запущенном клиенте (кроме команды stop_instance); python/npm/go для тебя не существуют — код проверяется чтением; Java компилируется (launcher_compile_java), но не исполняется. Хостинг-сервера Modrinth — платный раздел /hosting/manage, локальный мультиплеер — «Открыть для сети» руками игрока.',
+].join('\n')
 /** A skill: a standing instruction the player installed for the agent. */
 export interface AiSkill {
 	id: string
@@ -283,6 +407,8 @@ export interface AiSettings {
 	disabledModels: Record<string, boolean>
 	/** Ask answers only and looks things up; Build also acts in the launcher. */
 	mode: AiMode
+	/** Активный режим агента: Lite/Pro/Ultra/Flash (бесплатные) или свой выбор. */
+	agentMode?: AgentModeId
 	/** What the player works on right now: narrows hints and references. */
 	focus: AiFocus
 }
@@ -837,7 +963,9 @@ function knownTools(): Set<string> {
 	if (!knownToolNames) {
 		knownToolNames = new Set(
 			[
-				...`${AI_TOOLS_HINT}\n${AI_LAUNCHER_HINT}\n${AI_SKILLS_HINT}`.matchAll(/<<([a-z_]+)\|/g),
+				...`${AI_TOOLS_HINT}\n${AI_LAUNCHER_HINT}\n${AI_SUPER_HINT}\n${AI_SKILLS_HINT}`.matchAll(
+					/<<([a-z_]+)\|/g,
+				),
 			].map((match) => match[1]),
 		)
 		knownToolNames.add('celebrate')
@@ -1564,6 +1692,9 @@ export function buildSystemPrompt(kind: 'tab' | 'mascot', extra?: string): strin
 		AI_NAVIGATION_HINT,
 		AI_TOOLS_HINT,
 		AI_LAUNCHER_HINT,
+		AI_SUPER_HINT,
+		AI_LAUNCHER_KNOWLEDGE,
+		agentModeHint(settings),
 		AI_SLANG_HINT,
 		AI_SKILLS_HINT,
 		AI_INTENT_HINT,
@@ -2857,6 +2988,12 @@ export async function aiComplete(request: AiRequest): Promise<AiResult> {
 	let providerTried = ''
 	let lastError: unknown
 	const doneActions: string[] = []
+	// Repeat guard, the UAgent way: a call with the very same name and
+	// arguments answered once this turn will answer the same way again, so
+	// re-running it only burns time. The model gets an honest note instead
+	// of a fresh run, and after enough repeats it is told to wrap up.
+	const seenCalls = new Set<string>()
+	let repeatStalls = 0
 	// Promises-without-action nudges spent in this turn (two at most).
 	let promiseNudges = 0
 	// Code-dump nudges: the same budget idea for «вот код, вставь сам».
@@ -3111,14 +3248,29 @@ export async function aiComplete(request: AiRequest): Promise<AiResult> {
 							cursor = end
 							for (const action of group) request.onActionStart?.(action.tool, action.args)
 							const results = await Promise.all(
-								group.map((action) =>
-									askModeBlocks(action.tool)
+								group.map((action) => {
+									// A call that already ran this turn gets an honest note
+									// instead of a fresh run: the result would be identical.
+									const callKey = `${action.tool}::${action.args}`
+									if (seenCalls.has(callKey)) {
+										repeatStalls += 1
+										return Promise.resolve(
+											'Такой вызов уже был в этом ходе - результат не изменится. Опирайся на прошлый результат, действуй иначе или подведи итог.',
+										)
+									}
+									seenCalls.add(callKey)
+									return askModeBlocks(action.tool)
 										? Promise.resolve(
 												'Режим Ask: действия выключены. Ответь текстом и предложи переключиться в Build, если нужно сделать это в лаунчере.',
 											)
-										: runTool(action.tool, action.args),
-								),
+										: runTool(action.tool, action.args)
+								}),
 							)
+							if (repeatStalls >= 3) {
+								notes.push(
+									'Повторы не помогают - одинаковые вызовы дают одинаковый результат. Подведи итог того, что уже сделано.',
+								)
+							}
 							group.forEach((action, index) => {
 								const result = results[index]
 								// A chip that says «сделал» while the tool said
@@ -4340,18 +4492,20 @@ registerAiToolHandler(async (tool, args) => {
 				facets.push(modrinthLoadersFor('mod', loader).map((item) => `categories:${item}`))
 			return encodeURIComponent(JSON.stringify(facets))
 		}
-		const pick = async (
+		// The UAgent trick: never bet the whole item on the single top search
+		// hit. Ask for the five best matches, try them one by one and stop at
+		// the first that actually installs under this build.
+		const searchCandidates = async (
 			query: string,
 			type: string,
-		): Promise<{ id: string; title: string } | null> => {
+		): Promise<{ id: string; title: string }[]> => {
 			const response = await proxiedFetch(
-				`https://api.modrinth.com/v2/search?limit=1&index=relevance&query=${encodeURIComponent(query)}&facets=${facetsFor(type)}`,
+				`https://api.modrinth.com/v2/search?limit=5&index=relevance&query=${encodeURIComponent(query)}&facets=${facetsFor(type)}`,
 				{ headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(12000) },
 			)
-			if (!response.ok) return null
+			if (!response.ok) return []
 			const data = (await response.json()) as { hits?: { project_id: string; title: string }[] }
-			const hit = data.hits?.[0]
-			return hit ? { id: hit.project_id, title: hit.title } : null
+			return data.hits?.map((hit) => ({ id: hit.project_id, title: hit.title })) ?? []
 		}
 
 		const jobs: { query: string; type: string }[] = wanted.map((query) => ({ query, type: 'mod' }))
@@ -4398,18 +4552,42 @@ registerAiToolHandler(async (tool, args) => {
 		for (const job of jobs) {
 			if (playerTookOver()) break
 			try {
-				const hit = await pick(job.query, job.type)
-				if (!hit) {
+				const candidates = (await searchCandidates(job.query, job.type)).filter(
+					(candidate) => !seen.has(candidate.id),
+				)
+				if (candidates.length === 0) {
 					failed.push(`«${job.query}» — нет версии под ${version} ${loader}`)
 					continue
 				}
-				if (seen.has(hit.id)) continue
-				seen.add(hit.id)
 				const kind = job.type === 'shader' ? 'shader' : job.type
-				const result = await installOneProject(hit.id, kind, instanceId)
-				const marker = result.indexOf('@@MOD@@')
-				if (marker >= 0) cards.push(result.slice(marker))
-				done.push(hit.title)
+				let lastError = ''
+				let settled = false
+				// Try the best matches one by one: the top hit often has no file
+				// for this exact version-loader pair, the runner-up usually does.
+				for (const candidate of candidates.slice(0, 4)) {
+					seen.add(candidate.id)
+					try {
+						const result = await installOneProject(candidate.id, kind, instanceId)
+						if (FAILED_RESULT.test(result.trim())) {
+							lastError = result.trim().slice(0, 120)
+							continue
+						}
+						const marker = result.indexOf('@@MOD@@')
+						if (marker >= 0) cards.push(result.slice(marker))
+						done.push(candidate.title)
+						settled = true
+						break
+					} catch (error) {
+						lastError = String(error)
+							.replace(/^Error:\s*/, '')
+							.slice(0, 120)
+					}
+				}
+				if (!settled) {
+					failed.push(
+						`«${job.query}» — ${lastError || `нет совместимой версии под ${version} ${loader}`}`,
+					)
+				}
 			} catch (error) {
 				failed.push(
 					`«${job.query}» — ${String(error)

@@ -49,7 +49,11 @@ import AiModelPicker from '@/components/ui/ai/AiModelPicker.vue'
 import AiRichText from '@/components/ui/ai/AiRichText.vue'
 import AiSteps from '@/components/ui/ai/AiSteps.vue'
 import AiTaskCard from '@/components/ui/ai/AiTaskCard.vue'
-import { setBloubGaze, syncBloubFaces } from '@/components/ui/ai/bloub/face-adapter'
+import {
+	releaseBloubFaces,
+	setBloubGaze,
+	syncBloubFaces,
+} from '@/components/ui/ai/bloub/face-adapter'
 import { COLORS, SHAPES } from '@/components/ui/ai/bloub/skins'
 import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import {
@@ -356,15 +360,34 @@ function removeQueued(index: number) {
 	agentQueue.value = agentQueue.value.filter((_, i) => i !== index)
 }
 
-function scrollToBottom() {
+/** Follows the newest line only while the player is at the bottom: scrolling
+ * up to reread something is not yanked back by every streamed word. */
+const pinnedToBottom = ref(true)
+
+function onChatScroll() {
+	const box = scrollBox.value
+	if (!box) return
+	pinnedToBottom.value = box.scrollHeight - box.scrollTop - box.clientHeight < 96
+}
+
+function scrollToBottom(force = false) {
+	if (!force && !pinnedToBottom.value) return
 	void nextTick(() => {
 		const box = scrollBox.value
-		if (box) box.scrollTop = box.scrollHeight
+		if (!box) return
+		box.scrollTop = box.scrollHeight
+		pinnedToBottom.value = true
 	})
 }
 
-watch(visibleHistory, scrollToBottom, { deep: false })
-watch(streaming, scrollToBottom)
+watch(
+	() => visibleHistory.value.length,
+	(length, previous) => {
+		const last = visibleHistory.value[length - 1]
+		scrollToBottom(length < (previous ?? 0) || last?.role === 'user')
+	},
+)
+watch(streaming, () => scrollToBottom())
 
 function actionName(tool: string) {
 	const map: Record<string, string> = {
@@ -1367,7 +1390,8 @@ watch(bloubColor, (color) => localStorage.setItem('portalrinth-ai-bloub-color', 
 /** The face mirrors the run: thinking while the agent works, notify when it
  * asks the player something, alert after an error, idle otherwise. */
 const faceMode = computed(() => {
-	if (sending.value) return 'thinking'
+	if (sending.value)
+		return streaming.value || agentPhase.value === 'speaking' ? 'speaking' : 'thinking'
 	if (lastQuestion.value) return 'notify'
 	if (errorText.value) return 'alert'
 	return 'idle'
@@ -1402,7 +1426,7 @@ async function syncFaces() {
 watch([sideOpen, aboutOpen, aboutTab, bloubColor, sessionsList], syncFaces)
 
 onMounted(async () => {
-	scrollToBottom()
+	scrollToBottom(true)
 	void refreshSessionLists()
 	void syncFaces()
 	// The chat itself lives in localStorage; the sessions folder is the
@@ -1433,7 +1457,10 @@ onMounted(async () => {
 	)
 })
 
-onBeforeUnmount(stopTyping)
+onBeforeUnmount(() => {
+	stopTyping()
+	if (pageRoot.value) releaseBloubFaces(pageRoot.value)
+})
 
 defineExpose({ send })
 </script>
@@ -1504,7 +1531,11 @@ defineExpose({ send })
 				</div>
 				<span v-if="sending" class="uag-pill-status">{{ phaseLabel }}</span>
 			</header>
-			<div ref="scrollBox" class="min-h-0 grow overflow-y-auto px-6 py-4">
+			<div
+				ref="scrollBox"
+				class="ai-scroll min-h-0 grow overflow-y-auto px-6 py-4"
+				@scroll.passive="onChatScroll"
+			>
 				<div
 					v-if="visibleHistory.length === 0"
 					class="flex h-full flex-col items-center justify-center gap-2 text-center"
@@ -1531,8 +1562,8 @@ defineExpose({ send })
 				<template v-else>
 					<div
 						v-for="(message, index) in visibleHistory"
-						:key="index"
-						class="mb-3 flex uag-in"
+						:key="message.ts ? `${message.role}-${message.ts}` : `i-${index}`"
+						class="mb-3 flex min-w-0 uag-in"
 						:class="message.role === 'user' ? 'justify-end' : 'justify-start'"
 					>
 						<div
@@ -2518,15 +2549,21 @@ defineExpose({ send })
 
 <style scoped>
 .ai-bubble-user {
-	background: color-mix(in srgb, var(--color-brand) 18%, var(--color-button-bg));
+	background: color-mix(in srgb, var(--color-brand) 22%, var(--color-raised-bg));
 	border: 1px solid color-mix(in srgb, var(--color-brand) 30%, transparent);
 	border-bottom-right-radius: 0.5rem;
 }
 
 .ai-bubble-assistant {
-	background: var(--color-button-bg);
+	background: var(--color-raised-bg);
 	border: 1px solid var(--surface-5);
 	border-bottom-left-radius: 0.5rem;
+	box-shadow: 0 4px 14px rgb(0 0 0 / 14%);
+}
+
+.ai-bubble {
+	min-width: 0;
+	overflow-wrap: anywhere;
 }
 
 .ai-action-chip {
@@ -2627,18 +2664,28 @@ defineExpose({ send })
 }
 
 .ai-input-row {
-	box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+	border: 1px solid var(--surface-5);
+	background: var(--color-raised-bg);
+	box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
+	transition:
+		border-color 0.18s ease,
+		box-shadow 0.18s ease;
+}
+
+.ai-input-row:focus-within {
+	border-color: color-mix(in srgb, var(--color-brand) 55%, transparent);
+	box-shadow:
+		0 8px 24px rgb(0 0 0 / 22%),
+		0 0 0 3px color-mix(in srgb, var(--color-brand) 18%, transparent);
 }
 
 .ai-menu {
-	box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+	background: var(--color-raised-bg);
+	box-shadow: 0 12px 32px rgb(0 0 0 / 32%);
 }
 
 .ai-model-menu {
 	max-height: min(36rem, calc(100vh - 12rem));
-	background: color-mix(in srgb, var(--color-raised-bg) 84%, transparent);
-	backdrop-filter: blur(24px) saturate(1.2);
-	-webkit-backdrop-filter: blur(24px) saturate(1.2);
 	transform-origin: bottom right;
 }
 
@@ -3470,7 +3517,7 @@ defineExpose({ send })
 	overflow: hidden;
 	border: 1px solid var(--surface-5);
 	border-radius: 1.25rem;
-	background: color-mix(in srgb, var(--color-raised-bg) 78%, transparent);
+	background: var(--color-raised-bg);
 	backdrop-filter: blur(22px);
 	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
@@ -3521,7 +3568,7 @@ defineExpose({ send })
 	padding: 0.4rem;
 	border: 1px solid var(--surface-5);
 	border-radius: 1.1rem;
-	background: color-mix(in srgb, var(--color-raised-bg) 72%, transparent);
+	background: var(--color-raised-bg);
 	backdrop-filter: blur(20px);
 	box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3);
 }
@@ -3746,7 +3793,14 @@ defineExpose({ send })
 /* ---- UAgent-style shell (ported feel from UAgent v2, adapted tokens) ---- */
 
 .uag-shell {
-	background: var(--color-bg);
+	background: color-mix(in srgb, var(--color-bg) 58%, transparent);
+	backdrop-filter: blur(18px) saturate(1.15);
+	-webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.ai-scroll {
+	overscroll-behavior: contain;
+	scrollbar-gutter: stable;
 }
 
 /* Left rail with the saved chats. */
@@ -3758,7 +3812,7 @@ defineExpose({ send })
 	flex-shrink: 0;
 	overflow: hidden;
 	border-right: 1px solid var(--surface-5);
-	background: var(--color-raised-bg);
+	background: color-mix(in srgb, var(--color-raised-bg) 62%, transparent);
 	transition:
 		width 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
 		opacity 0.24s ease,
@@ -3767,10 +3821,9 @@ defineExpose({ send })
 }
 
 .uag-side--closed {
-	width: 0;
-	border-right-color: transparent;
-	opacity: 0;
-	transform: translateX(-12px);
+	width: 2.5rem;
+	justify-content: flex-end;
+	background: transparent;
 }
 
 .uag-side-head {
@@ -3807,8 +3860,7 @@ defineExpose({ send })
 .uag-side--closed .uag-new,
 .uag-side--closed .uag-side-list,
 .uag-side--closed .uag-side-head {
-	opacity: 0;
-	pointer-events: none;
+	display: none;
 }
 
 .uag-side-list {
@@ -3966,7 +4018,7 @@ defineExpose({ send })
 	flex-direction: column;
 	overflow: hidden;
 	border-left: 1px solid var(--surface-5);
-	background: var(--color-raised-bg);
+	background: color-mix(in srgb, var(--color-raised-bg) 62%, transparent);
 	transition:
 		width 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
 		opacity 0.24s ease,
@@ -3979,26 +4031,23 @@ defineExpose({ send })
 }
 
 .uag-about:not(.uag-about--open) {
-	width: 0;
-	border-left-color: transparent;
-	opacity: 0;
-	transform: translateX(12px);
+	width: 2.5rem;
+	background: transparent;
 }
 
 .uag-about-toggle {
 	position: absolute;
-	left: -0.05rem;
-	top: 1rem;
+	left: 0.45rem;
+	top: 0.75rem;
 	z-index: 2;
 	background: var(--color-button-bg);
 	border: 1px solid var(--surface-5);
-	border-left: none;
-	border-radius: 0 0.6rem 0.6rem 0;
+	border-radius: 0.6rem;
 	color: var(--color-secondary);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
-	height: 2rem;
+	height: 1.6rem;
 	width: 1.6rem;
 	justify-content: center;
 	padding: 0;
@@ -4013,12 +4062,9 @@ defineExpose({ send })
 
 .uag-about--open .uag-about-toggle {
 	left: auto;
-	right: 0.35rem;
-	border-radius: 0.6rem;
-	border-left: 1px solid var(--surface-5);
+	right: 0.5rem;
 	width: 2rem;
 	height: 2rem;
-	top: 0.75rem;
 }
 
 .uag-about-inner {
@@ -4032,8 +4078,7 @@ defineExpose({ send })
 }
 
 .uag-about:not(.uag-about--open) .uag-about-inner {
-	opacity: 0;
-	pointer-events: none;
+	display: none;
 }
 
 .uag-about-face {

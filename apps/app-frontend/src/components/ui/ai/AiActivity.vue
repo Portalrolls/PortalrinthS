@@ -45,8 +45,8 @@ const clock = computed(() => {
 </script>
 
 <template>
-	<div class="ai-activity" role="status" aria-live="polite">
-		<span class="ai-activity-icon">
+	<div class="ai-activity" role="status">
+		<span class="ai-activity-icon" aria-hidden="true">
 			<Transition name="ai-activity-swap" mode="out-in">
 				<component :is="state.icon" :key="state.key" class="size-3.5" />
 			</Transition>
@@ -54,7 +54,7 @@ const clock = computed(() => {
 		<Transition name="ai-activity-swap" mode="out-in">
 			<span :key="state.key" class="ai-activity-text">{{ state.text }}…</span>
 		</Transition>
-		<span class="ai-activity-clock">{{ clock }}</span>
+		<span class="ai-activity-clock" aria-hidden="true">{{ clock }}</span>
 	</div>
 </template>
 
@@ -153,6 +153,21 @@ const clock = computed(() => {
 	.ai-activity-icon::after,
 	.ai-activity-text {
 		animation: none;
+	}
+
+	.ai-activity-text {
+		color: var(--color-contrast);
+		background: none;
+	}
+
+	.ai-activity-swap-enter-active,
+	.ai-activity-swap-leave-active {
+		transition: opacity 0.12s ease;
+	}
+
+	.ai-activity-swap-enter-from,
+	.ai-activity-swap-leave-to {
+		transform: none;
 	}
 }
 </style>

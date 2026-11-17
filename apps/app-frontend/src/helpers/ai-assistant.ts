@@ -53,6 +53,7 @@ import {
 	install_project_with_dependencies,
 } from './instance'
 import { labySkinTags, labySkinVariant, searchLabySkins, vzgeBodyUrl } from './laby-skins'
+import { callPixi, PIXI_MODELS } from './pixi-agent'
 import { addMusicFromUrl } from './portalrinth-audio'
 import { setBackgroundFromPath } from './portalrinth-background'
 import { translateText } from './portalrinth-translate'
@@ -82,6 +83,8 @@ export interface AiProvider {
 	/** The model that sees pictures: a turn with images goes to it, so an
 	 * attached screenshot is truly looked at instead of silently dropped. */
 	visionModel?: string
+	/** Models that see pictures on their own: a turn with images stays on them. */
+	visionModels?: string[]
 	/** The stronger model "Глубокое мышление" switches to. */
 	deepModel?: string
 }
@@ -96,6 +99,20 @@ export interface AiProvider {
  * wire.
  */
 export const AI_PROVIDERS: AiProvider[] = [
+	{
+		id: 'pixi',
+		label: 'Pixi Agent',
+		baseUrl: 'https://uprojects.site/client/api/ai/chat/stream',
+		needsKey: false,
+		models: PIXI_MODELS.map((model) => ({
+			id: model.id,
+			label: `${model.family} ${model.tier}`,
+		})),
+		note: 'Агент Pixi из Undefined Client: Lite, Pro, Ultra и Flash. Ключ не нужен — вход через аккаунт Microsoft или Ely.by, выбранный в лаунчере.',
+		fromRussia: true,
+		visionModel: 'pixi-2.0-lite',
+		visionModels: PIXI_MODELS.filter((model) => model.vision).map((model) => model.id),
+	},
 	{
 		id: 'zai',
 		label: 'Z.AI (GLM)',
@@ -523,6 +540,8 @@ export function providerById(id: string): AiProvider | undefined {
  * needs the stronger brain; otherwise the player's own pick. */
 export function turnModel(settings: AiSettings, providerId: string, vision: boolean): string {
 	const provider = providerById(providerId)
+	if (vision && provider?.visionModels?.includes(chosenModel(settings, providerId)))
+		return chosenModel(settings, providerId)
 	if (vision && provider?.visionModel) return provider.visionModel
 	if (settings.deepThink && provider?.deepModel) return provider.deepModel
 	return chosenModel(settings, providerId)
@@ -2070,6 +2089,21 @@ async function callProvider(
 	const settings = aiSettings.value
 	const provider = providerById(providerId)
 	if (!provider) throw new Error(`Неизвестный провайдер: ${providerId}`)
+	if (providerId === 'pixi') {
+		const pixiCeiling = Math.max(ceilingMs ?? 0, fastPath ? 30000 : 60000)
+		const watchdog = createWatchdog(signal, pixiCeiling)
+		try {
+			return await callPixi(turnModel(settings, providerId, payloadHasImages(payload)), payload, {
+				signal: watchdog.signal,
+				onDelta,
+				onActivity: () => watchdog.rearm(60000),
+			})
+		} catch (error) {
+			throw normalizeAttemptError(provider.label, error, signal, pixiCeiling)
+		} finally {
+			watchdog.dispose()
+		}
+	}
 	const baseUrl = providerId === 'custom' ? settings.customBaseUrl : provider.baseUrl
 	if (!baseUrl) throw new Error('Укажите адрес своего сервера в настройках')
 	const key = settings.keys[providerId] ?? ''
@@ -2617,6 +2651,7 @@ function isPermanentRefusal(error: unknown): boolean {
  * provider the player cannot use for free. */
 function fallbackChain(primary: string): string[] {
 	const chain = [primary]
+	if (primary === 'pixi') return chain
 	for (const candidate of ['zai', 'llm7', 'kilo', 'openrouter', 'nvidia', 'ovh', 'pollinations']) {
 		if (candidate === primary) continue
 		const provider = providerById(candidate)
@@ -3068,7 +3103,7 @@ export async function aiComplete(request: AiRequest): Promise<AiResult> {
 							// the default 30s ceiling kept killing these calls.
 							const ceiling = round > 0 ? 30000 : undefined
 							const backup = chain[chain.indexOf(chainId) + 1]
-							if (backup && backup !== providerId && !hasImages) {
+							if (backup && backup !== providerId && !hasImages && providerId !== 'pixi') {
 								const answer = await hedgedCall(
 									providerId,
 									backup,
@@ -3382,9 +3417,11 @@ export async function aiComplete(request: AiRequest): Promise<AiResult> {
 							// with the peak-hours hint when it applies.
 							const label = providerById(providerId)?.label ?? providerId
 							const advice =
-								providerId === 'zai' && zaiPeakHoursNow()
-									? 'Сейчас часы пик Z.AI (10:00–22:00 по Пекину), сервер занят, но запросы проходят — обычно хватает минуты терпения.'
-									: 'Проверь этот провайдер в настройках моделей, или подожди минуту и напиши ещё раз.'
+								providerId === 'pixi'
+									? 'Pixi работает через аккаунт Undefined: проверьте вход и доступ в панели моделей или выберите другую модель Pixi.'
+									: providerId === 'zai' && zaiPeakHoursNow()
+										? 'Сейчас часы пик Z.AI (10:00–22:00 по Пекину), сервер занят, но запросы проходят — обычно хватает минуты терпения.'
+										: 'Проверь этот провайдер в настройках моделей, или подожди минуту и напиши ещё раз.'
 							throw new Error(
 								`${label} не ответил: ${String((error as Error)?.message ?? error).slice(0, 200)}. ${advice}`,
 							)

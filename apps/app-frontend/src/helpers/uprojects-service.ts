@@ -6,8 +6,10 @@
  * лаунчере». Сервис обновят позже, наш клиент к этому готов: все адреса идут
  * от одного базового, а ответы разбираются мягко (неизвестные поля не ломают).
  */
-import { users } from './auth'
-import { ely_get_users, type ElyCredentials } from './ely_auth'
+import { ACTIVE_ACCOUNT_EVENT, readActiveAccount, sameUuid } from './active-account'
+import { get_default_user, users } from './auth'
+import { ely_get_default_user, ely_get_users, type ElyCredentials } from './ely_auth'
+import { offline_users } from './offline_auth'
 import { proxiedFetch } from './proxy-fetch'
 
 /** Прод-адрес API лаунчера Undefined Client. */
@@ -55,34 +57,73 @@ type StoredSession = ServiceSession & { savedAt: number }
 
 let sessionPromise: Promise<ServiceSession | null> | null = null
 
-/** Достаёт аккаунт Minecraft: сперва Ely.by, затем Microsoft. */
+export type AccountState =
+	| { kind: 'ready'; account: ServiceAccount }
+	| { kind: 'offline'; name: string }
+	| { kind: 'none' }
+
+type MsaCredential = { profile?: { id?: string; name?: string }; access_token?: string }
+
+async function pickElyAccount(id?: string | null): Promise<ServiceAccount | null> {
+	const ely: ElyCredentials[] = (await ely_get_users().catch(() => [])) ?? []
+	const hit =
+		(id ? ely.find((account) => sameUuid(account.profile?.id, id)) : undefined) ??
+		ely.find((account) => account.active)
+	if (!hit?.access_token || !hit.profile?.id) return null
+	return {
+		provider: 'ely',
+		uuid: hit.profile.id,
+		name: hit.profile.name,
+		accessToken: hit.access_token,
+	}
+}
+
+async function pickMsaAccount(id?: string | null): Promise<ServiceAccount | null> {
+	const msa = ((await users().catch(() => [])) ?? []) as MsaCredential[]
+	const wanted = id || ((await get_default_user().catch(() => null)) as string | null)
+	if (!wanted) return null
+	const hit = msa.find((account) => sameUuid(account.profile?.id, wanted))
+	if (!hit?.access_token || !hit.profile?.id) return null
+	return {
+		provider: 'msa',
+		uuid: hit.profile.id,
+		name: hit.profile.name || '',
+		accessToken: hit.access_token,
+	}
+}
+
+/**
+ * Тот аккаунт, что выбран в карточке аккаунтов. Офлайн-аккаунт в сервис не
+ * пускают — у него нет токена, поэтому о нём сообщаем отдельно.
+ */
+export async function readAccountState(): Promise<AccountState> {
+	const chosen = readActiveAccount()
+	if (chosen?.provider === 'offline') {
+		const list = await offline_users().catch(() => [])
+		const hit = list.find((account) => sameUuid(account.profile?.id, chosen.id))
+		return { kind: 'offline', name: hit?.profile?.name || '' }
+	}
+	if (chosen?.provider === 'ely_by') {
+		const account = await pickElyAccount(chosen.id)
+		if (account) return { kind: 'ready', account }
+	}
+	if (chosen?.provider === 'microsoft') {
+		const account = await pickMsaAccount(chosen.id)
+		if (account) return { kind: 'ready', account }
+	}
+	const elyId = await ely_get_default_user().catch(() => null)
+	if (elyId) {
+		const account = await pickElyAccount(elyId)
+		if (account) return { kind: 'ready', account }
+	}
+	const msa = await pickMsaAccount()
+	if (msa) return { kind: 'ready', account: msa }
+	return { kind: 'none' }
+}
+
 async function readServiceAccount(): Promise<ServiceAccount | null> {
-	try {
-		const ely: ElyCredentials[] = (await ely_get_users()) ?? []
-		const activeEly = ely.find((account) => account.active) ?? ely[0]
-		if (activeEly?.access_token && activeEly.profile?.id) {
-			return {
-				provider: 'ely',
-				uuid: activeEly.profile.id,
-				name: activeEly.profile.name,
-				accessToken: activeEly.access_token,
-			}
-		}
-	} catch {
-		/* аккаунтов Ely.by нет — ищем Microsoft */
-	}
-	try {
-		const msa = (await users()) ?? []
-		const activeMsa = msa.find((account) => (account as { active?: boolean }).active) ?? msa[0]
-		const profile = (activeMsa as { profile?: { id?: string; name?: string } } | undefined)?.profile
-		const token = (activeMsa as { access_token?: string } | undefined)?.access_token
-		if (token && profile?.id) {
-			return { provider: 'msa', uuid: profile.id, name: profile.name || '', accessToken: token }
-		}
-	} catch {
-		/* нет и Microsoft */
-	}
-	return null
+	const state = await readAccountState()
+	return state.kind === 'ready' ? state.account : null
 }
 
 function accountKeyOf(account: ServiceAccount): string {
@@ -122,13 +163,42 @@ async function serviceFetch(
 	}
 }
 
+async function accountSkinUrl(account: ServiceAccount): Promise<string | null> {
+	try {
+		if (account.provider === 'ely') {
+			const res = await proxiedFetch(
+				`https://skinsystem.ely.by/textures/${encodeURIComponent(account.name)}`,
+				{ connectTimeout: 8000 },
+			)
+			if (!res.ok || res.status === 204) return null
+			const data = (await res.json()) as { SKIN?: { url?: string } }
+			const url = data?.SKIN?.url || null
+			return url ? url.replace(/^http:\/\//, 'https://') : null
+		}
+		const id = account.uuid.replace(/-/g, '')
+		const res = await proxiedFetch(
+			`https://sessionserver.mojang.com/session/minecraft/profile/${id}`,
+			{ connectTimeout: 8000 },
+		)
+		if (!res.ok) return null
+		const data = (await res.json()) as { properties?: { name: string; value: string }[] }
+		const raw = data?.properties?.find((prop) => prop.name === 'textures')?.value
+		if (!raw) return null
+		const textures = JSON.parse(atob(raw)) as { textures?: { SKIN?: { url?: string } } }
+		const url = textures?.textures?.SKIN?.url || null
+		return url ? url.replace(/^http:\/\//, 'https://') : null
+	} catch {
+		return null
+	}
+}
+
 async function createSession(account: ServiceAccount): Promise<ServiceSession | null> {
 	const response = await serviceFetch('/session', {
 		method: 'POST',
 		body: {
 			provider: account.provider,
 			accessToken: account.accessToken,
-			skinUrl: null,
+			skinUrl: await accountSkinUrl(account),
 		},
 	})
 	if (!response.ok || !response.data?.token) return null
@@ -147,12 +217,16 @@ async function createSession(account: ServiceAccount): Promise<ServiceSession | 
 export async function ensureServiceSession(force = false): Promise<ServiceSession | null> {
 	if (!force && sessionPromise) return sessionPromise
 	sessionPromise = (async () => {
+		const account = await readServiceAccount()
+		if (!account) return null
+		const key = accountKeyOf(account)
 		if (!force) {
 			try {
 				const raw = localStorage.getItem(SESSION_KEY)
 				if (raw) {
 					const saved = JSON.parse(raw) as StoredSession
-					if (saved?.token && Date.now() - (saved.savedAt || 0) < SESSION_TTL) {
+					const fresh = Date.now() - (saved?.savedAt || 0) < SESSION_TTL
+					if (saved?.token && saved.accountKey === key && fresh) {
 						const probe = await serviceFetch('/me', { token: saved.token })
 						if (probe.ok) {
 							return {
@@ -164,11 +238,9 @@ export async function ensureServiceSession(force = false): Promise<ServiceSessio
 					}
 				}
 			} catch {
-				/* битый кэш — создаём заново */
+				localStorage.removeItem(SESSION_KEY)
 			}
 		}
-		const account = await readServiceAccount()
-		if (!account) return null
 		const created = await createSession(account)
 		if (created) {
 			try {
@@ -183,6 +255,21 @@ export async function ensureServiceSession(force = false): Promise<ServiceSessio
 		return created
 	})()
 	return sessionPromise
+}
+
+const sessionListeners = new Set<() => void>()
+
+/** Подписка на смену аккаунта: страницы пересоздают сессию и перерисовываются. */
+export function onServiceAccountChange(listener: () => void): () => void {
+	sessionListeners.add(listener)
+	return () => sessionListeners.delete(listener)
+}
+
+if (typeof window !== 'undefined') {
+	window.addEventListener(ACTIVE_ACCOUNT_EVENT, () => {
+		forgetServiceSession()
+		for (const listener of sessionListeners) listener()
+	})
 }
 
 export function forgetServiceSession(): void {
@@ -204,7 +291,7 @@ export async function serviceRequest(
 	} = {},
 ): Promise<{ ok: boolean; status: number; data: LooseRecord; error?: string; code?: string }> {
 	let session = await ensureServiceSession()
-	if (!session) return { ok: false, status: 0, data: null, error: 'no_account', code: 'no_account' }
+	if (!session) return { ok: false, status: 0, data: {}, error: 'no_account', code: 'no_account' }
 	let target = path.startsWith('/') ? path : `/${path}`
 	if (opts.query) {
 		const search = new URLSearchParams()
@@ -224,7 +311,7 @@ export async function serviceRequest(
 		forgetServiceSession()
 		session = await ensureServiceSession(true)
 		if (!session)
-			return { ok: false, status: 401, data: null, error: 'no_account', code: 'no_account' }
+			return { ok: false, status: 401, data: {}, error: 'no_account', code: 'no_account' }
 		response = await serviceFetch(target, {
 			method: opts.method,
 			body: opts.body,

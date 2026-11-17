@@ -1,6 +1,11 @@
 import { defineMessages, useVIntl } from '@modrinth/ui'
 
 const notes = defineMessages({
+	pixi: {
+		id: 'app.ai.catalog.note.pixi',
+		defaultMessage:
+			'Агент Pixi из Undefined Client: Lite, Pro, Ultra и Flash. Ключ не нужен — вход через аккаунт Microsoft или Ely.by, выбранный в лаунчере.',
+	},
 	zai: {
 		id: 'app.ai.catalog.note.zai',
 		defaultMessage:
@@ -77,6 +82,7 @@ const names = defineMessages({
 })
 
 const NOTE_KEYS: Record<string, keyof typeof notes> = {
+	pixi: 'pixi',
 	zai: 'zai',
 	genapi: 'genapi',
 	kilo: 'kilo',

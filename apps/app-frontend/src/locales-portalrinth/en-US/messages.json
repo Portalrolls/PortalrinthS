@@ -3422,13 +3422,13 @@
 		"message": "Official news"
 	},
 	"app.news.gateTitle": {
-		"message": "Community posts and news"
+		"message": "The feed needs a Microsoft or Ely.by account"
 	},
 	"app.news.gateText": {
 		"message": "Sign in with a Microsoft or Ely.by account to publish posts, react and comment. The feed is shared with Undefined Client: everyone's posts show up both here and there."
 	},
 	"app.news.composerPlaceholder": {
-		"message": "Share news, a build or a screenshot…"
+		"message": "What's new with you?"
 	},
 	"app.news.publish": {
 		"message": "Publish"
@@ -3440,13 +3440,13 @@
 		"message": "A Microsoft or Ely.by account is required"
 	},
 	"app.news.postingBanned": {
-		"message": "Posting and commenting is limited by the service"
+		"message": "Posting and commenting are restricted for you."
 	},
 	"app.news.publishFailed": {
-		"message": "Could not publish"
+		"message": "Couldn't publish"
 	},
 	"app.news.loading": {
-		"message": "Loading the feed…"
+		"message": "Loading…"
 	},
 	"app.news.loadError": {
 		"message": "The service is not responding"
@@ -3461,7 +3461,7 @@
 		"message": "Loading comments…"
 	},
 	"app.news.noComments": {
-		"message": "All quiet — be the first."
+		"message": "No comments yet — be the first."
 	},
 	"app.news.commentPlaceholder": {
 		"message": "Write a comment…"
@@ -3488,7 +3488,7 @@
 		"message": "MC Messenger"
 	},
 	"app.messenger.loading": {
-		"message": "Connecting to the service…"
+		"message": "Connecting to the messenger…"
 	},
 	"app.messenger.gateTitle": {
 		"message": "MC Messenger"
@@ -3497,7 +3497,7 @@
 		"message": "Chats and friends right in the launcher — like Undefined Client. A Microsoft or Ely.by account is required: the messenger is shared, so their players and ours see the same conversations. It runs on their live service — updates arrive on their own."
 	},
 	"app.messenger.retry": {
-		"message": "Connect an account"
+		"message": "Retry"
 	},
 	"app.messenger.tabChats": {
 		"message": "Chats"
@@ -3632,20 +3632,20 @@
 	"app.messenger.accept": "Accept",
 	"app.messenger.activeNow": "Active now",
 	"app.messenger.addFriend": "Add friend",
-	"app.messenger.attach": "Attach file",
+	"app.messenger.attach": "Attach",
 	"app.messenger.blocked": "Blocked",
 	"app.messenger.call.accept": "Accept",
 	"app.messenger.call.active": "In call",
 	"app.messenger.call.connecting": "Connecting…",
 	"app.messenger.call.decline": "Decline",
-	"app.messenger.call.failed": "Call failed",
-	"app.messenger.call.hangup": "Hang up",
-	"app.messenger.call.incoming": "Incoming call",
-	"app.messenger.call.micDenied": "No microphone access",
-	"app.messenger.call.mute": "Mute microphone",
+	"app.messenger.call.failed": "Could not connect",
+	"app.messenger.call.hangup": "Disconnect",
+	"app.messenger.call.incoming": "Incoming voice call…",
+	"app.messenger.call.micDenied": "No access to the microphone",
+	"app.messenger.call.mute": "Mute",
 	"app.messenger.call.peer": "Peer",
 	"app.messenger.call.ringing": "Ringing…",
-	"app.messenger.call.start": "Call",
+	"app.messenger.call.start": "Start voice call",
 	"app.messenger.call.video": "Video call",
 	"app.messenger.cancelRequest": "Cancel",
 	"app.messenger.chatSearch": "Search in chat",
@@ -3701,5 +3701,1361 @@
 	"app.messenger.waitAnswer": "Awaiting reply",
 	"app.messenger.world": "World",
 	"app.messenger.write": "Message",
-	"app.messenger.writeTo": "Message {name}"
+	"app.messenger.writeTo": "Message {name}",
+	"app.messenger.activity.hosting": {
+		"message": "Hosting a LAN world"
+	},
+	"app.messenger.activity.playing": {
+		"message": "Playing Minecraft"
+	},
+	"app.messenger.activity.server": {
+		"message": "Playing on {name}"
+	},
+	"app.messenger.back": {
+		"message": "Back"
+	},
+	"app.messenger.call.action": {
+		"message": "Call"
+	},
+	"app.messenger.call.busy": {
+		"message": "The user is in another call"
+	},
+	"app.messenger.call.calling": {
+		"message": "Calling…"
+	},
+	"app.messenger.call.connected": {
+		"message": "Voice connected"
+	},
+	"app.messenger.call.lost": {
+		"message": "Call connection lost"
+	},
+	"app.messenger.call.noAnswer": {
+		"message": "No answer"
+	},
+	"app.messenger.call.someone": {
+		"message": "Someone"
+	},
+	"app.messenger.call.unmute": {
+		"message": "Unmute"
+	},
+	"app.messenger.cancel": {
+		"message": "Cancel"
+	},
+	"app.messenger.category.create": {
+		"message": "Create category"
+	},
+	"app.messenger.category.delete": {
+		"message": "Delete category"
+	},
+	"app.messenger.category.deleteText": {
+		"message": "The category \"{name}\" will be deleted, its channels will stay."
+	},
+	"app.messenger.category.name": {
+		"message": "Category name"
+	},
+	"app.messenger.category.placeholder": {
+		"message": "New category"
+	},
+	"app.messenger.category.rename": {
+		"message": "Rename category"
+	},
+	"app.messenger.channel.category": {
+		"message": "Category"
+	},
+	"app.messenger.channel.create": {
+		"message": "Create channel"
+	},
+	"app.messenger.channel.createTitle": {
+		"message": "Create channel"
+	},
+	"app.messenger.channel.delete": {
+		"message": "Delete channel"
+	},
+	"app.messenger.channel.deleteText": {
+		"message": "#{name} and all of its messages will be deleted."
+	},
+	"app.messenger.channel.deleteTitle": {
+		"message": "Delete channel"
+	},
+	"app.messenger.channel.edit": {
+		"message": "Edit channel"
+	},
+	"app.messenger.channel.editTitle": {
+		"message": "Channel settings"
+	},
+	"app.messenger.channel.name": {
+		"message": "Channel name"
+	},
+	"app.messenger.channel.noCategory": {
+		"message": "No category"
+	},
+	"app.messenger.channel.text": {
+		"message": "Text"
+	},
+	"app.messenger.channel.textHint": {
+		"message": "Messages, images, GIFs, emoji and files"
+	},
+	"app.messenger.channel.topic": {
+		"message": "Channel topic"
+	},
+	"app.messenger.channel.type": {
+		"message": "Channel type"
+	},
+	"app.messenger.channel.voice": {
+		"message": "Voice"
+	},
+	"app.messenger.channel.voiceHint": {
+		"message": "Hang out together with voice"
+	},
+	"app.messenger.channel.voiceName": {
+		"message": "Voice"
+	},
+	"app.messenger.close": {
+		"message": "Close"
+	},
+	"app.messenger.closeDm": {
+		"message": "Close DM"
+	},
+	"app.messenger.composer.channel": {
+		"message": "Message #{name}"
+	},
+	"app.messenger.composer.dm": {
+		"message": "Message @{name}"
+	},
+	"app.messenger.copied": {
+		"message": "Copied"
+	},
+	"app.messenger.copied.id": {
+		"message": "ID copied"
+	},
+	"app.messenger.copied.link": {
+		"message": "Link copied"
+	},
+	"app.messenger.copied.text": {
+		"message": "Text copied"
+	},
+	"app.messenger.copy": {
+		"message": "Copy"
+	},
+	"app.messenger.copy.id": {
+		"message": "Copy message ID"
+	},
+	"app.messenger.copy.link": {
+		"message": "Copy message link"
+	},
+	"app.messenger.copy.text": {
+		"message": "Copy text"
+	},
+	"app.messenger.copyFailed": {
+		"message": "Couldn't copy"
+	},
+	"app.messenger.copyUserId": {
+		"message": "Copy user ID"
+	},
+	"app.messenger.create": {
+		"message": "Create"
+	},
+	"app.messenger.delete.action": {
+		"message": "Delete message"
+	},
+	"app.messenger.delete.confirm": {
+		"message": "Delete"
+	},
+	"app.messenger.delete.text": {
+		"message": "Are you sure you want to delete this message? This can't be undone."
+	},
+	"app.messenger.delete.title": {
+		"message": "Delete message"
+	},
+	"app.messenger.dms": {
+		"message": "Direct messages"
+	},
+	"app.messenger.drop.channel": {
+		"message": "It will be sent to #{name}"
+	},
+	"app.messenger.drop.dm": {
+		"message": "It will be sent to {name}"
+	},
+	"app.messenger.drop.title": {
+		"message": "Drop a file here"
+	},
+	"app.messenger.edit.action": {
+		"message": "Edit"
+	},
+	"app.messenger.edit.cancel": {
+		"message": "cancel"
+	},
+	"app.messenger.edit.hintEnter": {
+		"message": "Enter to"
+	},
+	"app.messenger.edit.hintEsc": {
+		"message": "Escape to"
+	},
+	"app.messenger.edit.save": {
+		"message": "save"
+	},
+	"app.messenger.edited": {
+		"message": "(edited)"
+	},
+	"app.messenger.error.blocked": {
+		"message": "This user has restricted contact with you"
+	},
+	"app.messenger.error.forbidden": {
+		"message": "You don't have permission to do that"
+	},
+	"app.messenger.error.forward": {
+		"message": "The message couldn't be forwarded to every chat"
+	},
+	"app.messenger.error.generic": {
+		"message": "Something went wrong: {code}"
+	},
+	"app.messenger.error.network": {
+		"message": "No connection to the server"
+	},
+	"app.messenger.error.notFound": {
+		"message": "Not found — it may have been deleted"
+	},
+	"app.messenger.error.rate": {
+		"message": "Too many requests. Wait a moment"
+	},
+	"app.messenger.error.tooLarge": {
+		"message": "The file is too large (12 MB max)"
+	},
+	"app.messenger.file.download": {
+		"message": "Download"
+	},
+	"app.messenger.file.downloadFailed": {
+		"message": "Couldn't download the file"
+	},
+	"app.messenger.file.downloading": {
+		"message": "Downloading…"
+	},
+	"app.messenger.file.empty": {
+		"message": "The file is empty"
+	},
+	"app.messenger.file.mediaFailed": {
+		"message": "Couldn't load — click to try again"
+	},
+	"app.messenger.file.mediaFailedShort": {
+		"message": "failed to load"
+	},
+	"app.messenger.file.openBrowser": {
+		"message": "Open in browser"
+	},
+	"app.messenger.file.pause": {
+		"message": "Pause"
+	},
+	"app.messenger.file.play": {
+		"message": "Play"
+	},
+	"app.messenger.file.preparing": {
+		"message": "Preparing…"
+	},
+	"app.messenger.file.readFailed": {
+		"message": "Couldn't read the file"
+	},
+	"app.messenger.file.remove": {
+		"message": "Remove attachment"
+	},
+	"app.messenger.file.saved": {
+		"message": "File saved"
+	},
+	"app.messenger.file.tooBig": {
+		"message": "The file is larger than 12 MB"
+	},
+	"app.messenger.file.voice": {
+		"message": "Voice message"
+	},
+	"app.messenger.findOrStart": {
+		"message": "Find or start a conversation"
+	},
+	"app.messenger.forward.action": {
+		"message": "Forward"
+	},
+	"app.messenger.forward.dm": {
+		"message": "Direct messages"
+	},
+	"app.messenger.forward.done": {
+		"message": "Forwarded to {count} chats"
+	},
+	"app.messenger.forward.empty": {
+		"message": "Nothing found"
+	},
+	"app.messenger.forward.search": {
+		"message": "Find a chat or server"
+	},
+	"app.messenger.forward.send": {
+		"message": "Send"
+	},
+	"app.messenger.forward.server": {
+		"message": "Server"
+	},
+	"app.messenger.forward.title": {
+		"message": "Forward message"
+	},
+	"app.messenger.friends.accept": {
+		"message": "Accept"
+	},
+	"app.messenger.friends.add": {
+		"message": "Add friend"
+	},
+	"app.messenger.friends.addHint": {
+		"message": "You can add a friend by their Minecraft or Ely.by nickname."
+	},
+	"app.messenger.friends.addPlaceholder": {
+		"message": "Enter a player nickname"
+	},
+	"app.messenger.friends.all": {
+		"message": "All"
+	},
+	"app.messenger.friends.allCount": {
+		"message": "All friends — {count}"
+	},
+	"app.messenger.friends.block": {
+		"message": "Block"
+	},
+	"app.messenger.friends.blockText": {
+		"message": "They won't be able to message or call you. You can unblock them in the \"Blocked\" tab."
+	},
+	"app.messenger.friends.blockTitle": {
+		"message": "Block {name}?"
+	},
+	"app.messenger.friends.blocked": {
+		"message": "Blocked"
+	},
+	"app.messenger.friends.blockedBadge": {
+		"message": "Blocked"
+	},
+	"app.messenger.friends.blockedCount": {
+		"message": "Blocked — {count}"
+	},
+	"app.messenger.friends.cancel": {
+		"message": "Cancel request"
+	},
+	"app.messenger.friends.decline": {
+		"message": "Decline"
+	},
+	"app.messenger.friends.empty": {
+		"message": "It's empty here — add friends by nickname."
+	},
+	"app.messenger.friends.emptyBlocked": {
+		"message": "You haven't blocked anyone."
+	},
+	"app.messenger.friends.emptyOnline": {
+		"message": "None of your friends are online. A good time to invite them to play."
+	},
+	"app.messenger.friends.emptyPending": {
+		"message": "No pending friend requests."
+	},
+	"app.messenger.friends.find": {
+		"message": "Search"
+	},
+	"app.messenger.friends.incoming": {
+		"message": "Incoming friend request"
+	},
+	"app.messenger.friends.notFound": {
+		"message": "Nobody found. Check the nickname."
+	},
+	"app.messenger.friends.online": {
+		"message": "Online"
+	},
+	"app.messenger.friends.onlineCount": {
+		"message": "Online — {count}"
+	},
+	"app.messenger.friends.outgoing": {
+		"message": "Outgoing friend request"
+	},
+	"app.messenger.friends.pending": {
+		"message": "Pending"
+	},
+	"app.messenger.friends.pendingCount": {
+		"message": "Pending — {count}"
+	},
+	"app.messenger.friends.pendingShort": {
+		"message": "Pending"
+	},
+	"app.messenger.friends.remove": {
+		"message": "Remove friend"
+	},
+	"app.messenger.friends.removeText": {
+		"message": "Are you sure you want to remove {name} from your friends?"
+	},
+	"app.messenger.friends.removeTitle": {
+		"message": "Remove \"{name}\""
+	},
+	"app.messenger.friends.sendRequest": {
+		"message": "Send friend request"
+	},
+	"app.messenger.friends.sent": {
+		"message": "Friend request sent"
+	},
+	"app.messenger.friends.sentTo": {
+		"message": "Friend request sent to {name}"
+	},
+	"app.messenger.friends.title": {
+		"message": "Friends"
+	},
+	"app.messenger.friends.unblock": {
+		"message": "Unblock"
+	},
+	"app.messenger.gate.check": {
+		"message": "Check again"
+	},
+	"app.messenger.gate.ely": {
+		"message": "Sign in with Ely.by"
+	},
+	"app.messenger.gate.failedText": {
+		"message": "The Undefined server didn't respond. Check your connection and try again."
+	},
+	"app.messenger.gate.failedTitle": {
+		"message": "Couldn't connect"
+	},
+	"app.messenger.gate.microsoft": {
+		"message": "Sign in with Microsoft"
+	},
+	"app.messenger.gate.offline": {
+		"message": "The offline account \"{name}\" is selected. Only licensed and Ely.by accounts can use the messenger — pick another account or sign in."
+	},
+	"app.messenger.gate.retry": {
+		"message": "Retry"
+	},
+	"app.messenger.gate.settings": {
+		"message": "Account settings"
+	},
+	"app.messenger.gate.text": {
+		"message": "Sign in with Microsoft or Ely.by to chat with friends, create servers and make calls."
+	},
+	"app.messenger.gate.title": {
+		"message": "Sign in to an Undefined account (Microsoft or Ely.by)"
+	},
+	"app.messenger.home": {
+		"message": "Direct messages"
+	},
+	"app.messenger.image.bad": {
+		"message": "Couldn't read the image"
+	},
+	"app.messenger.intro.channel": {
+		"message": "This is the start of the #{name} channel."
+	},
+	"app.messenger.intro.channelTitle": {
+		"message": "Welcome to #{name}"
+	},
+	"app.messenger.intro.dm": {
+		"message": "This is the beginning of your direct message history with {name}."
+	},
+	"app.messenger.invite.1d": {
+		"message": "1 day"
+	},
+	"app.messenger.invite.1h": {
+		"message": "1 hour"
+	},
+	"app.messenger.invite.30m": {
+		"message": "30 minutes"
+	},
+	"app.messenger.invite.7d": {
+		"message": "7 days"
+	},
+	"app.messenger.invite.create": {
+		"message": "Create link"
+	},
+	"app.messenger.invite.expires": {
+		"message": "Expires after"
+	},
+	"app.messenger.invite.maxUses": {
+		"message": "Max uses"
+	},
+	"app.messenger.invite.never": {
+		"message": "Never expires"
+	},
+	"app.messenger.invite.none": {
+		"message": "No active invites."
+	},
+	"app.messenger.invite.revoke": {
+		"message": "Revoke"
+	},
+	"app.messenger.invite.text": {
+		"message": "Send a friend this link — it takes them straight to the server."
+	},
+	"app.messenger.invite.unlimited": {
+		"message": "No limit"
+	},
+	"app.messenger.invite.until": {
+		"message": "until {date}"
+	},
+	"app.messenger.invite.uses": {
+		"message": "Uses: {uses}"
+	},
+	"app.messenger.jumpPresent": {
+		"message": "Jump to present"
+	},
+	"app.messenger.loadFailed": {
+		"message": "Couldn't load messages"
+	},
+	"app.messenger.logout.confirm": {
+		"message": "Sign out"
+	},
+	"app.messenger.logout.text": {
+		"message": "The messenger session will be reset. Your launcher account stays — we'll sign in again on the next connection."
+	},
+	"app.messenger.logout.title": {
+		"message": "Sign out of the session"
+	},
+	"app.messenger.members.kick": {
+		"message": "Kick"
+	},
+	"app.messenger.members.kickText": {
+		"message": "{name} will be removed from \"{server}\". You can invite them again later."
+	},
+	"app.messenger.members.kickTitle": {
+		"message": "Kick {name}"
+	},
+	"app.messenger.members.loading": {
+		"message": "Loading members…"
+	},
+	"app.messenger.members.offline": {
+		"message": "Offline"
+	},
+	"app.messenger.members.online": {
+		"message": "Online"
+	},
+	"app.messenger.members.staff": {
+		"message": "Staff"
+	},
+	"app.messenger.mention.title": {
+		"message": "Members"
+	},
+	"app.messenger.myProfile": {
+		"message": "My profile"
+	},
+	"app.messenger.newDm": {
+		"message": "Create DM"
+	},
+	"app.messenger.newMessages": {
+		"message": "NEW"
+	},
+	"app.messenger.noDms": {
+		"message": "Your direct conversations will appear here"
+	},
+	"app.messenger.nothingFound": {
+		"message": "Nothing found"
+	},
+	"app.messenger.ok": {
+		"message": "Done"
+	},
+	"app.messenger.panel.members": {
+		"message": "Member list"
+	},
+	"app.messenger.panel.profile": {
+		"message": "Show user profile"
+	},
+	"app.messenger.panel.toggle": {
+		"message": "Side panel"
+	},
+	"app.messenger.peer.account": {
+		"message": "Account"
+	},
+	"app.messenger.peer.friend": {
+		"message": "Friend"
+	},
+	"app.messenger.peer.fullProfile": {
+		"message": "Open full profile"
+	},
+	"app.messenger.peer.notFriend": {
+		"message": "Not friends"
+	},
+	"app.messenger.peer.relation": {
+		"message": "Relationship"
+	},
+	"app.messenger.peer.sharedServers": {
+		"message": "Mutual servers — {count}"
+	},
+	"app.messenger.pin.added": {
+		"message": "Message pinned"
+	},
+	"app.messenger.pin.pin": {
+		"message": "Pin"
+	},
+	"app.messenger.pin.removed": {
+		"message": "Message unpinned"
+	},
+	"app.messenger.pin.unpin": {
+		"message": "Unpin"
+	},
+	"app.messenger.pins.empty": {
+		"message": "There are no pinned messages yet"
+	},
+	"app.messenger.pins.title": {
+		"message": "Pinned messages"
+	},
+	"app.messenger.plus.file": {
+		"message": "Upload a file"
+	},
+	"app.messenger.plus.image": {
+		"message": "Image or GIF"
+	},
+	"app.messenger.rail": {
+		"message": "Servers"
+	},
+	"app.messenger.react.add": {
+		"message": "Add reaction"
+	},
+	"app.messenger.react.heart": {
+		"message": "Like"
+	},
+	"app.messenger.reconnect": {
+		"message": "Reconnect"
+	},
+	"app.messenger.replyingTo": {
+		"message": "Replying to"
+	},
+	"app.messenger.report.action": {
+		"message": "Report"
+	},
+	"app.messenger.report.placeholder": {
+		"message": "Spam, insults, scam…"
+	},
+	"app.messenger.report.send": {
+		"message": "Send report"
+	},
+	"app.messenger.report.sent": {
+		"message": "Report sent"
+	},
+	"app.messenger.report.text": {
+		"message": "Describe what's wrong. Moderators will review the report."
+	},
+	"app.messenger.report.title": {
+		"message": "Report message"
+	},
+	"app.messenger.role.admin": {
+		"message": "Admin"
+	},
+	"app.messenger.role.member": {
+		"message": "Member"
+	},
+	"app.messenger.role.owner": {
+		"message": "Owner"
+	},
+	"app.messenger.roles.color": {
+		"message": "Color"
+	},
+	"app.messenger.roles.count": {
+		"message": "Members: {count}"
+	},
+	"app.messenger.roles.create": {
+		"message": "Create role"
+	},
+	"app.messenger.roles.delete": {
+		"message": "Delete role"
+	},
+	"app.messenger.roles.name": {
+		"message": "Role name"
+	},
+	"app.messenger.roles.none": {
+		"message": "No roles yet."
+	},
+	"app.messenger.roles.text": {
+		"message": "Roles color members and group them in the member list."
+	},
+	"app.messenger.save": {
+		"message": "Save"
+	},
+	"app.messenger.search.count": {
+		"message": "Found: {count}"
+	},
+	"app.messenger.search.empty": {
+		"message": "Nothing found"
+	},
+	"app.messenger.search.people": {
+		"message": "Search"
+	},
+	"app.messenger.search.placeholder": {
+		"message": "Search chat"
+	},
+	"app.messenger.search.searching": {
+		"message": "Searching…"
+	},
+	"app.messenger.searchPeople": {
+		"message": "Players"
+	},
+	"app.messenger.server.about": {
+		"message": "About server"
+	},
+	"app.messenger.server.add": {
+		"message": "Add a server"
+	},
+	"app.messenger.server.copyId": {
+		"message": "Copy server ID"
+	},
+	"app.messenger.server.create": {
+		"message": "Create"
+	},
+	"app.messenger.server.createOwn": {
+		"message": "Create my own"
+	},
+	"app.messenger.server.createText": {
+		"message": "A server is where you and your friends hang out in text and voice channels."
+	},
+	"app.messenger.server.createTitle": {
+		"message": "Create a server"
+	},
+	"app.messenger.server.customize": {
+		"message": "Customize your server"
+	},
+	"app.messenger.server.customizeText": {
+		"message": "Give your server a name and an icon. You can always change them later."
+	},
+	"app.messenger.server.defaultName": {
+		"message": "{name}'s server"
+	},
+	"app.messenger.server.description": {
+		"message": "Description"
+	},
+	"app.messenger.server.haveInvite": {
+		"message": "Have an invite already?"
+	},
+	"app.messenger.server.hide": {
+		"message": "Hide server"
+	},
+	"app.messenger.server.invite": {
+		"message": "Invite people"
+	},
+	"app.messenger.server.inviteBad": {
+		"message": "The invite is invalid or has expired"
+	},
+	"app.messenger.server.inviteEmpty": {
+		"message": "Enter an invite link or code"
+	},
+	"app.messenger.server.inviteLink": {
+		"message": "Invite link"
+	},
+	"app.messenger.server.join": {
+		"message": "Join a server"
+	},
+	"app.messenger.server.joinText": {
+		"message": "Enter an invite to join an existing server."
+	},
+	"app.messenger.server.joinTitle": {
+		"message": "Join a server"
+	},
+	"app.messenger.server.leave": {
+		"message": "Leave server"
+	},
+	"app.messenger.server.membersCount": {
+		"message": "Members: {count}"
+	},
+	"app.messenger.server.name": {
+		"message": "Server name"
+	},
+	"app.messenger.server.settings": {
+		"message": "Server settings"
+	},
+	"app.messenger.server.untitled": {
+		"message": "Server"
+	},
+	"app.messenger.server.upload": {
+		"message": "Upload"
+	},
+	"app.messenger.settings.about": {
+		"message": "About"
+	},
+	"app.messenger.settings.addCount": {
+		"message": "Add ({count})"
+	},
+	"app.messenger.settings.addFriends": {
+		"message": "Add friends"
+	},
+	"app.messenger.settings.added": {
+		"message": "Friends added to the server"
+	},
+	"app.messenger.settings.banner": {
+		"message": "Change banner"
+	},
+	"app.messenger.settings.dangerOwner": {
+		"message": "Delete"
+	},
+	"app.messenger.settings.delete": {
+		"message": "Delete server"
+	},
+	"app.messenger.settings.deleteHint": {
+		"message": "Deletes the server for every member. This can't be undone."
+	},
+	"app.messenger.settings.deleteText": {
+		"message": "The server and all of its channels and messages will be deleted forever."
+	},
+	"app.messenger.settings.deleteTitle": {
+		"message": "Delete \"{name}\""
+	},
+	"app.messenger.settings.hide": {
+		"message": "Hide server"
+	},
+	"app.messenger.settings.hideHint": {
+		"message": "The server will be hidden from the list and come back with a new message."
+	},
+	"app.messenger.settings.invites": {
+		"message": "Invites"
+	},
+	"app.messenger.settings.kick": {
+		"message": "Kick"
+	},
+	"app.messenger.settings.kickText": {
+		"message": "{name} will be removed from the server and can only come back with an invite."
+	},
+	"app.messenger.settings.kickTitle": {
+		"message": "Kick {name}"
+	},
+	"app.messenger.settings.leave": {
+		"message": "Leave"
+	},
+	"app.messenger.settings.leaveHint": {
+		"message": "The server will disappear from your list; messages stay for other members."
+	},
+	"app.messenger.settings.leaveText": {
+		"message": "Are you sure? You'll need a new invite to come back."
+	},
+	"app.messenger.settings.leaveTitle": {
+		"message": "Leave \"{name}\""
+	},
+	"app.messenger.settings.members": {
+		"message": "Members"
+	},
+	"app.messenger.settings.noDescription": {
+		"message": "No description."
+	},
+	"app.messenger.settings.overview": {
+		"message": "Overview"
+	},
+	"app.messenger.settings.removeBanner": {
+		"message": "Remove banner"
+	},
+	"app.messenger.settings.removeIcon": {
+		"message": "Remove icon"
+	},
+	"app.messenger.settings.reset": {
+		"message": "Reset"
+	},
+	"app.messenger.settings.roles": {
+		"message": "Roles"
+	},
+	"app.messenger.settings.rolesBtn": {
+		"message": "Roles"
+	},
+	"app.messenger.settings.saved": {
+		"message": "Changes saved"
+	},
+	"app.messenger.settings.searchMembers": {
+		"message": "Search members"
+	},
+	"app.messenger.settings.title": {
+		"message": "Server settings"
+	},
+	"app.messenger.settings.unsaved": {
+		"message": "You have unsaved changes"
+	},
+	"app.messenger.startChat": {
+		"message": "Start a conversation"
+	},
+	"app.messenger.status.busy": {
+		"message": "Idle"
+	},
+	"app.messenger.status.busyHint": {
+		"message": "You're around but may not reply right away"
+	},
+	"app.messenger.status.dnd": {
+		"message": "Do not disturb"
+	},
+	"app.messenger.status.dndHint": {
+		"message": "Notification sounds are muted"
+	},
+	"app.messenger.status.invisible": {
+		"message": "Invisible"
+	},
+	"app.messenger.status.invisibleHint": {
+		"message": "Others will see you as offline"
+	},
+	"app.messenger.status.offline": {
+		"message": "Offline"
+	},
+	"app.messenger.status.online": {
+		"message": "Online"
+	},
+	"app.messenger.today": {
+		"message": "Today"
+	},
+	"app.messenger.typing.many": {
+		"message": "{names} are typing…"
+	},
+	"app.messenger.typing.one": {
+		"message": "{name} is typing…"
+	},
+	"app.messenger.viewProfile": {
+		"message": "View profile"
+	},
+	"app.messenger.viewingOlder": {
+		"message": "You're viewing older messages"
+	},
+	"app.messenger.voice.connected": {
+		"message": "Voice connected"
+	},
+	"app.messenger.voice.deafen": {
+		"message": "Deafen"
+	},
+	"app.messenger.voice.failed": {
+		"message": "Couldn't join the voice channel"
+	},
+	"app.messenger.voice.joined": {
+		"message": "You joined \"{name}\""
+	},
+	"app.messenger.voice.needChannel": {
+		"message": "Create a voice channel in the server settings"
+	},
+	"app.messenger.voice.record": {
+		"message": "Record a voice message"
+	},
+	"app.messenger.voice.recording": {
+		"message": "Recording"
+	},
+	"app.messenger.voice.stop": {
+		"message": "Stop and send"
+	},
+	"app.messenger.voice.tooShort": {
+		"message": "Voice message is too short"
+	},
+	"app.messenger.voice.undeafen": {
+		"message": "Undeafen"
+	},
+	"app.messenger.voice.unsupported": {
+		"message": "Voice recording isn't available on this system"
+	},
+	"app.messenger.worlds.address": {
+		"message": "Address"
+	},
+	"app.messenger.worlds.ask": {
+		"message": "Ask for an invite"
+	},
+	"app.messenger.worlds.build": {
+		"message": "Modpack"
+	},
+	"app.messenger.worlds.copied": {
+		"message": "Address copied — paste it in \"Multiplayer\""
+	},
+	"app.messenger.worlds.copy": {
+		"message": "Copy address"
+	},
+	"app.messenger.worlds.empty": {
+		"message": "None of your friends are hosting a LAN world right now."
+	},
+	"app.messenger.worlds.hint": {
+		"message": "Worlds and servers your friends are playing on right now show up here. Copy the address and join."
+	},
+	"app.messenger.worlds.title": {
+		"message": "LAN worlds"
+	},
+	"app.messenger.worlds.version": {
+		"message": "Version"
+	},
+	"app.messenger.worlds.world": {
+		"message": "World"
+	},
+	"app.messenger.yesterday": {
+		"message": "Yesterday"
+	},
+	"app.news.aboutText": {
+		"message": "Official studio articles and the player community: posts, likes, comments and reposts to MC Messenger chats."
+	},
+	"app.news.aboutTitle": {
+		"message": "Undefined news"
+	},
+	"app.news.article": {
+		"message": "Article"
+	},
+	"app.news.articlesFailed": {
+		"message": "Couldn't load Undefined articles"
+	},
+	"app.news.attachImages": {
+		"message": "Attach photos (up to {n})"
+	},
+	"app.news.bookmarkAdd": {
+		"message": "Bookmark"
+	},
+	"app.news.bookmarkRemove": {
+		"message": "Remove bookmark"
+	},
+	"app.news.bookmarked": {
+		"message": "Post bookmarked"
+	},
+	"app.news.cancel": {
+		"message": "Cancel"
+	},
+	"app.news.cancelReply": {
+		"message": "Cancel reply"
+	},
+	"app.news.chatFallback": {
+		"message": "Chat"
+	},
+	"app.news.chatSearch": {
+		"message": "Find a chat"
+	},
+	"app.news.chatsFailed": {
+		"message": "Couldn't load chats"
+	},
+	"app.news.clearSearch": {
+		"message": "Clear search"
+	},
+	"app.news.clearTag": {
+		"message": "Clear tag"
+	},
+	"app.news.close": {
+		"message": "Close"
+	},
+	"app.news.commentDeleteFailed": {
+		"message": "Couldn't delete the comment"
+	},
+	"app.news.commentFailed": {
+		"message": "Couldn't send the comment"
+	},
+	"app.news.commentNeedAccount": {
+		"message": "Sign in with Microsoft or Ely.by to comment."
+	},
+	"app.news.commentsFailed": {
+		"message": "Couldn't load comments"
+	},
+	"app.news.copyFailed": {
+		"message": "Couldn't copy"
+	},
+	"app.news.copyLink": {
+		"message": "Copy link"
+	},
+	"app.news.copyMediaLink": {
+		"message": "Copy photo link"
+	},
+	"app.news.copyText": {
+		"message": "Copy text"
+	},
+	"app.news.dateAt": {
+		"message": "{date} at {time}"
+	},
+	"app.news.delete": {
+		"message": "Delete"
+	},
+	"app.news.deleteFailed": {
+		"message": "Couldn't delete the post"
+	},
+	"app.news.deletePost": {
+		"message": "Delete post"
+	},
+	"app.news.deleteText": {
+		"message": "The post, its comments and reactions will be gone for good."
+	},
+	"app.news.deleteTitle": {
+		"message": "Delete post?"
+	},
+	"app.news.deleted": {
+		"message": "Post deleted"
+	},
+	"app.news.feedFailed": {
+		"message": "Couldn't load the feed"
+	},
+	"app.news.followFailed": {
+		"message": "Couldn't update the follow"
+	},
+	"app.news.followersCount": {
+		"message": "{n} followers"
+	},
+	"app.news.followersCountEn": {
+		"message": "{n, plural, one {# follower} other {# followers}}"
+	},
+	"app.news.gateArticles": {
+		"message": "Undefined, Portalrinth and Noctrinth articles are readable without an account."
+	},
+	"app.news.gateNone": {
+		"message": "Sign in with Microsoft or Ely.by — the feed, comments and follows are tied to your game account."
+	},
+	"app.news.gateOffline": {
+		"message": "An offline account is selected. It has no verified identity, so you can't post, like or read the community feed with it."
+	},
+	"app.news.hashtags": {
+		"message": "Popular hashtags"
+	},
+	"app.news.imageBroken": {
+		"message": "Couldn't read “{name}”"
+	},
+	"app.news.imagesLimit": {
+		"message": "You can attach up to {n} photos"
+	},
+	"app.news.like": {
+		"message": "Like"
+	},
+	"app.news.likeFailed": {
+		"message": "Couldn't like the post"
+	},
+	"app.news.likesCount": {
+		"message": "{n} likes"
+	},
+	"app.news.likesCountEn": {
+		"message": "{n, plural, one {# like} other {# likes}}"
+	},
+	"app.news.linkCopied": {
+		"message": "Link copied"
+	},
+	"app.news.mediaN": {
+		"message": "Photo {n}"
+	},
+	"app.news.nextMedia": {
+		"message": "Next photo"
+	},
+	"app.news.noArticles": {
+		"message": "No articles yet"
+	},
+	"app.news.noBookmarks": {
+		"message": "No bookmarks yet — tap the bookmark icon under a post to save it."
+	},
+	"app.news.noChats": {
+		"message": "No chats found"
+	},
+	"app.news.noFollowing": {
+		"message": "Posts from people you follow will show up here. Start with “Who to follow”."
+	},
+	"app.news.noPosts": {
+		"message": "The feed is empty — write the first post."
+	},
+	"app.news.nothingFound": {
+		"message": "Nothing found"
+	},
+	"app.news.openImage": {
+		"message": "Open image"
+	},
+	"app.news.openInBrowser": {
+		"message": "Open in browser"
+	},
+	"app.news.openMedia": {
+		"message": "Open full screen"
+	},
+	"app.news.openOnSite": {
+		"message": "Open on the website"
+	},
+	"app.news.openPost": {
+		"message": "Open post"
+	},
+	"app.news.openProfile": {
+		"message": "Open profile"
+	},
+	"app.news.photoPost": {
+		"message": "Photo post"
+	},
+	"app.news.pinned": {
+		"message": "pinned"
+	},
+	"app.news.popularEmpty": {
+		"message": "No popular posts in this period"
+	},
+	"app.news.postMenu": {
+		"message": "Post actions"
+	},
+	"app.news.postTitle": {
+		"message": "Post"
+	},
+	"app.news.prevMedia": {
+		"message": "Previous photo"
+	},
+	"app.news.publishHint": {
+		"message": "Publish (Ctrl+Enter)"
+	},
+	"app.news.published": {
+		"message": "Post published"
+	},
+	"app.news.range30": {
+		"message": "30D"
+	},
+	"app.news.range7": {
+		"message": "7D"
+	},
+	"app.news.rangeAll": {
+		"message": "All"
+	},
+	"app.news.read": {
+		"message": "Follow"
+	},
+	"app.news.refresh": {
+		"message": "Refresh"
+	},
+	"app.news.removeImage": {
+		"message": "Remove photo"
+	},
+	"app.news.reply": {
+		"message": "Reply"
+	},
+	"app.news.replyTo": {
+		"message": "Replying to {name}"
+	},
+	"app.news.report": {
+		"message": "Report"
+	},
+	"app.news.reportAbuse": {
+		"message": "Abuse"
+	},
+	"app.news.reportFailed": {
+		"message": "Couldn't send the report"
+	},
+	"app.news.reportOther": {
+		"message": "Other"
+	},
+	"app.news.reportReason": {
+		"message": "Report reason"
+	},
+	"app.news.reportSent": {
+		"message": "Report sent"
+	},
+	"app.news.reportSpam": {
+		"message": "Spam"
+	},
+	"app.news.reportThanks": {
+		"message": "Moderators will review the post."
+	},
+	"app.news.repost": {
+		"message": "Repost"
+	},
+	"app.news.repostChats": {
+		"message": "To chat"
+	},
+	"app.news.repostChatsSubmit": {
+		"message": "Send ({n})"
+	},
+	"app.news.repostComment": {
+		"message": "Add a comment (optional)"
+	},
+	"app.news.repostFailed": {
+		"message": "Repost failed"
+	},
+	"app.news.repostMark": {
+		"message": "repost"
+	},
+	"app.news.repostMedia": {
+		"message": "Photo post"
+	},
+	"app.news.repostPick": {
+		"message": "Pick chats"
+	},
+	"app.news.repostTitle": {
+		"message": "Share post"
+	},
+	"app.news.repostWall": {
+		"message": "To wall"
+	},
+	"app.news.repostWallSubmit": {
+		"message": "Repost"
+	},
+	"app.news.repostedChats": {
+		"message": "Sent to chats: {n}"
+	},
+	"app.news.repostedWall": {
+		"message": "The post is now on your wall"
+	},
+	"app.news.retry": {
+		"message": "Retry"
+	},
+	"app.news.search": {
+		"message": "Search the feed…"
+	},
+	"app.news.searchArticles": {
+		"message": "Search articles…"
+	},
+	"app.news.send": {
+		"message": "Send"
+	},
+	"app.news.sessionFailed": {
+		"message": "Couldn't sign in to the Undefined service. Check your connection and try again."
+	},
+	"app.news.sessionTitle": {
+		"message": "Feed service unavailable"
+	},
+	"app.news.showLess": {
+		"message": "Show less"
+	},
+	"app.news.showMore": {
+		"message": "Show more"
+	},
+	"app.news.signInEly": {
+		"message": "Sign in with Ely.by"
+	},
+	"app.news.signInMicrosoft": {
+		"message": "Sign in with Microsoft"
+	},
+	"app.news.someone": {
+		"message": "Player"
+	},
+	"app.news.tabBookmarks": {
+		"message": "Bookmarks"
+	},
+	"app.news.tagFilter": {
+		"message": "Posts tagged"
+	},
+	"app.news.textCopied": {
+		"message": "Text copied"
+	},
+	"app.news.timeDaysShort": {
+		"message": "{n}d"
+	},
+	"app.news.timeHoursShort": {
+		"message": "{n}h"
+	},
+	"app.news.timeMinutesShort": {
+		"message": "{n}m"
+	},
+	"app.news.toArticles": {
+		"message": "To articles"
+	},
+	"app.news.unbookmarked": {
+		"message": "Bookmark removed"
+	},
+	"app.news.userNotFound": {
+		"message": "Player {name} not found"
+	},
+	"app.news.verified": {
+		"message": "Verified account"
+	},
+	"app.news.viewsTitle": {
+		"message": "Views"
+	},
+	"app.news.whoToRead": {
+		"message": "Who to follow"
+	},
+	"app.ai.catalog.note.pixi": {
+		"message": "The Pixi agent from Undefined Client: Lite, Pro, Ultra and Flash. No key needed — sign-in uses the Microsoft or Ely.by account selected in the launcher."
+	},
+	"app.ai.picker.picked": {
+		"message": "Selected"
+	},
+	"app.ai.picker.pixi.checking": {
+		"message": "Checking Pixi access…"
+	},
+	"app.ai.picker.pixi.open": {
+		"message": "Access granted — all Pixi models work"
+	},
+	"app.ai.picker.pixi.no-account": {
+		"message": "Sign in to an Undefined account (Microsoft or Ely.by) — pick it in the accounts card"
+	},
+	"app.ai.picker.pixi.offline": {
+		"message": "Offline accounts can't sign in to Undefined — pick a Microsoft or Ely.by account in the accounts card"
+	},
+	"app.ai.picker.pixi.denied": {
+		"message": "The Undefined server hasn't granted this account access to Pixi yet"
+	},
+	"app.ai.picker.pixi.pending": {
+		"message": "Application sent — waiting for Undefined's decision"
+	},
+	"app.ai.picker.pixi.rejected": {
+		"message": "Application rejected — you can apply again"
+	},
+	"app.ai.picker.pixi.error": {
+		"message": "The Undefined server didn't respond: {error}"
+	},
+	"app.ai.picker.pixi.reason": {
+		"message": "Why do you need Pixi (optional)"
+	},
+	"app.ai.picker.pixi.apply": {
+		"message": "Apply"
+	},
+	"app.ai.picker.pixi.retry": {
+		"message": "Check again"
+	}
 }

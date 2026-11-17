@@ -130,6 +130,7 @@ import OfflineAccountModal from '@/components/ui/modal/OfflineAccountModal.vue'
 import { useAppEvent } from '@/composables/use-app-event'
 import { handleSevereError } from '@/composables/use-error.js'
 import AccountProviderIcon from '@/features/minecraft-accounts/AccountProviderIcon.vue'
+import { readActiveAccount, writeActiveAccount } from '@/helpers/active-account'
 import { trackEvent } from '@/helpers/analytics'
 import {
 	get_default_user,
@@ -200,7 +201,7 @@ const defaultUser = ref<string | undefined>()
 const elyDefaultUser = ref<string | undefined>()
 const offlineAccounts: Ref<OfflineCredentials[]> = ref([])
 const offlineDefaultUser = ref<string | undefined>()
-const selectedProvider = ref<AccountProvider>('microsoft')
+const selectedProvider = ref<AccountProvider>(readActiveAccount()?.provider ?? 'microsoft')
 const equippedSkin = ref<Skin | null>(null)
 const elyHeadCache = ref(new Map<string, string>())
 /**
@@ -324,6 +325,13 @@ async function refreshValues() {
 			selectedProvider.value = 'offline'
 		}
 	}
+	const activeId =
+		selectedProvider.value === 'ely_by'
+			? elyDefaultUser.value
+			: selectedProvider.value === 'offline'
+				? offlineDefaultUser.value
+				: defaultUser.value
+	writeActiveAccount(activeId ? { provider: selectedProvider.value, id: activeId } : null)
 
 	// The Mojang skin system only works for the active Microsoft account.
 	// Skip the call entirely when a Microsoft account is not the active one

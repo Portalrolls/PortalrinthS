@@ -1,32 +1,89 @@
 <script setup lang="ts">
 import {
-	HeartIcon,
-	ImagesIcon,
+	BookmarkIcon,
+	CalendarIcon,
+	ExternalIcon,
+	EyeIcon,
+	FlameIcon,
+	HashIcon,
+	LogInIcon,
 	NewspaperIcon,
 	RefreshCwIcon,
 	SearchIcon,
-	SendIcon,
+	UserIcon,
 	XIcon,
 } from '@modrinth/assets'
-import { Button, defineMessages, useVIntl } from '@modrinth/ui'
-import { computed, onActivated, onMounted, ref } from 'vue'
+import {
+	Button,
+	ConfirmModal,
+	defineMessages,
+	injectNotificationManager,
+	useVIntl,
+} from '@modrinth/ui'
+import { openUrl } from '@tauri-apps/plugin-opener'
+import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import UserProfileModal from '@/components/ui/messenger/UserProfileModal.vue'
+import {
+	authorOf,
+	type AuthorView,
+	claimView,
+	type FeedPost,
+	type FeedUser,
+	hashtagsOf,
+	likeCount,
+	likeEmojiFor,
+	normalizeReactions,
+	popularityScore,
+	releaseView,
+	type ReportReason,
+	STUDIO_AVATAR,
+	STUDIO_NAME,
+	toggledReactions,
+	toMs,
+	useBookmarks,
+	useNewsText,
+	userAvatar,
+} from '@/components/ui/news/feed'
+import NewsArticleModal from '@/components/ui/news/NewsArticleModal.vue'
+import NewsAvatar from '@/components/ui/news/NewsAvatar.vue'
+import NewsComposer from '@/components/ui/news/NewsComposer.vue'
+import NewsLightbox from '@/components/ui/news/NewsLightbox.vue'
+import NewsPostCard from '@/components/ui/news/NewsPostCard.vue'
+import NewsPostModal from '@/components/ui/news/NewsPostModal.vue'
+import NewsRepostModal from '@/components/ui/news/NewsRepostModal.vue'
+import {
+	fetchOfficialNews,
+	officialCover,
+	officialDate,
+	type OfficialNews,
+} from '@/components/ui/news/official-news'
+import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import { useNoctrinthNews, usePortalrinthNews } from '@/features/news/portalrinth-news'
 import {
-	compressImageFile,
 	ensureServiceSession,
-	resolveAvatar,
-	resolveServiceMedia,
+	onServiceAccountChange,
+	readAccountState,
 	serviceRequest,
-	type ServiceSession,
 	type ServiceUser,
 } from '@/helpers/uprojects-service'
 import { useRootBreadcrumb } from '@/shared/breadcrumbs'
 
 defineOptions({ name: 'NewsPage' })
 
+type Tab = 'feed' | 'following' | 'articles' | 'bookmarks'
+type Range = '7d' | '30d' | 'all'
+type ArticleSource = 'undefined' | 'portalrinth' | 'noctrinth'
+type Gate = 'loading' | 'ready' | 'offline' | 'none' | 'error'
+
 const { formatMessage } = useVIntl()
+const { t, longDate, locale } = useNewsText()
+const { addNotification } = injectNotificationManager()
+const accounts = injectMinecraftAccounts()
+const router = useRouter()
+const { bookmarks, toggle: toggleBookmark, has: isBookmarked } = useBookmarks()
+
 const messages = defineMessages({
 	heading: { id: 'app.news.heading', defaultMessage: 'Новости' },
 })
@@ -39,1845 +96,1835 @@ const breadcrumb = useRootBreadcrumb({
 	visual: { type: 'icon', component: NewspaperIcon },
 })
 
-const profileModal = ref<InstanceType<typeof UserProfileModal> | null>(null)
-
-const openProfileLabel = formatMessage({
-	id: 'app.messenger.profile.open',
-	defaultMessage: 'Открыть профиль',
-})
-
-/** Полный профиль автора поста — та же карточка, что в MC Messenger. */
-function openProfile(author?: FeedAuthor) {
-	if (author?.id == null || author.id === '') return
-	profileModal.value?.show(
-		{ id: String(author.id), username: author.username, name: author.name, uuid: author.uuid },
-		{ canWrite: false, self: String(author.id) === String(me.value?.id ?? '') },
-	)
-}
-
-type FeedAuthor = {
-	uuid?: string
-	type?: string
-	id?: string | number
-	name?: string
-	username?: string
-	skinUrl?: string | null
-	avatar?: string | null
-	verified?: boolean
-	isClan?: boolean
-	isStudio?: boolean
-}
-
-/** Аватар официального аккаунта студии — как в ленте Undefined Client. */
-const STUDIO_AVATAR =
-	'https://uprojects.site/client/api/messenger/avatars/91c843c7-3252-49d2-93ab-70d314cffbe3.png'
-
-/** Автор поста из сервиса: user / clan / launcher — приводим к одному виду. */
-function normAuthor(raw: unknown): FeedAuthor | undefined {
-	if (!raw || typeof raw !== 'object') return undefined
-	const row = raw as LooseRecord & {
-		user?: LooseRecord
-		clan?: LooseRecord
-	}
-	if (row.type === 'clan' && row.clan) {
-		return {
-			type: 'clan',
-			isClan: true,
-			name: String(row.clan.name || row.name || ''),
-			username: '',
-			avatar: String(row.clan.iconUrl || '') || null,
-			verified: Boolean(row.clan.verified),
-		}
-	}
-	if (row.type === 'launcher') {
-		return {
-			type: 'launcher',
-			isStudio: true,
-			name: String(row.name || 'Undefined Studio'),
-			username: '',
-			avatar: STUDIO_AVATAR,
-			verified: true,
-		}
-	}
-	const user = row.user
-	if (user && typeof user === 'object') {
-		return {
-			type: 'user',
-			id: user.id as string | number | undefined,
-			uuid: user.uuid as string | undefined,
-			name: String(user.username || row.name || 'Игрок'),
-			username: String(user.username || ''),
-			skinUrl: (user.skinUrl as string | null) ?? null,
-			avatar: (user.avatar as string | null) ?? null,
-			verified: Boolean(user.verified),
-		}
-	}
-	// плоский автор (комментарии, подсказки «кого читать»)
-	return {
-		type: 'user',
-		id: row.id as string | number | undefined,
-		uuid: row.uuid as string | undefined,
-		name: String(row.username || row.name || 'Игрок'),
-		username: String(row.username || row.name || ''),
-		skinUrl: (row.skinUrl as string | null) ?? null,
-		avatar: (row.avatar as string | null) ?? null,
-		verified: Boolean(row.verified),
-	}
-}
-
-type FeedComment = {
-	id: string
-	body?: string
-	bodyMd?: string
-	author?: FeedAuthor
-	createdAt?: string
-	created_at?: string
-}
-
-type FeedPost = {
-	id: string
-	title?: string
-	body?: string
-	bodyMd?: string
-	views?: number
-	createdAt?: string
-	created_at?: string
-	author?: FeedAuthor
-	user?: FeedAuthor
-	attachments?: { id?: string; url: string; mime?: string }[]
-	images?: string[]
-	reactions?: Record<string, number>
-	reactionEmoji?: string[]
-	myReaction?: string | null
-	commentCount?: number
-	commentsCount?: number
-}
-
-const TIME_NOW = { id: 'app.news.timeNow', defaultMessage: 'только что' }
-const TIME_MINUTES = {
-	id: 'app.news.timeMinutes',
-	defaultMessage:
-		'{count, plural, one {# минуту} few {# минуты} many {# минут} other {# минуты}} назад',
-}
-const TIME_HOURS = {
-	id: 'app.news.timeHours',
-	defaultMessage: '{count, plural, one {# час} few {# часа} many {# часов} other {# часа}} назад',
-}
-const COMPOSER_EMPTY = {
-	id: 'app.news.composerEmpty',
-	defaultMessage: 'Напиши текст или добавь фото',
-}
-const NEED_ACCOUNT = {
-	id: 'app.news.needAccount',
-	defaultMessage: 'Нужен аккаунт Microsoft или Ely.by',
-}
-const POSTING_BANNED = {
-	id: 'app.news.postingBanned',
-	defaultMessage: 'Публикация постов и комментариев ограничена сервисом',
-}
-const PUBLISH_FAILED = { id: 'app.news.publishFailed', defaultMessage: 'Не удалось опубликовать' }
-const VIEWS_LABEL = {
-	id: 'app.news.views',
-	defaultMessage:
-		'{count, plural, one {# просмотр} few {# просмотра} many {# просмотров} other {# просмотра}}',
-}
-
-type OfficialArticle = {
-	id: string
-	title: string
-	summary?: string
-	thumbnail?: string | null
-	date?: string
-	source: string
-	link?: string
-}
-
-type FeedTab = 'feed' | 'following' | 'articles'
-const tab = ref<FeedTab>('feed')
-const search = ref('')
-const loading = ref(true)
-const loadError = ref('')
-const session = ref<ServiceSession | null>(null)
+const gate = ref<Gate>('loading')
+const gateError = ref('')
 const me = ref<ServiceUser | null>(null)
-const myAvatar = ref('')
 const posts = ref<FeedPost[]>([])
-const suggestions = ref<ServiceUser[]>([])
+const extraPosts = ref<FeedPost[]>([])
+const suggestions = ref<FeedUser[]>([])
 const followingIds = ref<string[]>([])
 const postingBanned = ref(false)
-
-const composerText = ref('')
-const composerImages = ref<string[]>([])
-const publishing = ref(false)
-const composerNotice = ref('')
-
-const openComments = ref('')
-const comments = ref<FeedComment[]>([])
-const commentsLoading = ref(false)
-const commentDraft = ref('')
-
+const loading = ref(true)
 const refreshing = ref(false)
+const loadError = ref('')
 
-const officialPortalrinth = usePortalrinthNews()
-const officialNoctrinth = useNoctrinthNews()
+const tab = ref<Tab>('feed')
+const search = ref('')
+const tagFilter = ref('')
+const range = ref<Range>('7d')
+const articleSource = ref<ArticleSource>('undefined')
 
-const officialArticles = computed<OfficialArticle[]>(() => {
-	const map = (
-		list: {
-			path: string
-			title?: string
-			summary?: string
-			thumbnail?: string | null
-			date?: string
-		}[],
-		source: string,
-	) =>
-		list.map((article) => ({
-			id: `${source}:${article.path}`,
-			title: article.title || article.path,
-			summary: article.summary,
-			thumbnail: article.thumbnail,
-			date: article.date,
-			source,
-			link: article.path,
-		}))
-	return [
-		...map(officialPortalrinth.value as never, 'Portalrinth'),
-		...map(officialNoctrinth.value as never, 'Noctrinth'),
-	].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+const official = ref<OfficialNews[]>([])
+const officialLoading = ref(false)
+const officialError = ref('')
+const officialLoaded = ref(false)
+const portalrinthNews = usePortalrinthNews()
+const noctrinthNews = useNoctrinthNews()
+
+const activePostId = ref('')
+const pendingDelete = ref<FeedPost | null>(null)
+const followBusy = ref<string[]>([])
+const freshId = ref('')
+
+const profileModal = ref<InstanceType<typeof UserProfileModal> | null>(null)
+const postModal = ref<InstanceType<typeof NewsPostModal> | null>(null)
+const repostModal = ref<InstanceType<typeof NewsRepostModal> | null>(null)
+const articleModal = ref<InstanceType<typeof NewsArticleModal> | null>(null)
+const deleteModal = ref<InstanceType<typeof ConfirmModal> | null>(null)
+
+const signedIn = computed(() => gate.value === 'ready' && Boolean(me.value))
+const myId = computed(() => (me.value?.id != null ? String(me.value.id) : ''))
+const myAvatar = computed(() => userAvatar(me.value as Partial<FeedUser> | null))
+
+const tabs = computed(() => [
+	{ id: 'feed' as const, label: t('app.news.tabFeed', 'Рекомендации') },
+	{ id: 'following' as const, label: t('app.news.tabFollowing', 'Подписки') },
+	{ id: 'articles' as const, label: t('app.news.tabArticles', 'Статьи') },
+	{ id: 'bookmarks' as const, label: t('app.news.tabBookmarks', 'Закладки') },
+])
+const tabIndex = computed(() => tabs.value.findIndex((entry) => entry.id === tab.value))
+
+const allPosts = computed(() => {
+	const seen = new Set(posts.value.map((post) => post.id))
+	return [...posts.value, ...extraPosts.value.filter((post) => !seen.has(post.id))]
 })
 
-const avatarUrls = ref<Record<string, string>>({})
-
-async function avatarFor(key: string, author?: FeedAuthor): Promise<string> {
-	if (!author) return ''
-	if (avatarUrls.value[key]) return avatarUrls.value[key]
-	const url = await resolveAvatar({
-		skinUrl: author.skinUrl,
-		avatar: author.avatar,
-		uuid: author.id ? String(author.id) : undefined,
-		username: author.username,
-		name: author.name,
-	})
-	avatarUrls.value = { ...avatarUrls.value, [key]: url }
-	return url
+function postById(id: string): FeedPost | null {
+	return allPosts.value.find((post) => post.id === id) ?? null
 }
 
-function postAuthor(post: FeedPost): FeedAuthor | undefined {
-	return normAuthor(post.author) ?? normAuthor(post.user)
+const activePost = computed(() => (activePostId.value ? postById(activePostId.value) : null))
+
+function matches(post: FeedPost): boolean {
+	const author = authorOf(post).name.toLowerCase()
+	const body =
+		`${post.title || ''} ${post.bodyMd || ''} ${post.repostOf?.bodyMd || ''}`.toLowerCase()
+	if (tagFilter.value && !hashtagsOf(body).includes(tagFilter.value)) return false
+	const needle = search.value.trim().toLowerCase()
+	if (!needle) return true
+	return body.includes(needle) || author.includes(needle)
 }
 
-function authorName(author?: FeedAuthor): string {
-	if (author?.isClan || author?.isStudio) return String(author.name || '').trim()
-	return String(author?.username || author?.name || 'Игрок').trim()
-}
-
-function postText(post: FeedPost): string {
-	return String(post.bodyMd || post.body || '').trim()
-}
-
-function postTime(post: FeedPost): string {
-	const raw = post.createdAt || post.created_at || ''
-	if (!raw) return ''
-	const date = new Date(raw)
-	if (Number.isNaN(date.getTime())) return ''
-	const diff = Date.now() - date.getTime()
-	const minutes = Math.floor(diff / 60000)
-	if (minutes < 1) return formatMessage(TIME_NOW)
-	if (minutes < 60) return formatMessage(TIME_MINUTES, { count: minutes })
-	const hours = Math.floor(minutes / 60)
-	if (hours < 24) return formatMessage(TIME_HOURS, { count: hours })
-	return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-}
-
-function postImages(post: FeedPost): { id: string; url: string }[] {
-	if (post.attachments?.length) {
-		return post.attachments.map((attachment, index) => ({
-			id: attachment.id || `${post.id}-${index}`,
-			url: resolveServiceMedia(attachment.url),
-		}))
+const visiblePosts = computed(() => {
+	let list: FeedPost[]
+	if (tab.value === 'following') {
+		const set = new Set(followingIds.value)
+		list = posts.value.filter((post) => {
+			const author = authorOf(post)
+			return author.userId && (set.has(author.userId) || author.userId === myId.value)
+		})
+	} else if (tab.value === 'bookmarks') {
+		list = bookmarks.value
+			.map((id) => postById(id))
+			.filter((post): post is FeedPost => Boolean(post))
+			.reverse()
+	} else {
+		list = posts.value
 	}
-	if (post.images?.length) {
-		return post.images.map((url, index) => ({
-			id: `${post.id}-${index}`,
-			url: resolveServiceMedia(url),
-		}))
-	}
-	return []
-}
-
-function reactionCount(post: FeedPost): number {
-	const map = post.reactions
-	if (map && typeof map === 'object') {
-		return Object.values(map).reduce((sum, value) => sum + (Number(value) || 0), 0)
-	}
-	return 0
-}
-
-/** Вкладки и поиск работают как в оригинале: лента фильтруется на месте. */
-const visiblePosts = computed<FeedPost[]>(() => {
-	const followed = new Set(followingIds.value)
-	const query = search.value.trim().toLowerCase()
-	return posts.value.filter((post) => {
-		if (tab.value === 'following') {
-			const id = postAuthor(post)?.id
-			if (id == null || !followed.has(String(id))) return false
-		}
-		if (!query) return true
-		const author = authorName(postAuthor(post)).toLowerCase()
-		return postText(post).toLowerCase().includes(query) || author.includes(query)
-	})
+	return list.filter(matches)
 })
 
-/** Правая колонка: самые горячие посты ленты. */
-const popularPosts = computed<FeedPost[]>(() => {
-	return [...posts.value]
-		.sort((a, b) => reactionCount(b) + (b.views || 0) - reactionCount(a) - (a.views || 0))
+const failedBookmarks = ref<string[]>([])
+const missingBookmarks = computed(
+	() => bookmarks.value.filter((id) => !postById(id) && !failedBookmarks.value.includes(id)).length,
+)
+
+const popular = computed(() => {
+	const days = range.value === '7d' ? 7 : range.value === '30d' ? 30 : 0
+	const since = days ? Date.now() - days * 86400000 : 0
+	return posts.value
+		.filter((post) => toMs(post.createdAt) >= since)
+		.map((post) => ({ post, score: popularityScore(post) }))
+		.filter((entry) => entry.score > 0)
+		.sort((a, b) => b.score - a.score)
 		.slice(0, 5)
+		.map((entry) => entry.post)
 })
 
-/** Правая колонка: живые хэштеги из постов. */
-const feedTags = computed<string[]>(() => {
+const hashtags = computed(() => {
 	const counts = new Map<string, number>()
 	for (const post of posts.value) {
-		for (const tag of postText(post).matchAll(/#([\p{L}\p{N}_]{2,24})/gu)) {
-			const name = tag[1].toLowerCase()
-			counts.set(name, (counts.get(name) || 0) + 1)
-		}
+		for (const tag of new Set(hashtagsOf(post.bodyMd))) counts.set(tag, (counts.get(tag) || 0) + 1)
 	}
 	return [...counts.entries()]
 		.sort((a, b) => b[1] - a[1])
-		.slice(0, 8)
-		.map(([name]) => `#${name}`)
+		.slice(0, 12)
+		.map(([tag]) => tag)
 })
 
-async function loadFeed() {
-	loading.value = true
-	loadError.value = ''
-	try {
-		const [sessionReady, response] = await Promise.all([
-			ensureServiceSession(),
-			serviceRequest('/social/feed', { query: { channel: 'community', limit: 40 } }),
-		])
-		session.value = sessionReady
-		if (sessionReady) {
-			me.value = sessionReady.user
-			myAvatar.value = await avatarFor(
-				`me:${sessionReady.user.id ?? sessionReady.user.username ?? ''}`,
-				{
-					skinUrl: sessionReady.user.skinUrl,
-					avatar: sessionReady.user.avatar,
-					uuid: sessionReady.user.uuid,
-					username: sessionReady.user.username,
-					name: sessionReady.user.name,
-				},
-			)
-		}
-		if (response.ok) {
-			posts.value = Array.isArray(response.data?.posts) ? response.data.posts : []
-			suggestions.value = Array.isArray(response.data?.suggestions) ? response.data.suggestions : []
-			for (const user of suggestions.value.slice(0, 6)) {
-				void avatarFor(`sug:${String(user.id ?? user.username ?? '')}`, {
-					skinUrl: user.skinUrl,
-					avatar: user.avatar,
-					uuid: user.uuid,
-					username: user.username,
-					name: user.name,
-				})
-			}
-			followingIds.value = Array.isArray(response.data?.followingIds)
-				? response.data.followingIds.map(String)
-				: []
-			postingBanned.value = Boolean(response.data?.postingBanned)
-			for (const post of posts.value) {
-				const author = postAuthor(post)
-				if (author)
-					void avatarFor(`${post.id}:${author.id ?? author.username ?? author.name}`, author)
-			}
-		} else {
-			loadError.value =
-				response.code === 'no_account' ? '' : response.error || `HTTP ${response.status}`
-		}
-	} catch (error) {
-		loadError.value = error instanceof Error ? error.message : 'network'
-	} finally {
-		loading.value = false
+const whoToRead = computed(() =>
+	suggestions.value.filter((user) => String(user.id) !== myId.value).slice(0, 6),
+)
+
+type ArticleCard = {
+	id: string
+	title: string
+	summary: string
+	cover: string
+	date: string
+	views?: number
+	author: string
+	official?: OfficialNews
+	link?: string
+}
+
+const articleCards = computed<ArticleCard[]>(() => {
+	let list: ArticleCard[]
+	if (articleSource.value === 'undefined') {
+		list = official.value.map((item) => ({
+			id: item.id,
+			title: item.title,
+			summary: item.summary || '',
+			cover: officialCover(item),
+			date: officialDate(item),
+			views: item.views,
+			author: item.author || STUDIO_NAME,
+			official: item,
+		}))
+	} else {
+		const source =
+			articleSource.value === 'portalrinth' ? portalrinthNews.value : noctrinthNews.value
+		list = source.map((item) => ({
+			id: item.path,
+			title: item.title || item.path,
+			summary: item.summary || '',
+			cover: item.thumbnail || '',
+			date: item.date || '',
+			author: articleSource.value === 'portalrinth' ? 'Portalrinth' : 'Noctrinth',
+			link: item.path,
+		}))
 	}
+	const needle = search.value.trim().toLowerCase()
+	return needle
+		? list.filter((item) => `${item.title} ${item.summary}`.toLowerCase().includes(needle))
+		: list
+})
+
+function normalizePost(raw: FeedPost): FeedPost {
+	const post = { ...raw, reactions: normalizeReactions(raw.reactions) }
+	if (post.repostOf)
+		post.repostOf = { ...post.repostOf, reactions: normalizeReactions(post.repostOf.reactions) }
+	return post
+}
+
+function notify(type: 'success' | 'error' | 'info', title: string, text = '') {
+	addNotification({ type, title, text })
+}
+
+async function loadFeed(force = false) {
+	loadError.value = ''
+	const state = await readAccountState()
+	if (state.kind !== 'ready') {
+		gate.value = state.kind
+		me.value = null
+		posts.value = []
+		loading.value = false
+		return
+	}
+	const session = await ensureServiceSession(force)
+	if (!session) {
+		gate.value = 'error'
+		gateError.value = t(
+			'app.news.sessionFailed',
+			'Не удалось войти в сервис Undefined. Проверь интернет и попробуй ещё раз.',
+		)
+		loading.value = false
+		return
+	}
+	gate.value = 'ready'
+	me.value = session.user
+	const response = await serviceRequest('/social/feed', {
+		query: { channel: 'community', limit: 40 },
+	})
+	loading.value = false
+	if (!response.ok) {
+		loadError.value = response.error || t('app.news.feedFailed', 'Не удалось загрузить ленту')
+		return
+	}
+	posts.value = (Array.isArray(response.data?.posts) ? response.data.posts : []).map(normalizePost)
+	suggestions.value = Array.isArray(response.data?.suggestions) ? response.data.suggestions : []
+	followingIds.value = Array.isArray(response.data?.followingIds)
+		? response.data.followingIds.map(String)
+		: []
+	postingBanned.value = Boolean(response.data?.postingBanned)
+	if (tab.value === 'bookmarks') void loadMissingBookmarks()
 }
 
 async function refresh() {
+	if (refreshing.value) return
 	refreshing.value = true
-	await loadFeed()
+	if (tab.value === 'articles') await loadOfficial(true)
+	else await loadFeed()
 	refreshing.value = false
 }
 
-async function publish() {
-	const text = composerText.value.trim()
-	if (!text && !composerImages.value.length) {
-		composerNotice.value = formatMessage(COMPOSER_EMPTY)
-		return
-	}
-	if (!session.value) {
-		composerNotice.value = formatMessage(NEED_ACCOUNT)
-		return
-	}
-	publishing.value = true
-	composerNotice.value = ''
+async function loadOfficial(force = false) {
+	if (officialLoading.value || (officialLoaded.value && !force)) return
+	officialLoading.value = true
+	officialError.value = ''
 	try {
-		const response = await serviceRequest('/social/posts', {
-			method: 'POST',
-			body: { bodyMd: text, images: composerImages.value.slice(0, 6) },
-		})
-		if (!response.ok) {
-			composerNotice.value =
-				response.code === 'posting_banned'
-					? formatMessage(POSTING_BANNED)
-					: response.error || formatMessage(PUBLISH_FAILED)
-			return
-		}
-		composerText.value = ''
-		composerImages.value = []
-		await loadFeed()
+		official.value = await fetchOfficialNews(locale.value)
+		officialLoaded.value = true
+	} catch (error) {
+		officialError.value = error instanceof Error ? error.message : 'network'
 	} finally {
-		publishing.value = false
+		officialLoading.value = false
 	}
 }
 
-async function attachImages(event: Event) {
-	const input = event.target as HTMLInputElement
-	const files = Array.from(input.files || []).slice(0, 6 - composerImages.value.length)
-	for (const file of files) {
-		try {
-			const dataUrl = await compressImageFile(file)
-			composerImages.value.push(dataUrl)
-		} catch {
-			/* одна картинка не должна ронять выбор остальных */
-		}
-	}
-	input.value = ''
+async function loadMissingBookmarks() {
+	if (!signedIn.value) return
+	const missing = bookmarks.value
+		.filter((id) => !postById(id) && !failedBookmarks.value.includes(id))
+		.slice(0, 30)
+	const found = await Promise.all(
+		missing.map(async (id) => {
+			const response = await serviceRequest(`/social/posts/${encodeURIComponent(id)}`)
+			const post = (response.data?.post || response.data) as FeedPost | undefined
+			if (!response.ok || !post?.id) {
+				failedBookmarks.value = [...failedBookmarks.value, id]
+				return null
+			}
+			return normalizePost(post)
+		}),
+	)
+	extraPosts.value = [
+		...extraPosts.value,
+		...found.filter((post): post is FeedPost => Boolean(post)),
+	]
 }
 
-async function react(post: FeedPost) {
-	if (!session.value) return
-	const emoji = post.myReaction ? post.myReaction : '❤️'
-	await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/react`, {
+function setTab(next: Tab) {
+	tab.value = next
+	if (next === 'articles') void loadOfficial()
+	if (next === 'bookmarks') void loadMissingBookmarks()
+}
+
+function filterTag(tag: string) {
+	tagFilter.value = tag.toLowerCase()
+	if (tab.value === 'articles') tab.value = 'feed'
+	postModal.value?.hide()
+	window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function patchPost(id: string, patch: (post: FeedPost) => FeedPost) {
+	const apply = (list: FeedPost[]) =>
+		list.map((post) => {
+			let next = post.id === id ? patch(post) : post
+			if (next.repostOf?.id === id) next = { ...next, repostOf: patch(next.repostOf) }
+			return next
+		})
+	posts.value = apply(posts.value)
+	extraPosts.value = apply(extraPosts.value)
+}
+
+async function like(post: FeedPost) {
+	if (!signedIn.value) return
+	const emoji = likeEmojiFor(post)
+	const before = post.reactions
+	patchPost(post.id, (item) => ({ ...item, reactions: toggledReactions(item, emoji) }))
+	const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/react`, {
 		method: 'POST',
 		body: { emoji },
 	})
-	await loadFeed()
-}
-
-async function toggleComments(post: FeedPost) {
-	if (openComments.value === post.id) {
-		openComments.value = ''
+	if (!response.ok) {
+		patchPost(post.id, (item) => ({ ...item, reactions: before }))
+		notify('error', t('app.news.likeFailed', 'Не удалось поставить лайк'), response.error || '')
 		return
 	}
-	openComments.value = post.id
-	comments.value = []
-	commentsLoading.value = true
-	commentDraft.value = ''
-	try {
-		const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/comments`, {
-			query: { limit: 50 },
-		})
-		comments.value = (Array.isArray(response.data?.comments) ? response.data.comments : []).map(
-			(entry) => ({ ...entry, author: normAuthor(entry.author) }),
-		)
-	} finally {
-		commentsLoading.value = false
+	if (response.data?.reactions) {
+		patchPost(post.id, (item) => ({
+			...item,
+			reactions: normalizeReactions(response.data.reactions),
+		}))
 	}
 }
 
-async function sendComment(post: FeedPost) {
-	const body = commentDraft.value.trim()
-	if (!body || !session.value) return
-	commentsLoading.value = true
+async function noteView(post: FeedPost) {
+	if (!signedIn.value || !claimView(post.id)) return
+	const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/view`, {
+		method: 'POST',
+	})
+	const views = Number(response.data?.views)
+	if (response.ok && Number.isFinite(views)) patchPost(post.id, (item) => ({ ...item, views }))
+	else releaseView(post.id)
+}
+
+function openPost(post: FeedPost, focusComposer = false) {
+	if (!postById(post.id)) extraPosts.value = [...extraPosts.value, normalizePost(post)]
+	activePostId.value = post.id
+	void nextTick(() => postModal.value?.show(post, focusComposer))
+}
+
+function bookmark(post: FeedPost) {
+	const on = toggleBookmark(post.id)
+	if (on && !postById(post.id)) extraPosts.value = [...extraPosts.value, post]
+	notify(
+		'info',
+		on
+			? t('app.news.bookmarked', 'Пост добавлен в закладки')
+			: t('app.news.unbookmarked', 'Пост убран из закладок'),
+	)
+}
+
+async function report(post: FeedPost, reason: ReportReason) {
+	const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/report`, {
+		method: 'POST',
+		body: { reason },
+	})
+	if (!response.ok) {
+		notify('error', t('app.news.reportFailed', 'Не удалось отправить жалобу'), response.error || '')
+		return
+	}
+	patchPost(post.id, (item) => ({ ...item, reported: true }))
+	notify(
+		'success',
+		t('app.news.reportSent', 'Жалоба отправлена'),
+		t('app.news.reportThanks', 'Модераторы посмотрят пост.'),
+	)
+}
+
+function askDelete(post: FeedPost) {
+	pendingDelete.value = post
+	deleteModal.value?.show()
+}
+
+async function confirmDelete() {
+	const post = pendingDelete.value
+	pendingDelete.value = null
+	if (!post) return
+	const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}`, {
+		method: 'DELETE',
+	})
+	if (!response.ok) {
+		notify('error', t('app.news.deleteFailed', 'Не удалось удалить пост'), response.error || '')
+		return
+	}
+	if (activePostId.value === post.id) postModal.value?.hide()
+	posts.value = posts.value.filter((item) => item.id !== post.id)
+	extraPosts.value = extraPosts.value.filter((item) => item.id !== post.id)
+	notify('success', t('app.news.deleted', 'Пост удалён'))
+}
+
+async function copy(text: string, kind: 'text' | 'link') {
 	try {
-		await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/comments`, {
-			method: 'POST',
-			body: { body },
-		})
-		commentDraft.value = ''
-		const response = await serviceRequest(`/social/posts/${encodeURIComponent(post.id)}/comments`, {
-			query: { limit: 50 },
-		})
-		comments.value = (Array.isArray(response.data?.comments) ? response.data.comments : []).map(
-			(entry) => ({ ...entry, author: normAuthor(entry.author) }),
+		await navigator.clipboard.writeText(text)
+		notify(
+			'success',
+			kind === 'link'
+				? t('app.news.linkCopied', 'Ссылка скопирована')
+				: t('app.news.textCopied', 'Текст скопирован'),
 		)
-	} finally {
-		commentsLoading.value = false
+	} catch {
+		notify('error', t('app.news.copyFailed', 'Не удалось скопировать'))
 	}
 }
 
-async function toggleFollow(user: { id?: string | number }) {
-	if (!user.id) return
-	const id = String(user.id)
-	const on = followingIds.value.includes(id)
-	const response = await serviceRequest(`/social/users/${encodeURIComponent(id)}/follow`, {
+async function toggleFollow(userId: string) {
+	if (!userId || followBusy.value.includes(userId)) return
+	const on = followingIds.value.includes(userId)
+	followBusy.value = [...followBusy.value, userId]
+	followingIds.value = on
+		? followingIds.value.filter((id) => id !== userId)
+		: [...followingIds.value, userId]
+	const response = await serviceRequest(`/social/users/${encodeURIComponent(userId)}/follow`, {
 		method: on ? 'DELETE' : 'POST',
 	})
-	if (!response.ok) return
-	followingIds.value = on
-		? followingIds.value.filter((entry) => entry !== id)
-		: [...followingIds.value, id]
-	if (!on) {
-		suggestions.value = suggestions.value.filter((entry) => String(entry.id) !== id)
+	followBusy.value = followBusy.value.filter((id) => id !== userId)
+	if (!response.ok) {
+		followingIds.value = on
+			? [...followingIds.value, userId]
+			: followingIds.value.filter((id) => id !== userId)
+		notify(
+			'error',
+			t('app.news.followFailed', 'Не удалось изменить подписку'),
+			response.error || '',
+		)
+		return
+	}
+	suggestions.value = suggestions.value.map((user) =>
+		String(user.id) === userId
+			? { ...user, followerCount: Math.max(0, Number(user.followerCount || 0) + (on ? -1 : 1)) }
+			: user,
+	)
+}
+
+function openProfile(author: AuthorView | FeedUser) {
+	const user = 'kind' in author ? author.user : author
+	const id = 'kind' in author ? author.userId : String(author.id)
+	if (!id) return
+	profileModal.value?.show(
+		{ id, username: user?.username, uuid: user?.uuid ?? undefined },
+		{ canWrite: id !== myId.value, self: id === myId.value },
+	)
+}
+
+async function openMention(username: string) {
+	if (!signedIn.value) return
+	const response = await serviceRequest('/social/users/lookup', { query: { username } })
+	const user = response.data?.user as FeedUser | undefined
+	if (!response.ok || !user?.id) {
+		notify('error', t('app.news.userNotFound', 'Игрок {name} не найден', { name: username }))
+		return
+	}
+	openProfile({ ...user, id: String(user.id) })
+}
+
+function writeTo(user: { id: string; username?: string }) {
+	void router.push({ path: '/messenger', query: { user: user.id, username: user.username || '' } })
+}
+
+function onPosted(post: FeedPost | null) {
+	notify('success', t('app.news.published', 'Пост опубликован'))
+	if (post?.id) {
+		posts.value = [normalizePost(post), ...posts.value.filter((item) => item.id !== post.id)]
+		freshId.value = post.id
+		if (tab.value !== 'feed' && tab.value !== 'following') tab.value = 'feed'
+	} else {
+		void loadFeed()
 	}
 }
 
-async function openArticle(article: OfficialArticle) {
-	if (article.link) window.open(article.link, '_blank')
+function onBanned() {
+	postingBanned.value = true
+	notify(
+		'error',
+		t('app.news.postingBanned', 'Публикация постов и комментариев для тебя ограничена.'),
+	)
 }
 
-onMounted(async () => {
-	await loadFeed()
+function onReposted(message: string, wall: boolean) {
+	notify('success', message)
+	if (wall) void loadFeed()
+	else if (repostTarget.value)
+		patchPost(repostTarget.value, (item) => ({ ...item, repostCount: (item.repostCount || 0) + 1 }))
+}
+
+const repostTarget = ref('')
+function repost(post: FeedPost) {
+	repostTarget.value = post.id
+	repostModal.value?.show(post)
+}
+
+function openArticle(card: ArticleCard) {
+	if (card.official) articleModal.value?.show(card.official)
+	else if (card.link) void openUrl(card.link)
+}
+
+function onArticleViewed(id: string, views: number) {
+	official.value = official.value.map((item) => (item.id === id ? { ...item, views } : item))
+}
+
+function signInMicrosoft() {
+	void accounts.value?.login()
+}
+
+function signInEly() {
+	accounts.value?.showElyLogin()
+}
+
+function plural(n: number, one: string, few: string, many: string): string {
+	const mod10 = n % 10
+	const mod100 = n % 100
+	if (mod10 === 1 && mod100 !== 11) return one
+	if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few
+	return many
+}
+
+function likesLabel(n: number): string {
+	return locale.value.startsWith('ru')
+		? t('app.news.likesCount', '{n} {word}', { n, word: plural(n, 'лайк', 'лайка', 'лайков') })
+		: t('app.news.likesCountEn', '{n} likes', { n })
+}
+
+function followersLabel(n: number): string {
+	return locale.value.startsWith('ru')
+		? t('app.news.followersCount', '{n} {word}', {
+				n,
+				word: plural(n, 'подписчик', 'подписчика', 'подписчиков'),
+			})
+		: t('app.news.followersCountEn', '{n} followers', { n })
+}
+
+function popularTitle(post: FeedPost): string {
+	const line = String(post.title || post.bodyMd || post.repostOf?.bodyMd || '')
+		.split('\n')
+		.find((entry) => entry.trim())
+	return line?.replace(/[#*_`>]/g, '').trim() || t('app.news.photoPost', 'Пост с фото')
+}
+
+let unsubscribe: (() => void) | null = null
+
+onMounted(() => {
+	void loadFeed()
+	unsubscribe = onServiceAccountChange(() => {
+		loading.value = true
+		posts.value = []
+		extraPosts.value = []
+		void loadFeed(true)
+	})
 })
 
-onActivated(breadcrumb.reset)
+onBeforeUnmount(() => unsubscribe?.())
+
+onActivated(() => breadcrumb.reset())
+
+watch(locale, () => {
+	if (officialLoaded.value) void loadOfficial(true)
+})
 </script>
 
 <template>
-	<div class="nr-page" :data-tab="tab">
-		<div class="nr-main">
-			<div class="nr-tabs" role="tablist" :aria-label="formatMessage(messages.heading)">
+	<div class="nf-page">
+		<main class="nf-main">
+			<div
+				class="nf-tabs"
+				role="tablist"
+				:style="{ '--nf-tab': tabIndex, '--nf-tabs': tabs.length }"
+			>
+				<span class="nf-tabs__ink" />
 				<button
+					v-for="entry in tabs"
+					:key="entry.id"
 					type="button"
-					class="nr-tabs__btn"
-					:class="{ 'is-active': tab === 'feed' }"
 					role="tab"
-					:aria-selected="tab === 'feed'"
-					@click="tab = 'feed'"
+					class="nf-tabs__tab"
+					:class="{ 'is-active': tab === entry.id }"
+					:aria-selected="tab === entry.id"
+					@click="setTab(entry.id)"
 				>
-					{{ formatMessage({ id: 'app.news.tabFeed', defaultMessage: 'Рекомендации' }) }}
-				</button>
-				<button
-					type="button"
-					class="nr-tabs__btn"
-					:class="{ 'is-active': tab === 'following' }"
-					role="tab"
-					:aria-selected="tab === 'following'"
-					@click="tab = 'following'"
-				>
-					{{ formatMessage({ id: 'app.news.tabFollowing', defaultMessage: 'Подписки' }) }}
-				</button>
-				<button
-					type="button"
-					class="nr-tabs__btn"
-					:class="{ 'is-active': tab === 'articles' }"
-					role="tab"
-					:aria-selected="tab === 'articles'"
-					@click="tab = 'articles'"
-				>
-					{{ formatMessage({ id: 'app.news.tabArticles', defaultMessage: 'Статьи' }) }}
-				</button>
-			</div>
-
-			<label class="nr-search">
-				<SearchIcon />
-				<input
-					v-model="search"
-					type="text"
-					:placeholder="
-						formatMessage({ id: 'app.news.searchPlaceholder', defaultMessage: 'Поиск в ленте...' })
-					"
-					autocomplete="off"
-					spellcheck="false"
-				/>
-				<button
-					v-if="refreshing"
-					type="button"
-					class="nr-search__spin"
-					aria-label="Обновляем"
-					disabled
-				/>
-			</label>
-
-			<div v-if="tab !== 'articles'" class="nr-tools">
-				<button
-					type="button"
-					class="nr-refresh"
-					:class="{ 'is-busy': refreshing }"
-					aria-label="Обновить"
-					@click="refresh"
-				>
-					<RefreshCwIcon v-if="!refreshing" />
-					<span v-else class="nr-spinner" />
-				</button>
-			</div>
-
-			<template v-if="tab === 'articles'">
-				<TransitionGroup name="nr-post" tag="div" class="nr-feed">
-					<article
-						v-for="article in officialArticles"
-						:key="article.id"
-						class="nr-post nr-post--article"
-						@click="openArticle(article)"
-					>
-						<img
-							v-if="article.thumbnail"
-							:src="article.thumbnail"
-							class="nr-post__cover"
-							alt=""
-							loading="lazy"
-						/>
-						<div class="nr-post__body">
-							<div class="nr-post__meta">
-								<span class="nr-source" :data-source="article.source.toLowerCase()">{{
-									article.source
-								}}</span>
-								<span class="nr-post__time">{{ article.date }}</span>
-							</div>
-							<p class="nr-post__title">{{ article.title }}</p>
-							<p v-if="article.summary" class="nr-post__text">{{ article.summary }}</p>
-						</div>
-					</article>
-				</TransitionGroup>
-				<p v-if="!officialArticles.length" class="nr-empty">
-					{{
-						formatMessage({
-							id: 'app.news.officialEmpty',
-							defaultMessage: 'Официальных новостей пока нет.',
-						})
-					}}
-				</p>
-			</template>
-
-			<template v-else>
-				<div v-if="!session && !loading" class="nr-gate">
-					<NewspaperIcon />
-					<b>{{
-						formatMessage({ id: 'app.news.gateTitle', defaultMessage: 'Новости сообщества' })
-					}}</b>
-					<p>
-						{{
-							formatMessage({
-								id: 'app.news.gateText',
-								defaultMessage:
-									'Войдите в аккаунт Microsoft или Ely.by — и вы сможете публиковать посты, ставить реакции и комментировать. Лента общая с Undefined Client: посты всех видны и у нас, и у них.',
-							})
-						}}
-					</p>
-				</div>
-
-				<form v-else-if="session" class="nr-compose" @submit.prevent="publish">
-					<div class="nr-compose__row">
-						<img v-if="myAvatar" :src="myAvatar" class="nr-compose__avatar" alt="" />
-						<span v-else class="nr-compose__avatar nr-compose__avatar--stub" />
-						<div class="nr-compose__field">
-							<textarea
-								v-model="composerText"
-								rows="1"
-								:placeholder="
-									formatMessage({
-										id: 'app.news.composerPlaceholder',
-										defaultMessage: 'Что нового у вас?',
-									})
-								"
-							/>
-							<label class="nr-compose__plus" aria-label="Добавить фото">
-								<ImagesIcon />
-								<input
-									type="file"
-									accept="image/png,image/jpeg,image/webp"
-									multiple
-									hidden
-									@change="attachImages"
-								/>
-							</label>
-						</div>
-						<button
-							type="submit"
-							class="nr-compose__publish"
-							:disabled="
-								publishing || postingBanned || (!composerText.trim() && !composerImages.length)
-							"
-							:aria-label="
-								formatMessage({ id: 'app.news.publish', defaultMessage: 'Опубликовать' })
-							"
-						>
-							<SendIcon />
-						</button>
-					</div>
-					<div v-if="composerImages.length" class="nr-compose__previews">
-						<span v-for="(image, index) in composerImages" :key="index" class="nr-compose__preview">
-							<img :src="image" alt="" />
-							<button type="button" aria-label="Убрать" @click="composerImages.splice(index, 1)">
-								<XIcon />
-							</button>
-						</span>
-					</div>
-					<p v-if="composerNotice" class="nr-compose__notice">{{ composerNotice }}</p>
-				</form>
-
-				<div v-if="loading" class="nr-empty">
-					{{ formatMessage({ id: 'app.news.loading', defaultMessage: 'Загружаем ленту…' }) }}
-				</div>
-				<div v-else-if="loadError" class="nr-empty nr-empty--error">
-					{{
-						formatMessage({ id: 'app.news.loadError', defaultMessage: 'Сервис пока не отвечает' })
-					}}
-					· {{ loadError }}
-				</div>
-
-				<TransitionGroup v-else name="nr-post" tag="div" class="nr-feed">
-					<article
-						v-for="post in visiblePosts"
-						:key="post.id"
-						class="nr-post"
-						@click="toggleComments(post)"
-					>
-						<div class="nr-post__head">
-							<img
-								v-if="
-									avatarUrls[
-										`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
-									]
-								"
-								:src="
-									avatarUrls[
-										`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
-									]
-								"
-								class="nr-post__avatar"
-								alt=""
-							/>
-							<span v-else class="nr-post__avatar nr-post__avatar--stub" />
-							<div class="nr-post__who">
-								<div class="nr-post__name-row">
-									<button
-										type="button"
-										class="nr-post__name"
-										:disabled="postAuthor(post)?.id == null"
-										:aria-label="openProfileLabel"
-										@click="openProfile(postAuthor(post))"
-									>
-										{{ authorName(postAuthor(post)) }}
-										<span
-											v-if="postAuthor(post)?.verified"
-											class="nr-post__verified"
-											title="Проверенный автор"
-											>✓</span
-										>
-									</button>
-									<span class="nr-post__time">{{ postTime(post) }}</span>
-								</div>
-							</div>
-							<button
-								v-if="
-									postAuthor(post)?.id &&
-									session &&
-									String(postAuthor(post)!.id) !== String(me?.id ?? '') &&
-									postAuthor(post)?.type === 'user'
-								"
-								type="button"
-								class="nr-follow"
-								:class="{ 'is-on': followingIds.includes(String(postAuthor(post)!.id)) }"
-								@click.stop="toggleFollow({ id: postAuthor(post)!.id })"
-							>
-								{{
-									followingIds.includes(String(postAuthor(post)!.id))
-										? formatMessage({ id: 'app.news.unfollow', defaultMessage: 'Отписаться' })
-										: formatMessage({ id: 'app.news.follow', defaultMessage: 'Подписаться' })
-								}}
-							</button>
-						</div>
-						<p v-if="post.title" class="nr-post__title">{{ post.title }}</p>
-						<p v-if="postText(post)" class="nr-post__text">{{ postText(post) }}</p>
-						<div
-							v-if="postImages(post).length"
-							class="nr-post__media"
-							:class="{ 'is-many': postImages(post).length > 1 }"
-						>
-							<img
-								v-for="image in postImages(post)"
-								:key="image.id"
-								:src="image.url"
-								alt=""
-								loading="lazy"
-							/>
-						</div>
-						<div class="nr-post__footer">
-							<button type="button" class="nr-act" @click.stop="react(post)">
-								<HeartIcon />
-								<span class="nr-act__count">{{ reactionCount(post) || '' }}</span>
-							</button>
-							<button type="button" class="nr-act" @click.stop="toggleComments(post)">
-								{{ formatMessage({ id: 'app.news.comments', defaultMessage: 'Комментарии' }) }}
-								<span class="nr-act__count">{{
-									post.commentCount ?? post.commentsCount ?? ''
-								}}</span>
-							</button>
-							<span class="nr-post__spacer" />
-							<span v-if="post.views" class="nr-post__views">
-								{{ formatMessage(VIEWS_LABEL, { count: post.views }) }}
-							</span>
-						</div>
-						<div v-if="openComments === post.id" class="nr-comments" @click.stop>
-							<div v-if="commentsLoading" class="nr-comments__state">
-								{{
-									formatMessage({
-										id: 'app.news.commentsLoading',
-										defaultMessage: 'Загружаем комментарии…',
-									})
-								}}
-							</div>
-							<template v-else>
-								<div v-for="comment in comments" :key="comment.id" class="nr-comment">
-									<button
-										type="button"
-										class="nr-comment__author"
-										:disabled="comment.author?.id == null"
-										:aria-label="openProfileLabel"
-										@click="openProfile(comment.author)"
-									>
-										{{ authorName(comment.author) }}
-									</button>
-									<p>{{ comment.body || comment.bodyMd }}</p>
-								</div>
-								<p v-if="!comments.length" class="nr-comments__empty">
-									{{
-										formatMessage({
-											id: 'app.news.noComments',
-											defaultMessage: 'Пока тихо — будьте первым.',
-										})
-									}}
-								</p>
-								<div v-if="session" class="nr-comment__form">
-									<input
-										v-model="commentDraft"
-										:placeholder="
-											formatMessage({
-												id: 'app.news.commentPlaceholder',
-												defaultMessage: 'Написать комментарий…',
-											})
-										"
-										@keydown.enter.prevent="sendComment(post)"
-									/>
-									<Button :disabled="!commentDraft.trim()" @click="sendComment(post)">
-										<SendIcon />
-									</Button>
-								</div>
-							</template>
-						</div>
-					</article>
-				</TransitionGroup>
-
-				<p v-if="!loading && !visiblePosts.length" class="nr-empty">
-					{{
-						tab === 'following'
-							? formatMessage({
-									id: 'app.news.followingEmpty',
-									defaultMessage: 'В подписках пока пусто. Нажмите «Подписаться» у автора.',
-								})
-							: search.trim()
-								? formatMessage({ id: 'app.news.searchEmpty', defaultMessage: 'Ничего не нашли.' })
-								: formatMessage({ id: 'app.news.feedEmpty', defaultMessage: 'Пока тихо.' })
-					}}
-				</p>
-			</template>
-		</div>
-
-		<aside class="nr-rail" aria-label="Обзор ленты">
-			<section class="nr-card">
-				<h3>{{ formatMessage({ id: 'app.news.popular', defaultMessage: 'Популярное' }) }}</h3>
-				<button
-					v-for="(post, index) in popularPosts"
-					:key="post.id"
-					type="button"
-					class="nr-pop"
-					@click="toggleComments(post)"
-				>
-					<span class="nr-pop__n">{{ index + 1 }}</span>
-					<img
-						v-if="
-							avatarUrls[
-								`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
-							]
-						"
-						:src="
-							avatarUrls[
-								`${post.id}:${postAuthor(post)?.id ?? postAuthor(post)?.username ?? postAuthor(post)?.name}`
-							]
-						"
-						class="nr-pop__ava"
-						alt=""
-					/>
-					<span v-else class="nr-pop__ava nr-pop__ava--stub" />
-					<span class="nr-pop__text">
-						<span class="nr-pop__title">{{ postText(post).slice(0, 64) || post.title }}</span>
-						<span class="nr-pop__meta">
-							{{ authorName(postAuthor(post)) }} ·
-							{{
-								formatMessage(VIEWS_LABEL, {
-									count: post.views || reactionCount(post),
-								})
-							}}
-						</span>
+					{{ entry.label }}
+					<span v-if="entry.id === 'bookmarks' && bookmarks.length" class="nf-tabs__badge">
+						{{ bookmarks.length }}
 					</span>
 				</button>
-				<p v-if="!popularPosts.length" class="nr-card__empty">
-					{{
-						formatMessage({ id: 'app.news.railEmpty', defaultMessage: 'Лента ещё наполняется.' })
-					}}
+			</div>
+
+			<div class="nf-toolbar">
+				<label class="nf-search">
+					<SearchIcon />
+					<input
+						v-model="search"
+						type="search"
+						:placeholder="
+							tab === 'articles'
+								? t('app.news.searchArticles', 'Поиск по статьям…')
+								: t('app.news.search', 'Поиск в ленте…')
+						"
+					/>
+					<button
+						v-if="search"
+						type="button"
+						class="nf-search__clear"
+						:aria-label="t('app.news.clearSearch', 'Очистить поиск')"
+						@click="search = ''"
+					>
+						<XIcon />
+					</button>
+				</label>
+				<button
+					type="button"
+					class="nf-icon-btn"
+					:class="{ 'is-spinning': refreshing }"
+					:aria-label="t('app.news.refresh', 'Обновить')"
+					:title="t('app.news.refresh', 'Обновить')"
+					@click="refresh"
+				>
+					<RefreshCwIcon />
+				</button>
+			</div>
+
+			<Transition name="nf-tab" mode="out-in">
+				<section v-if="tab === 'articles'" key="articles" class="nf-stack">
+					<div class="nf-chips">
+						<button
+							v-for="source in [
+								{ id: 'undefined' as const, label: 'Undefined' },
+								{ id: 'portalrinth' as const, label: 'Portalrinth' },
+								{ id: 'noctrinth' as const, label: 'Noctrinth' },
+							]"
+							:key="source.id"
+							type="button"
+							class="nf-chip"
+							:class="{ 'is-active': articleSource === source.id }"
+							@click="articleSource = source.id"
+						>
+							{{ source.label }}
+						</button>
+					</div>
+
+					<template v-if="articleSource === 'undefined' && officialLoading && !official.length">
+						<div v-for="n in 3" :key="n" class="nf-art-card is-skeleton">
+							<span class="nf-sk nf-sk--cover" />
+							<span class="nf-sk-lines">
+								<span class="nf-sk" style="width: 60%; height: 14px" />
+								<span class="nf-sk" style="width: 90%" />
+								<span class="nf-sk" style="width: 40%" />
+							</span>
+						</div>
+					</template>
+					<div v-else-if="articleSource === 'undefined' && officialError" class="nf-empty">
+						<p>{{ t('app.news.articlesFailed', 'Не удалось загрузить статьи Undefined') }}</p>
+						<Button @click="loadOfficial(true)">
+							<RefreshCwIcon />
+							{{ t('app.news.retry', 'Повторить') }}
+						</Button>
+					</div>
+					<div v-else-if="!articleCards.length" class="nf-empty">
+						<NewspaperIcon />
+						<p>
+							{{
+								search
+									? t('app.news.nothingFound', 'Ничего не нашлось')
+									: t('app.news.noArticles', 'Статей пока нет')
+							}}
+						</p>
+					</div>
+					<TransitionGroup v-else tag="div" name="nf-list" class="nf-stack" appear>
+						<button
+							v-for="(card, index) in articleCards"
+							:key="card.id"
+							type="button"
+							class="nf-art-card"
+							:style="{ '--nf-delay': `${Math.min(index, 8) * 45}ms` }"
+							@click="openArticle(card)"
+						>
+							<span class="nf-art-card__cover">
+								<img v-if="card.cover" :src="card.cover" alt="" loading="lazy" />
+								<NewspaperIcon v-else />
+							</span>
+							<span class="nf-art-card__body">
+								<span class="nf-art-card__title">{{ card.title }}</span>
+								<span v-if="card.summary" class="nf-art-card__summary">{{ card.summary }}</span>
+								<span class="nf-art-card__meta">
+									<NewsAvatar
+										v-if="card.official"
+										:source="{ direct: STUDIO_AVATAR }"
+										:size="16"
+										round
+									/>
+									{{ card.author }}
+									<template v-if="card.date">
+										<CalendarIcon />
+										{{ longDate(card.date) }}
+									</template>
+									<template v-if="card.official">
+										<EyeIcon />
+										{{ card.views || 0 }}
+									</template>
+									<ExternalIcon v-if="card.link" />
+								</span>
+							</span>
+						</button>
+					</TransitionGroup>
+				</section>
+
+				<section v-else-if="gate === 'offline' || gate === 'none'" key="gate" class="nf-gate">
+					<span class="nf-gate__icon"><LogInIcon /></span>
+					<h2>{{ t('app.news.gateTitle', 'Лента доступна с аккаунтом Microsoft или Ely.by') }}</h2>
+					<p v-if="gate === 'offline'">
+						{{
+							t(
+								'app.news.gateOffline',
+								'Сейчас выбран офлайн-аккаунт. У него нет подтверждённой личности, поэтому публиковать, лайкать и читать ленту сообщества с ним нельзя.',
+							)
+						}}
+					</p>
+					<p v-else>
+						{{
+							t(
+								'app.news.gateNone',
+								'Войди через Microsoft или Ely.by — лента, комментарии и подписки привязаны к игровому аккаунту.',
+							)
+						}}
+					</p>
+					<p class="nf-gate__hint">
+						{{
+							t(
+								'app.news.gateArticles',
+								'Статьи Undefined, Portalrinth и Noctrinth читаются и без аккаунта.',
+							)
+						}}
+					</p>
+					<div class="nf-gate__actions">
+						<Button type="colored" color="brand" :disabled="!accounts" @click="signInMicrosoft">
+							<LogInIcon />
+							{{ t('app.news.signInMicrosoft', 'Войти через Microsoft') }}
+						</Button>
+						<Button :disabled="!accounts" @click="signInEly">
+							<UserIcon />
+							{{ t('app.news.signInEly', 'Войти через Ely.by') }}
+						</Button>
+						<Button type="quiet" @click="setTab('articles')">
+							<NewspaperIcon />
+							{{ t('app.news.toArticles', 'К статьям') }}
+						</Button>
+					</div>
+				</section>
+
+				<section v-else-if="gate === 'error'" key="error" class="nf-gate">
+					<h2>{{ t('app.news.sessionTitle', 'Сервис ленты недоступен') }}</h2>
+					<p>{{ gateError }}</p>
+					<div class="nf-gate__actions">
+						<Button type="colored" color="brand" @click="loadFeed(true)">
+							<RefreshCwIcon />
+							{{ t('app.news.retry', 'Повторить') }}
+						</Button>
+					</div>
+				</section>
+
+				<section v-else :key="tab" class="nf-stack">
+					<NewsComposer
+						v-if="tab === 'feed' && signedIn"
+						:avatar="myAvatar"
+						:posting-banned="postingBanned"
+						@posted="onPosted"
+						@banned="onBanned"
+						@failed="(message) => notify('error', message)"
+					/>
+
+					<Transition name="nf-fade">
+						<div v-if="tagFilter" class="nf-filter">
+							<HashIcon />
+							{{ t('app.news.tagFilter', 'Посты с тегом') }}
+							<b>{{ tagFilter }}</b>
+							<button
+								type="button"
+								:aria-label="t('app.news.clearTag', 'Сбросить тег')"
+								@click="tagFilter = ''"
+							>
+								<XIcon />
+							</button>
+						</div>
+					</Transition>
+
+					<template v-if="loading || gate === 'loading'">
+						<div v-for="n in 3" :key="n" class="nf-skeleton">
+							<div class="nf-skeleton__head">
+								<span class="nf-sk nf-sk--avatar" />
+								<span class="nf-sk-lines">
+									<span class="nf-sk" style="width: 28%" />
+									<span class="nf-sk" style="width: 18%" />
+								</span>
+							</div>
+							<span class="nf-sk" style="width: 80%" />
+							<span class="nf-sk nf-sk--media" />
+						</div>
+					</template>
+					<div v-else-if="loadError" class="nf-empty">
+						<p>{{ loadError }}</p>
+						<Button @click="loadFeed()">
+							<RefreshCwIcon />
+							{{ t('app.news.retry', 'Повторить') }}
+						</Button>
+					</div>
+					<div v-else-if="!visiblePosts.length" class="nf-empty">
+						<BookmarkIcon v-if="tab === 'bookmarks'" />
+						<UserIcon v-else-if="tab === 'following'" />
+						<NewspaperIcon v-else />
+						<p v-if="search || tagFilter">{{ t('app.news.nothingFound', 'Ничего не нашлось') }}</p>
+						<p v-else-if="tab === 'bookmarks'">
+							{{
+								missingBookmarks
+									? t('app.news.loading', 'Загрузка…')
+									: t(
+											'app.news.noBookmarks',
+											'Закладок пока нет — нажми на значок закладки под постом, чтобы сохранить его.',
+										)
+							}}
+						</p>
+						<p v-else-if="tab === 'following'">
+							{{
+								t(
+									'app.news.noFollowing',
+									'Здесь появятся посты тех, на кого ты подписан. Начни с блока «Кого читать».',
+								)
+							}}
+						</p>
+						<p v-else>{{ t('app.news.noPosts', 'В ленте пока пусто — напиши первый пост.') }}</p>
+					</div>
+					<TransitionGroup v-else tag="div" name="nf-list" class="nf-stack">
+						<NewsPostCard
+							v-for="(post, index) in visiblePosts"
+							:key="post.id"
+							:class="{ 'is-fresh': post.id === freshId }"
+							:post="post"
+							:index="index"
+							:signed-in="signedIn"
+							:following="followingIds.includes(authorOf(post).userId)"
+							:bookmarked="isBookmarked(post.id)"
+							@open="openPost"
+							@like="like"
+							@repost="repost"
+							@follow="toggleFollow"
+							@bookmark="bookmark"
+							@delete="askDelete"
+							@report="report"
+							@copy="copy"
+							@profile="openProfile"
+							@tag="filterTag"
+							@mention="openMention"
+							@seen="noteView"
+						/>
+					</TransitionGroup>
+				</section>
+			</Transition>
+		</main>
+
+		<aside class="nf-rail">
+			<section v-if="signedIn" class="nf-rail__card">
+				<header class="nf-rail__head">
+					<FlameIcon />
+					<span>{{ t('app.news.popular', 'Популярное') }}</span>
+					<div class="nf-range">
+						<button
+							v-for="option in [
+								{ id: '7d' as const, label: t('app.news.range7', '7Д') },
+								{ id: '30d' as const, label: t('app.news.range30', '30Д') },
+								{ id: 'all' as const, label: t('app.news.rangeAll', 'Всё') },
+							]"
+							:key="option.id"
+							type="button"
+							:class="{ 'is-active': range === option.id }"
+							@click="range = option.id"
+						>
+							{{ option.label }}
+						</button>
+					</div>
+				</header>
+				<TransitionGroup v-if="popular.length" tag="ol" name="nf-list" class="nf-popular">
+					<li v-for="(post, index) in popular" :key="post.id">
+						<button type="button" class="nf-popular__item" @click="openPost(post)">
+							<span class="nf-popular__rank">{{ index + 1 }}</span>
+							<NewsAvatar :source="authorOf(post).avatar" :size="24" />
+							<span class="nf-popular__text">
+								<b>{{ popularTitle(post) }}</b>
+								<span>{{ authorOf(post).name }} · {{ likesLabel(likeCount(post)) }}</span>
+							</span>
+						</button>
+					</li>
+				</TransitionGroup>
+				<p v-else class="nf-rail__empty">
+					{{ t('app.news.popularEmpty', 'За этот период популярных постов нет') }}
 				</p>
 			</section>
 
-			<section v-if="feedTags.length" class="nr-card">
-				<h3>{{ formatMessage({ id: 'app.news.tags', defaultMessage: 'Хэштеги' }) }}</h3>
-				<div class="nr-tags">
+			<section v-if="signedIn && hashtags.length" class="nf-rail__card">
+				<header class="nf-rail__head">
+					<HashIcon />
+					<span>{{ t('app.news.hashtags', 'Популярные хештеги') }}</span>
+				</header>
+				<div class="nf-tags">
 					<button
-						v-for="tag in feedTags"
+						v-for="tag in hashtags"
 						:key="tag"
 						type="button"
-						:class="{ 'is-on': search.trim().toLowerCase() === tag }"
-						@click="search = search.trim().toLowerCase() === tag ? '' : tag"
+						class="nf-tags__tag"
+						:class="{ 'is-active': tagFilter === tag }"
+						@click="tagFilter === tag ? (tagFilter = '') : filterTag(tag)"
 					>
 						{{ tag }}
 					</button>
 				</div>
 			</section>
 
-			<section v-if="session && suggestions.length" class="nr-card">
-				<h3>{{ formatMessage({ id: 'app.news.suggestions', defaultMessage: 'Кого читать' }) }}</h3>
-				<div v-for="user in suggestions.slice(0, 6)" :key="String(user.id)" class="nr-who">
-					<span class="nr-who__ava">
-						<img
-							v-if="avatarUrls[`sug:${String(user.id ?? user.username ?? '')}`]"
-							:src="avatarUrls[`sug:${String(user.id ?? user.username ?? '')}`]"
-							alt=""
-						/>
-					</span>
-					<span class="nr-who__text">
-						<span class="nr-who__name">{{ user.username || user.name }}</span>
-						<span class="nr-who__meta">
-							{{ formatMessage({ id: 'app.news.whoMeta', defaultMessage: 'Игрок Undefined' }) }}
-						</span>
-					</span>
-					<button type="button" class="nr-who__btn" @click="toggleFollow(user)">
-						{{
-							formatMessage({
-								id: 'app.news.followShort',
-								defaultMessage: 'Читать',
-							})
-						}}
-					</button>
-				</div>
+			<section v-if="signedIn && whoToRead.length" class="nf-rail__card">
+				<header class="nf-rail__head">
+					<UserIcon />
+					<span>{{ t('app.news.whoToRead', 'Кого читать') }}</span>
+				</header>
+				<ul class="nf-who">
+					<li v-for="user in whoToRead" :key="user.id">
+						<button type="button" class="nf-who__user" @click="openProfile(user)">
+							<NewsAvatar :source="userAvatar(user)" :size="28" />
+							<span>
+								<b>{{ user.username }}</b>
+								<small>{{ followersLabel(Number(user.followerCount || 0)) }}</small>
+							</span>
+						</button>
+						<button
+							type="button"
+							class="nf-who__follow"
+							:class="{ 'is-on': followingIds.includes(String(user.id)) }"
+							:disabled="followBusy.includes(String(user.id))"
+							@click="toggleFollow(String(user.id))"
+						>
+							{{
+								followingIds.includes(String(user.id))
+									? t('app.news.unfollow', 'Отписаться')
+									: t('app.news.read', 'Читать')
+							}}
+						</button>
+					</li>
+				</ul>
 			</section>
 
-			<section class="nr-card nr-card--note">
-				{{
-					formatMessage({
-						id: 'app.news.railNote',
-						defaultMessage: 'Лента общая с Undefined Client — посты видны всем.',
-					})
-				}}
+			<section v-if="!signedIn" class="nf-rail__card">
+				<header class="nf-rail__head">
+					<NewspaperIcon />
+					<span>{{ t('app.news.aboutTitle', 'Новости Undefined') }}</span>
+				</header>
+				<p class="nf-rail__empty is-left">
+					{{
+						t(
+							'app.news.aboutText',
+							'Официальные статьи студии и сообщество игроков: посты, лайки, комментарии и репосты в чаты MC Messenger.',
+						)
+					}}
+				</p>
 			</section>
 		</aside>
 
-		<UserProfileModal ref="profileModal" />
+		<NewsPostModal
+			ref="postModal"
+			:post="activePost"
+			:signed-in="signedIn"
+			:following="activePost ? followingIds.includes(authorOf(activePost).userId) : false"
+			:bookmarked="activePost ? isBookmarked(activePost.id) : false"
+			:posting-banned="postingBanned"
+			@like="like"
+			@repost="repost"
+			@follow="toggleFollow"
+			@bookmark="bookmark"
+			@delete="askDelete"
+			@report="report"
+			@copy="copy"
+			@profile="openProfile"
+			@tag="filterTag"
+			@mention="openMention"
+			@open="openPost"
+			@seen="noteView"
+			@comments="(id, count) => patchPost(id, (item) => ({ ...item, commentCount: count }))"
+			@banned="onBanned"
+			@failed="(message) => notify('error', message)"
+		/>
+		<NewsRepostModal
+			ref="repostModal"
+			@done="onReposted"
+			@banned="onBanned"
+			@failed="(message) => notify('error', message)"
+		/>
+		<NewsArticleModal
+			ref="articleModal"
+			@viewed="onArticleViewed"
+			@copied="notify('success', t('app.news.linkCopied', 'Ссылка скопирована'))"
+		/>
+		<ConfirmModal
+			ref="deleteModal"
+			:title="t('app.news.deleteTitle', 'Удалить пост?')"
+			:description="
+				t(
+					'app.news.deleteText',
+					'Пост, комментарии и реакции к нему исчезнут без возможности восстановления.',
+				)
+			"
+			:proceed-label="t('app.news.delete', 'Удалить')"
+			:markdown="false"
+			@proceed="confirmDelete"
+		/>
+		<UserProfileModal ref="profileModal" @write="writeTo" />
+		<NewsLightbox />
 	</div>
 </template>
 
 <style scoped>
-.nr-page {
+.nf-page {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 280px;
-	gap: 16px;
+	grid-template-columns: minmax(0, 620px) 240px;
+	justify-content: center;
 	align-items: start;
-	width: min(1080px, 100%);
-	margin: 0 auto;
-	padding: 16px 18px 24px;
-	flex: none;
-	align-self: center;
-	min-height: 100%;
-	box-sizing: border-box;
+	gap: 14px;
+	padding: 12px 16px 32px;
 }
 
-/* ===== Главная колонна ===== */
-
-.nr-main {
+.nf-main {
 	display: flex;
 	flex-direction: column;
+	gap: 10px;
 	min-width: 0;
-	min-height: 0;
+	padding: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	border-radius: 18px;
+	background: rgba(20, 20, 24, 0.55);
+	backdrop-filter: blur(18px) saturate(1.2);
 }
 
-.nr-tabs {
-	display: grid;
-	grid-template-columns: 1fr 1fr 1fr;
-	height: 40px;
-	flex-shrink: 0;
-	margin: 0 0 12px;
-	padding: 4px;
-	box-sizing: border-box;
-	border: 1px solid #303030;
-	border-radius: 12px;
-	background: #272727;
-	gap: 0;
+.nf-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
 }
 
-.nr-tabs__btn {
+.nf-tabs {
 	position: relative;
+	display: grid;
+	grid-template-columns: repeat(var(--nf-tabs), 1fr);
+	padding: 4px;
+	border-radius: 12px;
+	background: rgba(30, 30, 35, 0.85);
+}
+
+.nf-tabs__ink {
+	position: absolute;
+	top: 4px;
+	bottom: 4px;
+	left: 4px;
+	width: calc((100% - 8px) / var(--nf-tabs));
+	border-radius: 9px;
+	background: #34343b;
+	box-shadow: inset 0 -2px 0 var(--color-brand);
+	transform: translateX(calc(var(--nf-tab) * 100%));
+	transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nf-tabs__tab {
+	position: relative;
+	z-index: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
 	height: 32px;
-	margin: 0;
-	padding: 0 8px;
-	border: none;
-	border-radius: 8px;
+	border: 0;
+	background: none;
+	color: rgba(255, 255, 255, 0.5);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: color 0.2s ease;
+}
+
+.nf-tabs__tab:hover,
+.nf-tabs__tab.is-active {
+	color: #fff;
+}
+
+.nf-tabs__badge {
+	min-width: 18px;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: var(--color-brand);
+	color: #fff;
+	font-size: 11px;
+	line-height: 17px;
+}
+
+.nf-toolbar {
+	display: flex;
+	gap: 8px;
+}
+
+.nf-search {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 8px;
+	padding: 0 10px;
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 11px;
+	background: rgba(30, 30, 35, 0.85);
+	transition: border-color 0.18s ease;
+}
+
+.nf-search:focus-within {
+	border-color: rgba(176, 0, 255, 0.45);
+}
+
+.nf-search > svg {
+	width: 15px;
+	height: 15px;
+	color: rgba(255, 255, 255, 0.45);
+}
+
+.nf-search input {
+	flex: 1;
+	height: 34px;
+	padding: 0;
+	border: 0;
+	outline: none;
 	background: transparent;
-	color: var(--color-text-inactive, rgba(255, 255, 255, 0.45));
-	font-size: 15px;
-	font-weight: 400;
-	line-height: 19px;
+	color: var(--color-contrast, #fff);
+	font: inherit;
+	font-size: 13px;
+	box-shadow: none;
+}
+
+.nf-search__clear,
+.nf-filter button {
+	display: grid;
+	place-items: center;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.55);
+	cursor: pointer;
+}
+
+.nf-search__clear:hover,
+.nf-filter button:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: #fff;
+}
+
+.nf-search__clear svg,
+.nf-filter button svg {
+	width: 12px;
+	height: 12px;
+}
+
+.nf-icon-btn {
+	display: grid;
+	place-items: center;
+	width: 36px;
+	height: 36px;
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 11px;
+	background: rgba(30, 30, 35, 0.85);
+	color: rgba(255, 255, 255, 0.65);
 	cursor: pointer;
 	transition:
-		background-color 0.15s ease,
-		color 0.15s ease;
+		color 0.15s ease,
+		background-color 0.15s ease;
 }
 
-.nr-tabs__btn.is-active {
+.nf-icon-btn:hover {
+	background: #2b2b31;
+	color: #fff;
+}
+
+.nf-icon-btn svg {
+	width: 16px;
+	height: 16px;
+}
+
+.nf-icon-btn.is-spinning svg {
+	animation: nf-spin 0.8s linear infinite;
+}
+
+.nf-filter {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 10px;
+	border-radius: 11px;
+	background: rgba(176, 0, 255, 0.12);
+	color: rgba(255, 255, 255, 0.75);
+	font-size: 13px;
+}
+
+.nf-filter > svg {
+	width: 14px;
+	height: 14px;
+	color: var(--color-brand);
+}
+
+.nf-filter b {
+	flex: 1;
+	color: #e2b6ff;
+}
+
+.nf-chips {
+	display: flex;
+	gap: 6px;
+}
+
+.nf-chip {
+	height: 28px;
+	padding: 0 12px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 999px;
+	background: rgba(30, 30, 35, 0.85);
+	color: rgba(255, 255, 255, 0.65);
+	font: inherit;
+	font-size: 12.5px;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		background-color 0.18s ease,
+		color 0.18s ease,
+		border-color 0.18s ease;
+}
+
+.nf-chip:hover {
+	color: #fff;
+}
+
+.nf-chip.is-active {
+	border-color: transparent;
+	background: var(--color-brand);
+	color: #fff;
+}
+
+.nf-art-card {
+	display: flex;
+	gap: 12px;
+	padding: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	border-radius: 14px;
+	background: #1d1d21;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	animation: nf-card-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+	animation-delay: var(--nf-delay, 0ms);
+	transition:
+		border-color 0.2s ease,
+		transform 0.2s ease;
+}
+
+.nf-art-card:not(.is-skeleton):hover {
+	border-color: rgba(176, 0, 255, 0.3);
+	transform: translateY(-1px);
+}
+
+.nf-art-card.is-skeleton {
+	cursor: default;
+}
+
+.nf-art-card__cover {
+	display: grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 168px;
+	height: 104px;
+	overflow: hidden;
+	border-radius: 10px;
+	background: #141417;
+	color: rgba(255, 255, 255, 0.25);
+}
+
+.nf-art-card__cover img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	transition: transform 0.4s ease;
+}
+
+.nf-art-card:hover .nf-art-card__cover img {
+	transform: scale(1.05);
+}
+
+.nf-art-card__cover svg {
+	width: 28px;
+	height: 28px;
+}
+
+.nf-art-card__body {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	min-width: 0;
+	padding: 2px 0;
+}
+
+.nf-art-card__title {
 	color: var(--color-contrast, #fff);
-	background: #3c3c3c;
+	font-size: 15px;
+	font-weight: 700;
+	line-height: 1.3;
 }
 
-.nr-tabs__btn.is-active::after {
-	content: '';
-	position: absolute;
-	left: 50%;
-	bottom: 0;
-	width: 40px;
-	height: 2px;
-	margin-left: -20px;
-	border-radius: 1px;
-	background: var(--color-contrast, #fff);
+.nf-art-card__summary {
+	display: -webkit-box;
+	overflow: hidden;
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 13px;
+	line-height: 1.4;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
 }
 
-/* ===== Поиск ===== */
+.nf-art-card__meta {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	flex-wrap: wrap;
+	margin-top: auto;
+	color: rgba(255, 255, 255, 0.42);
+	font-size: 12px;
+}
 
-.nr-search {
+.nf-art-card__meta svg {
+	width: 12px;
+	height: 12px;
+	margin-left: 6px;
+}
+
+.nf-gate {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 36px 24px;
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	border-radius: 14px;
+	background: #1d1d21;
+	text-align: center;
+}
+
+.nf-gate__icon {
+	display: grid;
+	place-items: center;
+	width: 52px;
+	height: 52px;
+	border-radius: 16px;
+	background: rgba(176, 0, 255, 0.15);
+	color: var(--color-brand);
+}
+
+.nf-gate__icon svg {
+	width: 24px;
+	height: 24px;
+}
+
+.nf-gate h2 {
+	margin: 4px 0 0;
+	color: var(--color-contrast, #fff);
+	font-size: 18px;
+}
+
+.nf-gate p {
+	max-width: 440px;
+	margin: 0;
+	color: rgba(255, 255, 255, 0.62);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.nf-gate .nf-gate__hint {
+	color: rgba(255, 255, 255, 0.42);
+	font-size: 12.5px;
+}
+
+.nf-gate__actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.nf-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 40px 20px;
+	border-radius: 14px;
+	background: rgba(29, 29, 33, 0.7);
+	color: rgba(255, 255, 255, 0.5);
+	text-align: center;
+}
+
+.nf-empty > svg {
+	width: 28px;
+	height: 28px;
+	color: rgba(255, 255, 255, 0.3);
+}
+
+.nf-empty p {
+	max-width: 380px;
+	margin: 0;
+	font-size: 14px;
+}
+
+.nf-skeleton {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	border-radius: 14px;
+	background: #1d1d21;
+}
+
+.nf-skeleton__head {
+	display: flex;
+	gap: 10px;
+}
+
+.nf-sk-lines {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	flex: 1;
+	min-width: 0;
+}
+
+.nf-sk {
+	display: block;
+	height: 10px;
+	border-radius: 6px;
+	background: linear-gradient(90deg, #26262b 0%, #303036 50%, #26262b 100%);
+	background-size: 200% 100%;
+	animation: nf-shimmer 1.2s linear infinite;
+}
+
+.nf-sk--avatar {
+	flex-shrink: 0;
+	width: 34px;
+	height: 34px;
+	border-radius: 9px;
+}
+
+.nf-sk--media {
+	height: 220px;
+	border-radius: 10px;
+}
+
+.nf-sk--cover {
+	flex-shrink: 0;
+	width: 168px;
+	height: 104px;
+	border-radius: 10px;
+}
+
+.nf-rail {
+	position: sticky;
+	top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.nf-rail__card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 14px;
+	background: rgba(24, 24, 28, 0.6);
+	backdrop-filter: blur(18px) saturate(1.2);
+	animation: nf-card-in 0.4s ease both;
+}
+
+.nf-rail__head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--color-contrast, #fff);
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.nf-rail__head > svg {
+	width: 14px;
+	height: 14px;
+}
+
+.nf-rail__head > span {
+	flex: 1;
+}
+
+.nf-rail__empty {
+	margin: 0;
+	padding: 6px 0;
+	color: rgba(255, 255, 255, 0.42);
+	font-size: 12px;
+	text-align: center;
+}
+
+.nf-rail__empty.is-left {
+	text-align: left;
+	line-height: 1.5;
+}
+
+.nf-range {
+	display: flex;
+	gap: 2px;
+}
+
+.nf-range button {
+	height: 20px;
+	padding: 0 6px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.45);
+	font: inherit;
+	font-size: 11px;
+	font-weight: 700;
+	cursor: pointer;
+	transition:
+		background-color 0.18s ease,
+		color 0.18s ease;
+}
+
+.nf-range button:hover {
+	color: #fff;
+}
+
+.nf-range button.is-active {
+	background: var(--color-brand);
+	color: #fff;
+}
+
+.nf-popular {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.nf-popular__item {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	height: 38px;
-	margin: 0 0 12px;
-	padding: 0 12px;
-	box-sizing: border-box;
-	background: var(--color-bg, #1f1f1f);
-	border: none;
-	border-radius: 10px;
-	color: var(--color-text-inactive, rgba(255, 255, 255, 0.45));
-}
-
-.nr-search:focus-within {
-	outline: 2px solid var(--color-brand);
-	outline-offset: -2px;
-}
-
-.nr-search svg {
-	flex-shrink: 0;
-	width: 16px;
-	height: 16px;
-}
-
-.nr-search input {
-	flex: 1;
-	min-width: 0;
-	height: 100%;
-	border: none;
+	width: 100%;
+	padding: 5px 4px;
+	border: 0;
+	border-radius: 8px;
 	background: transparent;
-	color: var(--color-text, #fff);
+	color: inherit;
 	font: inherit;
-	font-size: 14px;
-	outline: none;
-}
-
-.nr-search input::placeholder {
-	color: var(--color-text-inactive, rgba(255, 255, 255, 0.4));
-}
-
-.nr-search__spin {
-	width: 16px;
-	height: 16px;
-	border: 2px solid var(--color-brand);
-	border-top-color: transparent;
-	border-radius: 50%;
-	animation: nr-spin 0.8s linear infinite;
-}
-
-/* ===== Кнопка обновления ===== */
-
-.nr-tools {
-	display: flex;
-	justify-content: flex-end;
-	margin: -4px 0 8px;
-}
-
-.nr-refresh {
-	width: 32px;
-	height: 32px;
-	display: grid;
-	place-items: center;
-	border: none;
-	border-radius: 10px;
-	background: #272727;
-	border: 1px solid #303030;
-	color: var(--color-text, #fff);
+	text-align: left;
 	cursor: pointer;
-	transition: transform 0.25s ease;
+	transition: background-color 0.15s ease;
 }
 
-.nr-refresh:hover {
-	transform: rotate(90deg);
+.nf-popular__item:hover {
+	background: rgba(255, 255, 255, 0.05);
 }
 
-.nr-refresh.is-busy {
-	pointer-events: none;
-}
-
-.nr-spinner {
+.nf-popular__rank {
 	width: 14px;
-	height: 14px;
-	border: 2px solid var(--color-brand);
-	border-top-color: transparent;
-	border-radius: 50%;
-	animation: nr-spin 0.8s linear infinite;
+	flex-shrink: 0;
+	color: rgba(255, 255, 255, 0.4);
+	font-size: 12px;
+	font-weight: 700;
+	text-align: center;
 }
 
-@keyframes nr-spin {
+.nf-popular__text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.nf-popular__text b,
+.nf-popular__text span {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.nf-popular__text b {
+	color: var(--color-contrast, #fff);
+	font-size: 12px;
+}
+
+.nf-popular__text span {
+	color: rgba(255, 255, 255, 0.42);
+	font-size: 11px;
+}
+
+.nf-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px 8px;
+}
+
+.nf-tags__tag {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-brand);
+	font: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: opacity 0.15s ease;
+}
+
+.nf-tags__tag:hover {
+	opacity: 0.75;
+}
+
+.nf-tags__tag.is-active {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.nf-who {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.nf-who li {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.nf-who__user {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	padding: 2px;
+	border: 0;
+	border-radius: 8px;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.nf-who__user > span {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.nf-who__user b {
+	overflow: hidden;
+	color: var(--color-contrast, #fff);
+	font-size: 12.5px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.nf-who__user:hover b {
+	color: var(--color-brand);
+}
+
+.nf-who__user small {
+	color: rgba(255, 255, 255, 0.42);
+	font-size: 11px;
+}
+
+.nf-who__follow {
+	flex-shrink: 0;
+	height: 24px;
+	padding: 0 9px;
+	border: 1px solid var(--color-brand);
+	border-radius: 6px;
+	background: transparent;
+	color: var(--color-brand);
+	font: inherit;
+	font-size: 11.5px;
+	font-weight: 700;
+	cursor: pointer;
+	transition:
+		background-color 0.18s ease,
+		color 0.18s ease,
+		border-color 0.18s ease;
+}
+
+.nf-who__follow:hover {
+	background: var(--color-brand);
+	color: #fff;
+}
+
+.nf-who__follow.is-on {
+	border-color: rgba(255, 255, 255, 0.14);
+	color: rgba(255, 255, 255, 0.55);
+}
+
+.nf-who__follow.is-on:hover {
+	border-color: var(--color-red);
+	background: transparent;
+	color: var(--color-red);
+}
+
+.nf-who__follow:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.nf-stack :deep(.is-fresh) {
+	animation: nf-fresh 1.6s ease;
+}
+
+.nf-tab-enter-active,
+.nf-tab-leave-active {
+	transition:
+		opacity 0.18s ease,
+		transform 0.18s ease;
+}
+
+.nf-tab-enter-from {
+	opacity: 0;
+	transform: translateY(8px);
+}
+
+.nf-tab-leave-to {
+	opacity: 0;
+	transform: translateY(-4px);
+}
+
+.nf-list-move,
+.nf-list-enter-active,
+.nf-list-leave-active {
+	transition:
+		opacity 0.28s ease,
+		transform 0.28s ease;
+}
+
+.nf-list-enter-from,
+.nf-list-leave-to {
+	opacity: 0;
+	transform: translateY(8px);
+}
+
+.nf-list-leave-active {
+	position: absolute;
+	visibility: hidden;
+}
+
+.nf-fade-enter-active,
+.nf-fade-leave-active {
+	transition: opacity 0.18s ease;
+}
+
+.nf-fade-enter-from,
+.nf-fade-leave-to {
+	opacity: 0;
+}
+
+@keyframes nf-card-in {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes nf-shimmer {
+	from {
+		background-position: 200% 0;
+	}
+	to {
+		background-position: -200% 0;
+	}
+}
+
+@keyframes nf-spin {
 	to {
 		transform: rotate(360deg);
 	}
 }
 
-/* ===== Строка создания поста ===== */
-
-.nr-compose {
-	display: flex;
-	flex-direction: column;
-	flex-shrink: 0;
-	margin: 0 0 12px;
-	padding: 9px;
-	border: 1px solid #383838;
-	border-radius: 12px;
-	background: #282828;
-	box-sizing: border-box;
-	min-height: 58px;
-}
-
-.nr-compose__row {
-	display: flex;
-	align-items: center;
-	gap: 9px;
-}
-
-.nr-compose__avatar {
-	width: 40px;
-	height: 40px;
-	border: 0;
-	border-radius: 4px;
-	object-fit: cover;
-	background: #363636;
-	image-rendering: pixelated;
-	flex-shrink: 0;
-	overflow: hidden;
-}
-
-.nr-compose__avatar--stub {
-	display: inline-block;
-}
-
-.nr-compose__field {
-	position: relative;
-	display: flex;
-	align-items: center;
-	flex: 1;
-	min-width: 0;
-	min-height: 40px;
-}
-
-.nr-compose textarea {
-	display: block;
-	width: 100%;
-	height: 40px;
-	min-height: 40px;
-	max-height: 140px;
-	padding: 10px 44px 10px 12px;
-	border: none;
-	border-radius: 8px;
-	resize: none;
-	background: #1f1f1f;
-	color: var(--color-contrast, #fff);
-	font: inherit;
-	font-size: 15px;
-	line-height: 20px;
-	outline: none;
-	box-sizing: border-box;
-	vertical-align: top;
-}
-
-.nr-compose textarea::placeholder {
-	color: rgba(255, 255, 255, 0.38);
-}
-
-.nr-compose__plus {
-	position: absolute;
-	top: 0;
-	right: 0;
-	width: 40px;
-	height: 40px;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	color: var(--color-text, #fff);
-	cursor: pointer;
-}
-
-.nr-compose__plus:hover {
-	color: var(--color-contrast, #fff);
-}
-
-.nr-compose__publish {
-	width: 32px;
-	height: 32px;
-	padding: 0;
-	border: none;
-	border-radius: 16px;
-	background: var(--color-brand, #1bd96a);
-	color: var(--color-contrast, #fff);
-	cursor: pointer;
-	flex-shrink: 0;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	transition: transform 0.15s ease;
-}
-
-.nr-compose__publish:hover:not(:disabled) {
-	transform: scale(1.06);
-}
-
-.nr-compose__publish:disabled {
-	opacity: 0.55;
-	cursor: default;
-}
-
-.nr-compose__previews {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin: 8px 0 0 49px;
-}
-
-.nr-compose__preview {
-	position: relative;
-	width: 72px;
-	height: 72px;
-}
-
-.nr-compose__preview img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	border-radius: 8px;
-}
-
-.nr-compose__preview button {
-	position: absolute;
-	top: -6px;
-	right: -6px;
-	width: 20px;
-	height: 20px;
-	display: grid;
-	place-items: center;
-	border: none;
-	border-radius: 50%;
-	background: #3c3c3c;
-	color: #fff;
-	cursor: pointer;
-}
-
-.nr-compose__notice {
-	margin: 8px 0 0 49px;
-	color: var(--color-orange, #faa81a);
-	font-size: 13px;
-}
-
-/* ===== Карточка поста ===== */
-
-.nr-feed {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	padding: 0 0 16px;
-}
-
-.nr-post {
-	position: relative;
-	background: #282828;
-	border: 1px solid #383838;
-	border-radius: 12px;
-	padding: 0;
-	flex-shrink: 0;
-	cursor: pointer;
-	overflow: visible;
-}
-
-.nr-post--article {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-}
-
-.nr-post--article .nr-post__body {
-	padding: 12px;
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-
-.nr-post__cover {
-	width: 100%;
-	max-height: 260px;
-	object-fit: cover;
-	border-radius: 12px 12px 0 0;
-}
-
-.nr-post__head {
-	display: flex;
-	align-items: flex-start;
-	gap: 12px;
-	padding: 12px 12px 0;
-	box-sizing: border-box;
-}
-
-.nr-post__avatar {
-	width: 32px;
-	height: 32px;
-	border: 0;
-	border-radius: 4px;
-	object-fit: cover;
-	background: #363636;
-	display: block;
-	image-rendering: pixelated;
-	flex-shrink: 0;
-}
-
-.nr-post__avatar--stub {
-	display: inline-block;
-}
-
-.nr-post__who {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	justify-content: center;
-	min-width: 0;
-	flex: 1;
-}
-
-.nr-post__name-row {
-	display: flex;
-	align-items: baseline;
-	gap: 8px;
-	min-width: 0;
-	max-width: 100%;
-	flex-wrap: wrap;
-}
-
-.nr-post__name {
-	border: none;
-	padding: 0;
-	background: transparent;
-	color: var(--color-contrast, #fff);
-	font-size: 15px;
-	font-weight: 500;
-	line-height: 19px;
-	cursor: pointer;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	min-width: 0;
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-}
-
-.nr-post__name:disabled {
-	cursor: default;
-}
-
-.nr-post__verified {
-	color: var(--color-brand, #1bd96a);
-	font-size: 13px;
-}
-
-.nr-post__time {
-	font-size: 13px;
-	line-height: 17px;
-	color: rgba(255, 255, 255, 0.35);
-	white-space: nowrap;
-}
-
-.nr-follow {
-	height: 26px;
-	padding: 0 10px;
-	border: 1px solid #4c4c4c;
-	border-radius: 6px;
-	background: transparent;
-	color: var(--color-text, #fff);
-	font: inherit;
-	font-size: 12px;
-	cursor: pointer;
-	flex-shrink: 0;
-	transition:
-		background-color 0.15s ease,
-		color 0.15s ease;
-}
-
-.nr-follow:hover {
-	background: rgba(255, 255, 255, 0.06);
-}
-
-.nr-follow.is-on {
-	background: #3c3c3c;
-	border-color: #3c3c3c;
-	color: rgba(255, 255, 255, 0.6);
-}
-
-.nr-post__title {
-	margin: 10px 12px 0;
-	color: var(--color-contrast, #fff);
-	font-size: 16px;
-	font-weight: 600;
-	line-height: 1.35;
-}
-
-.nr-post__text {
-	margin: 8px 12px 0;
-	color: var(--color-text, rgba(255, 255, 255, 0.85));
-	font-size: 14px;
-	line-height: 1.45;
-	white-space: pre-wrap;
-	overflow-wrap: break-word;
-}
-
-.nr-post__media {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: 4px;
-	margin: 10px 12px 0;
-	border-radius: 8px;
-	overflow: hidden;
-}
-
-.nr-post__media.is-many {
-	grid-template-columns: 1fr 1fr;
-}
-
-.nr-post__media img {
-	width: 100%;
-	max-height: 420px;
-	object-fit: cover;
-	display: block;
-	background: #1f1f1f;
-}
-
-.nr-post__footer {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 8px 8px 8px;
-	margin: 6px 0 0;
-}
-
-.nr-act {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	height: 30px;
-	padding: 0 10px;
-	border: none;
-	border-radius: 8px;
-	background: transparent;
-	color: rgba(255, 255, 255, 0.55);
-	font: inherit;
-	font-size: 13px;
-	cursor: pointer;
-	transition:
-		background-color 0.12s ease,
-		color 0.12s ease;
-}
-
-.nr-act:hover {
-	background: rgba(255, 255, 255, 0.05);
-	color: #fff;
-}
-
-.nr-act__count {
-	color: inherit;
-}
-
-.nr-post__spacer {
-	flex: 1;
-}
-
-.nr-post__views {
-	color: rgba(255, 255, 255, 0.35);
-	font-size: 12px;
-	padding: 0 8px 0 0;
-}
-
-.nr-post__meta {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex-wrap: wrap;
-}
-
-.nr-source {
-	padding: 2px 8px;
-	border-radius: 9999px;
-	font-size: 11px;
-	font-weight: 600;
-	background: rgba(255, 255, 255, 0.08);
-	color: rgba(255, 255, 255, 0.7);
-}
-
-.nr-source[data-source='portalrinth'] {
-	background: rgba(27, 217, 106, 0.15);
-	color: #1bd96a;
-}
-
-.nr-source[data-source='noctrinth'] {
-	background: rgba(91, 142, 212, 0.15);
-	color: #5b8ed4;
-}
-
-/* ===== Комментарии ===== */
-
-.nr-comments {
-	margin: 4px 12px 12px;
-	padding: 10px;
-	border: 1px solid #333;
-	border-radius: 10px;
-	background: #222;
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.nr-comments__state,
-.nr-comments__empty {
-	color: rgba(255, 255, 255, 0.4);
-	font-size: 13px;
-}
-
-.nr-comment {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.nr-comment__author {
-	align-self: flex-start;
-	border: none;
-	padding: 0;
-	background: transparent;
-	color: var(--color-brand, #1bd96a);
-	font: inherit;
-	font-size: 13px;
-	font-weight: 600;
-	cursor: pointer;
-}
-
-.nr-comment__author:disabled {
-	cursor: default;
-}
-
-.nr-comment p {
-	margin: 0;
-	color: var(--color-text, rgba(255, 255, 255, 0.85));
-	font-size: 13px;
-	line-height: 1.4;
-}
-
-.nr-comment__form {
-	display: flex;
-	gap: 8px;
-	margin-top: 4px;
-}
-
-.nr-comment__form input {
-	flex: 1;
-	height: 34px;
-	padding: 0 12px;
-	border: none;
-	border-radius: 8px;
-	background: #1a1a1a;
-	color: var(--color-text, #fff);
-	font: inherit;
-	font-size: 13px;
-	outline: none;
-}
-
-.nr-comment__form input:focus {
-	box-shadow: 0 0 0 2px var(--color-brand);
-}
-
-/* ===== Заглушки ===== */
-
-.nr-gate {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	text-align: center;
-	gap: 0.5rem;
-	padding: 2.5rem 2rem;
-	background: #282828;
-	border: 1px solid #383838;
-	border-radius: 12px;
-	color: var(--color-text-inactive, rgba(255, 255, 255, 0.5));
-}
-
-.nr-gate svg {
-	width: 2rem;
-	height: 2rem;
-	color: var(--color-brand);
-}
-
-.nr-gate b {
-	color: var(--color-contrast, #fff);
-	font-size: 1rem;
-}
-
-.nr-gate p {
-	margin: 0;
-	font-size: 0.85rem;
-	max-width: 34rem;
-}
-
-.nr-empty {
-	padding: 1.5rem 1rem;
-	text-align: center;
-	color: var(--color-text-inactive, rgba(255, 255, 255, 0.45));
-	font-size: 14px;
-}
-
-.nr-empty--error {
-	color: var(--color-red, #ed4245);
-}
-
-/* ===== Правая колонка ===== */
-
-.nr-rail {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	min-width: 0;
-	width: 280px;
-	position: sticky;
-	top: 0;
-	max-height: calc(100vh - 32px);
-	overflow-y: auto;
-	padding-bottom: 4px;
-}
-
-.nr-card {
-	flex-shrink: 0;
-	padding: 12px;
-	border: 1px solid rgba(255, 255, 255, 0.07);
-	border-radius: 8px;
-	background: rgba(255, 255, 255, 0.03);
-}
-
-.nr-card h3 {
-	margin: 0 0 10px;
-	color: var(--color-contrast, #fff);
-	font-size: 14px;
-	font-weight: 600;
-}
-
-.nr-card--note {
-	color: rgba(255, 255, 255, 0.45);
-	font-size: 12px;
-}
-
-.nr-card__empty {
-	margin: 0;
-	color: rgba(255, 255, 255, 0.38);
-	font-size: 13px;
-}
-
-.nr-pop {
-	display: grid;
-	grid-template-columns: 18px 28px minmax(0, 1fr);
-	gap: 8px;
-	align-items: center;
-	width: 100%;
-	margin: 0;
-	padding: 6px 4px;
-	border: none;
-	border-radius: 6px;
-	background: transparent;
-	color: inherit;
-	text-align: left;
-	cursor: pointer;
-}
-
-.nr-pop:hover {
-	background: rgba(255, 255, 255, 0.04);
-}
-
-.nr-pop__n {
-	color: rgba(255, 255, 255, 0.4);
-	font-size: 13px;
-}
-
-.nr-pop__ava {
-	width: 28px;
-	height: 28px;
-	border: 0;
-	border-radius: 3px;
-	object-fit: cover;
-	background: #2a2a2a;
-	image-rendering: pixelated;
-}
-
-.nr-pop__ava--stub {
-	display: inline-block;
-}
-
-.nr-pop__text {
-	min-width: 0;
-}
-
-.nr-pop__title {
-	display: block;
-	color: var(--color-contrast, #fff);
-	font-size: 13px;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.nr-pop__meta {
-	display: block;
-	margin-top: 1px;
-	color: rgba(255, 255, 255, 0.4);
-	font-size: 11px;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.nr-tags {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px 8px;
-}
-
-.nr-tags button {
-	margin: 0;
-	padding: 0;
-	border: none;
-	background: transparent;
-	color: var(--color-brand, #1bd96a);
-	font: inherit;
-	font-size: 13px;
-	cursor: pointer;
-}
-
-.nr-tags button:hover,
-.nr-tags button.is-on {
-	text-decoration: underline;
-}
-
-.nr-who {
-	display: grid;
-	grid-template-columns: 32px minmax(0, 1fr) auto;
-	gap: 8px;
-	align-items: center;
-	margin-bottom: 8px;
-}
-
-.nr-who:last-child {
-	margin-bottom: 0;
-}
-
-.nr-who__ava {
-	width: 32px;
-	height: 32px;
-	display: grid;
-	place-items: center;
-	border-radius: 3px;
-	background: #2a2a2a;
-	color: rgba(255, 255, 255, 0.55);
-	font-size: 14px;
-	font-weight: 600;
-	object-fit: cover;
-	image-rendering: pixelated;
-}
-
-.nr-who__text {
-	min-width: 0;
-}
-
-.nr-who__name {
-	display: block;
-	color: var(--color-contrast, #fff);
-	font-size: 13px;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-.nr-who__meta {
-	display: block;
-	color: rgba(255, 255, 255, 0.42);
-	font-size: 11px;
-}
-
-.nr-who__btn {
-	height: 26px;
-	padding: 0 10px;
-	border: 1px solid var(--color-brand, #1bd96a);
-	border-radius: 4px;
-	background: transparent;
-	color: var(--color-brand, #1bd96a);
-	font: inherit;
-	font-size: 12px;
-	cursor: pointer;
-}
-
-.nr-who__btn:hover {
-	background: rgba(27, 217, 106, 0.12);
-}
-
-/* ===== Анимации ===== */
-
-.nr-post-enter-active,
-.nr-post-leave-active {
-	transition:
-		transform 0.25s ease,
-		opacity 0.25s ease;
-}
-
-.nr-post-enter-from {
-	transform: translateY(-6px);
-	opacity: 0;
-}
-
-.nr-post-leave-to {
-	opacity: 0;
-}
-
-@media (max-width: 900px) {
-	.nr-page {
-		grid-template-columns: 1fr;
+@keyframes nf-fresh {
+	0% {
+		box-shadow: 0 0 0 2px var(--color-brand);
+	}
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+	}
+}
+
+@media (max-width: 960px) {
+	.nf-page {
+		grid-template-columns: minmax(0, 1fr);
 	}
 
-	.nr-rail {
+	.nf-rail {
 		position: static;
-		width: auto;
-		max-height: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.nf-tabs__ink,
+	.nf-tabs__tab,
+	.nf-chip,
+	.nf-art-card,
+	.nf-art-card__cover img,
+	.nf-range button,
+	.nf-who__follow,
+	.nf-tab-enter-active,
+	.nf-tab-leave-active,
+	.nf-list-move,
+	.nf-list-enter-active,
+	.nf-list-leave-active,
+	.nf-fade-enter-active,
+	.nf-fade-leave-active {
+		transition: none;
+	}
+
+	.nf-art-card,
+	.nf-rail__card,
+	.nf-sk,
+	.nf-icon-btn.is-spinning svg,
+	.nf-stack :deep(.is-fresh) {
+		animation: none;
 	}
 }
 </style>

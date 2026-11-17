@@ -2,13 +2,12 @@
 // состояния живут в соседних файлах движка, этот адаптер следит за всеми
 // [data-bloub]-элементами страницы и рисует в них кадры.
 /* eslint-disable */
-// Аватары агентов на движке Bloub (MIT, jeremy-prt/bloub): форма, цвет и состояния.
 
 import { NOTIF_BLUE, type DotRender } from './decor'
 import { BotEngine, type BotFrame } from './engine'
 import { EXPRESSION_BY_ID, type ExpressionId } from './expressions'
 import { RAYON } from './repere'
-import { SHAPE_BY_ID } from './skins'
+import { COLOR_BY_ID, SHAPE_BY_ID } from './skins'
 import { STATE_BY_ID, type StateId } from './states'
 
 const PAPER = '#121212'
@@ -24,6 +23,8 @@ type Face = {
 	expr: string
 	winkUntil: number
 	aiming: boolean
+	ink: string
+	inkSign: string
 }
 
 const faces = new Set<Face>()
@@ -31,6 +32,11 @@ let frame = 0
 let clock = 0
 let serial = 0
 let pointer: { x: number; y: number } | null = null
+
+const reducedMotion =
+	typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+		? window.matchMedia('(prefers-reduced-motion: reduce)')
+		: null
 
 export function expressionFor(_id = ''): ExpressionId {
 	return 'attentif'
@@ -52,6 +58,17 @@ export function syncBloubFaces(root: ParentNode): void {
 		faces.add(createFace(el))
 	})
 	if (faces.size && !frame) frame = requestAnimationFrame(tick)
+}
+
+/** Отпускает лица внутри root: кадр больше не крутится по снятой странице. */
+export function releaseBloubFaces(root: ParentNode): void {
+	for (const face of [...faces]) {
+		if (!face.el.isConnected || root.contains(face.el)) faces.delete(face)
+	}
+	if (!faces.size && frame) {
+		cancelAnimationFrame(frame)
+		frame = 0
+	}
 }
 
 function createFace(el: HTMLElement): Face {
@@ -80,6 +97,8 @@ function createFace(el: HTMLElement): Face {
 		expr,
 		winkUntil: 0,
 		aiming: false,
+		ink: '',
+		inkSign: '',
 	}
 	applyMode(face, clock)
 	paint(face, engine.sample(clock))
@@ -98,7 +117,12 @@ function applyMode(face: Face, now: number): void {
 		face.engine.setExpression(EXPRESSION_BY_ID.get(expr) ?? null, now)
 		face.expr = expr
 	}
-	const next: StateId = raw === 'thinking' || raw === 'notify' || raw === 'alert' ? raw : 'idle'
+	const next: StateId =
+		raw === 'thinking' || raw === 'notify' || raw === 'alert'
+			? raw
+			: raw === 'speaking'
+				? 'wide'
+				: 'idle'
 	if (next === face.mode) return
 	if (face.mode === 'thinking' && next === 'idle') {
 		face.engine.setState('wink', now)
@@ -144,7 +168,13 @@ function aim(face: Face, now: number): void {
 
 function currentState(face: Face): StateId {
 	if (face.winkUntil && clock < face.winkUntil) return 'wink'
-	if (face.mode === 'thinking' || face.mode === 'notify' || face.mode === 'alert') return face.mode
+	if (
+		face.mode === 'thinking' ||
+		face.mode === 'notify' ||
+		face.mode === 'alert' ||
+		face.mode === 'wide'
+	)
+		return face.mode
 	return 'idle'
 }
 
@@ -156,7 +186,7 @@ function tick(nowMs: number): void {
 			faces.delete(face)
 			continue
 		}
-		if (face.el.dataset.still === '1') {
+		if (face.el.dataset.still === '1' || reducedMotion?.matches) {
 			const sign = `${face.el.dataset.shape}|${face.el.dataset.color}|${face.el.dataset.expr}|${face.el.dataset.mode}`
 			if (face.el.dataset.drawn === sign) continue
 			applyMode(face, 0.4)
@@ -169,6 +199,7 @@ function tick(nowMs: number): void {
 			face.engine.setState('idle', clock)
 			face.winkUntil = 0
 		}
+		if (!face.el.offsetWidth || !face.el.offsetHeight) continue
 		aim(face, clock)
 		paint(face, face.engine.sample(clock))
 	}
@@ -200,17 +231,39 @@ function dotMarkup(dot: DotRender, ink: string): string {
 	return `<circle cx="${dot.x}" cy="${dot.y}" r="${dot.r}" fill="${fill}" opacity="${dot.opacity}"/>`
 }
 
-function inkOf(el: HTMLElement): string {
-	const raw = (el.dataset.color || '').trim()
-	if (!raw || raw === 'accent') {
-		const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
-		return /^#[0-9a-fA-F]{6}$/.test(accent) ? accent : '#70ADDF'
+function toHex(value: string): string | null {
+	const text = value.trim()
+	if (/^#[0-9a-f]{6}$/i.test(text)) return text
+	if (/^#[0-9a-f]{3}$/i.test(text)) return `#${[...text.slice(1)].map((c) => c + c).join('')}`
+	const rgb = text.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i)
+	if (rgb) {
+		return `#${rgb
+			.slice(1, 4)
+			.map((channel) => Math.min(255, Number(channel)).toString(16).padStart(2, '0'))
+			.join('')}`
 	}
-	return raw
+	return null
+}
+
+/** Цвет лица: id палитры («bleu»), hex или «accent» — акцент лаунчера. */
+function inkOf(face: Face): string {
+	const raw = (face.el.dataset.color || '').trim()
+	if (face.inkSign === raw && face.ink) return face.ink
+	let ink = COLOR_BY_ID.get(raw)?.hex ?? toHex(raw)
+	if (!ink) {
+		const style = getComputedStyle(document.documentElement)
+		ink =
+			toHex(style.getPropertyValue('--color-brand')) ??
+			toHex(style.getPropertyValue('--accent')) ??
+			'#b000ff'
+	}
+	face.ink = ink
+	face.inkSign = raw
+	return ink
 }
 
 function paint(face: Face, picture: BotFrame): void {
-	const ink = inkOf(face.el)
+	const ink = inkOf(face)
 	const uid = face.uid
 	const eyes = picture.eyes
 		.map(

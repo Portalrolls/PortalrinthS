@@ -5963,13 +5963,13 @@
 		"message": "Официальные новости"
 	},
 	"app.news.gateTitle": {
-		"message": "Посты и новости сообщества"
+		"message": "Лента доступна с аккаунтом Microsoft или Ely.by"
 	},
 	"app.news.gateText": {
 		"message": "Войдите в аккаунт Microsoft или Ely.by — и вы сможете публиковать посты, ставить реакции и комментировать. Лента общая с Undefined Client: посты всех видны и у нас, и у них."
 	},
 	"app.news.composerPlaceholder": {
-		"message": "Поделитесь новостями, сборкой или скриншотом…"
+		"message": "Что нового у вас?"
 	},
 	"app.news.publish": {
 		"message": "Опубликовать"
@@ -5981,13 +5981,13 @@
 		"message": "Нужен аккаунт Microsoft или Ely.by"
 	},
 	"app.news.postingBanned": {
-		"message": "Публикация постов и комментариев ограничена сервисом"
+		"message": "Публикация постов и комментариев для тебя ограничена."
 	},
 	"app.news.publishFailed": {
 		"message": "Не удалось опубликовать"
 	},
 	"app.news.loading": {
-		"message": "Загружаем ленту…"
+		"message": "Загрузка…"
 	},
 	"app.news.loadError": {
 		"message": "Сервис пока не отвечает"
@@ -6002,7 +6002,7 @@
 		"message": "Загружаем комментарии…"
 	},
 	"app.news.noComments": {
-		"message": "Пока тихо — будьте первым."
+		"message": "Комментариев пока нет — будь первым."
 	},
 	"app.news.commentPlaceholder": {
 		"message": "Написать комментарий…"
@@ -6029,7 +6029,7 @@
 		"message": "MC Messenger"
 	},
 	"app.messenger.loading": {
-		"message": "Соединяемся с сервисом…"
+		"message": "Подключаемся к мессенджеру…"
 	},
 	"app.messenger.gateTitle": {
 		"message": "MC Messenger"
@@ -6038,7 +6038,7 @@
 		"message": "Чаты и друзья прямо в лаунчере — как у Undefined Client. Нужен аккаунт Microsoft или Ely.by: мессенджер общий, переписка видна и их игрокам, и нашим. Работает на их живом сервисе — обновления придут сами."
 	},
 	"app.messenger.retry": {
-		"message": "Подключить аккаунт"
+		"message": "Повторить"
 	},
 	"app.messenger.tabChats": {
 		"message": "Чаты"
@@ -6176,11 +6176,11 @@
 	"app.messenger.reported": "Жалоба отправлена",
 	"app.messenger.reportFailed": "Не удалось отправить жалобу",
 	"app.messenger.call.ringing": "Вызываем…",
-	"app.messenger.call.incoming": "Входящий звонок",
+	"app.messenger.call.incoming": "Входящий голосовой звонок…",
 	"app.messenger.call.connecting": "Соединение…",
 	"app.messenger.call.active": "Идёт звонок",
 	"app.messenger.call.micDenied": "Нет доступа к микрофону",
-	"app.messenger.call.failed": "Не удалось дозвониться",
+	"app.messenger.call.failed": "Не удалось соединиться",
 	"app.messenger.navFriends": "Друзья",
 	"app.messenger.findPeople": "Найти людей",
 	"app.messenger.searchStart": "Найти или начать беседу",
@@ -6197,7 +6197,7 @@
 	"app.messenger.subOffline": "Оффлайн",
 	"app.messenger.refresh": "Обновить",
 	"app.messenger.signOut": "Выйти из сессии",
-	"app.messenger.call.start": "Позвонить",
+	"app.messenger.call.start": "Начать голосовой звонок",
 	"app.messenger.call.video": "Видеозвонок",
 	"app.messenger.pinned": "Закреплённые",
 	"app.messenger.chatSearch": "Поиск в чате",
@@ -6209,7 +6209,7 @@
 	"app.messenger.unknown": "Игрок",
 	"app.messenger.reply": "Ответить",
 	"app.messenger.more": "Ещё",
-	"app.messenger.attach": "Прикрепить файл",
+	"app.messenger.attach": "Прикрепить",
 	"app.messenger.writeTo": "Написать {name}",
 	"app.messenger.emoji": "Эмодзи",
 	"app.messenger.send": "Отправить",
@@ -6235,7 +6235,7 @@
 	"app.messenger.call.accept": "Принять",
 	"app.messenger.call.decline": "Отклонить",
 	"app.messenger.call.mute": "Выключить микрофон",
-	"app.messenger.call.hangup": "Завершить",
+	"app.messenger.call.hangup": "Отключиться",
 	"app.messenger.forwardTo": "Переслать в…",
 	"app.messenger.unpinMessage": "Открепить сообщение",
 	"app.messenger.pinMessage": "Закрепить сообщение",
@@ -6243,5 +6243,1355 @@
 	"app.messenger.copyText": "Копировать текст",
 	"app.messenger.copyId": "Копировать ID сообщения",
 	"app.messenger.report": "Сообщить о нарушении",
-	"app.messenger.deleteMessage": "Удалить сообщение"
+	"app.messenger.deleteMessage": "Удалить сообщение",
+	"app.messenger.activity.hosting": {
+		"message": "Открыл мир по сети"
+	},
+	"app.messenger.activity.playing": {
+		"message": "Играет в Minecraft"
+	},
+	"app.messenger.activity.server": {
+		"message": "Играет на {name}"
+	},
+	"app.messenger.back": {
+		"message": "Назад"
+	},
+	"app.messenger.call.action": {
+		"message": "Позвонить"
+	},
+	"app.messenger.call.busy": {
+		"message": "Собеседник сейчас в другом звонке"
+	},
+	"app.messenger.call.calling": {
+		"message": "Вызов…"
+	},
+	"app.messenger.call.connected": {
+		"message": "Голосовая связь подключена"
+	},
+	"app.messenger.call.lost": {
+		"message": "Соединение со звонком потеряно"
+	},
+	"app.messenger.call.noAnswer": {
+		"message": "Нет ответа"
+	},
+	"app.messenger.call.someone": {
+		"message": "Кто-то"
+	},
+	"app.messenger.call.unmute": {
+		"message": "Включить микрофон"
+	},
+	"app.messenger.cancel": {
+		"message": "Отмена"
+	},
+	"app.messenger.category.create": {
+		"message": "Создать категорию"
+	},
+	"app.messenger.category.delete": {
+		"message": "Удалить категорию"
+	},
+	"app.messenger.category.deleteText": {
+		"message": "Категория «{name}» будет удалена, каналы останутся."
+	},
+	"app.messenger.category.name": {
+		"message": "Название категории"
+	},
+	"app.messenger.category.placeholder": {
+		"message": "Новая категория"
+	},
+	"app.messenger.category.rename": {
+		"message": "Переименовать категорию"
+	},
+	"app.messenger.channel.category": {
+		"message": "Категория"
+	},
+	"app.messenger.channel.create": {
+		"message": "Создать канал"
+	},
+	"app.messenger.channel.createTitle": {
+		"message": "Создать канал"
+	},
+	"app.messenger.channel.delete": {
+		"message": "Удалить канал"
+	},
+	"app.messenger.channel.deleteText": {
+		"message": "Канал #{name} и все его сообщения будут удалены."
+	},
+	"app.messenger.channel.deleteTitle": {
+		"message": "Удалить канал"
+	},
+	"app.messenger.channel.edit": {
+		"message": "Настроить канал"
+	},
+	"app.messenger.channel.editTitle": {
+		"message": "Настройки канала"
+	},
+	"app.messenger.channel.name": {
+		"message": "Название канала"
+	},
+	"app.messenger.channel.noCategory": {
+		"message": "Без категории"
+	},
+	"app.messenger.channel.text": {
+		"message": "Текстовый"
+	},
+	"app.messenger.channel.textHint": {
+		"message": "Сообщения, изображения, GIF, эмодзи и файлы"
+	},
+	"app.messenger.channel.topic": {
+		"message": "Тема канала"
+	},
+	"app.messenger.channel.type": {
+		"message": "Тип канала"
+	},
+	"app.messenger.channel.voice": {
+		"message": "Голосовой"
+	},
+	"app.messenger.channel.voiceHint": {
+		"message": "Общайтесь голосом всей компанией"
+	},
+	"app.messenger.channel.voiceName": {
+		"message": "Голосовой"
+	},
+	"app.messenger.close": {
+		"message": "Закрыть"
+	},
+	"app.messenger.closeDm": {
+		"message": "Закрыть ЛС"
+	},
+	"app.messenger.composer.channel": {
+		"message": "Написать в #{name}"
+	},
+	"app.messenger.composer.dm": {
+		"message": "Написать @{name}"
+	},
+	"app.messenger.copied": {
+		"message": "Скопировано"
+	},
+	"app.messenger.copied.id": {
+		"message": "ID скопирован"
+	},
+	"app.messenger.copied.link": {
+		"message": "Ссылка скопирована"
+	},
+	"app.messenger.copied.text": {
+		"message": "Текст скопирован"
+	},
+	"app.messenger.copy": {
+		"message": "Копировать"
+	},
+	"app.messenger.copy.id": {
+		"message": "Копировать ID сообщения"
+	},
+	"app.messenger.copy.link": {
+		"message": "Копировать ссылку"
+	},
+	"app.messenger.copy.text": {
+		"message": "Копировать текст"
+	},
+	"app.messenger.copyFailed": {
+		"message": "Не удалось скопировать"
+	},
+	"app.messenger.copyUserId": {
+		"message": "Копировать ID пользователя"
+	},
+	"app.messenger.create": {
+		"message": "Создать"
+	},
+	"app.messenger.delete.action": {
+		"message": "Удалить сообщение"
+	},
+	"app.messenger.delete.confirm": {
+		"message": "Удалить"
+	},
+	"app.messenger.delete.text": {
+		"message": "Вы точно хотите удалить это сообщение? Отменить нельзя."
+	},
+	"app.messenger.delete.title": {
+		"message": "Удалить сообщение"
+	},
+	"app.messenger.dms": {
+		"message": "Личные сообщения"
+	},
+	"app.messenger.drop.channel": {
+		"message": "Файл уйдёт в #{name}"
+	},
+	"app.messenger.drop.dm": {
+		"message": "Файл уйдёт {name}"
+	},
+	"app.messenger.drop.title": {
+		"message": "Перетащите файл сюда"
+	},
+	"app.messenger.edit.action": {
+		"message": "Изменить"
+	},
+	"app.messenger.edit.cancel": {
+		"message": "отмена"
+	},
+	"app.messenger.edit.hintEnter": {
+		"message": "Enter —"
+	},
+	"app.messenger.edit.hintEsc": {
+		"message": "Escape —"
+	},
+	"app.messenger.edit.save": {
+		"message": "сохранить"
+	},
+	"app.messenger.edited": {
+		"message": "(изменено)"
+	},
+	"app.messenger.error.blocked": {
+		"message": "Пользователь ограничил общение с вами"
+	},
+	"app.messenger.error.forbidden": {
+		"message": "Недостаточно прав для этого действия"
+	},
+	"app.messenger.error.forward": {
+		"message": "Не во все чаты удалось переслать сообщение"
+	},
+	"app.messenger.error.generic": {
+		"message": "Не получилось: {code}"
+	},
+	"app.messenger.error.network": {
+		"message": "Нет связи с сервером"
+	},
+	"app.messenger.error.notFound": {
+		"message": "Не найдено — возможно, это уже удалили"
+	},
+	"app.messenger.error.rate": {
+		"message": "Слишком часто. Подождите немного"
+	},
+	"app.messenger.error.tooLarge": {
+		"message": "Файл слишком большой (максимум 12 МБ)"
+	},
+	"app.messenger.file.download": {
+		"message": "Скачать"
+	},
+	"app.messenger.file.downloadFailed": {
+		"message": "Не удалось скачать файл"
+	},
+	"app.messenger.file.downloading": {
+		"message": "Загрузка…"
+	},
+	"app.messenger.file.empty": {
+		"message": "Файл пустой"
+	},
+	"app.messenger.file.mediaFailed": {
+		"message": "Не удалось загрузить — нажмите ещё раз"
+	},
+	"app.messenger.file.mediaFailedShort": {
+		"message": "ошибка загрузки"
+	},
+	"app.messenger.file.openBrowser": {
+		"message": "Открыть в браузере"
+	},
+	"app.messenger.file.pause": {
+		"message": "Пауза"
+	},
+	"app.messenger.file.play": {
+		"message": "Слушать"
+	},
+	"app.messenger.file.preparing": {
+		"message": "Подготовка…"
+	},
+	"app.messenger.file.readFailed": {
+		"message": "Не удалось прочитать файл"
+	},
+	"app.messenger.file.remove": {
+		"message": "Убрать вложение"
+	},
+	"app.messenger.file.saved": {
+		"message": "Файл сохранён"
+	},
+	"app.messenger.file.tooBig": {
+		"message": "Файл больше 12 МБ — так нельзя"
+	},
+	"app.messenger.file.voice": {
+		"message": "Голосовое сообщение"
+	},
+	"app.messenger.findOrStart": {
+		"message": "Найти или начать беседу"
+	},
+	"app.messenger.forward.action": {
+		"message": "Переслать"
+	},
+	"app.messenger.forward.dm": {
+		"message": "Личные сообщения"
+	},
+	"app.messenger.forward.done": {
+		"message": "Переслано в чатов: {count}"
+	},
+	"app.messenger.forward.empty": {
+		"message": "Ничего не нашлось"
+	},
+	"app.messenger.forward.search": {
+		"message": "Найти чат или сервер"
+	},
+	"app.messenger.forward.send": {
+		"message": "Отправить"
+	},
+	"app.messenger.forward.server": {
+		"message": "Сервер"
+	},
+	"app.messenger.forward.title": {
+		"message": "Переслать сообщение"
+	},
+	"app.messenger.friends.accept": {
+		"message": "Принять"
+	},
+	"app.messenger.friends.add": {
+		"message": "Добавить в друзья"
+	},
+	"app.messenger.friends.addHint": {
+		"message": "Вы можете добавить друга по нику Minecraft или Ely.by."
+	},
+	"app.messenger.friends.addPlaceholder": {
+		"message": "Введите ник игрока"
+	},
+	"app.messenger.friends.all": {
+		"message": "Все"
+	},
+	"app.messenger.friends.allCount": {
+		"message": "Все друзья — {count}"
+	},
+	"app.messenger.friends.block": {
+		"message": "Заблокировать"
+	},
+	"app.messenger.friends.blockText": {
+		"message": "Он не сможет писать вам и звонить. Разблокировать можно во вкладке «Заблокированные»."
+	},
+	"app.messenger.friends.blockTitle": {
+		"message": "Заблокировать {name}?"
+	},
+	"app.messenger.friends.blocked": {
+		"message": "Заблокированные"
+	},
+	"app.messenger.friends.blockedBadge": {
+		"message": "Заблокирован"
+	},
+	"app.messenger.friends.blockedCount": {
+		"message": "Заблокированные — {count}"
+	},
+	"app.messenger.friends.cancel": {
+		"message": "Отменить заявку"
+	},
+	"app.messenger.friends.decline": {
+		"message": "Отклонить"
+	},
+	"app.messenger.friends.empty": {
+		"message": "Пока здесь пусто — добавьте друзей по нику."
+	},
+	"app.messenger.friends.emptyBlocked": {
+		"message": "Вы никого не заблокировали."
+	},
+	"app.messenger.friends.emptyOnline": {
+		"message": "Никого из друзей нет в сети. Самое время позвать их поиграть."
+	},
+	"app.messenger.friends.emptyPending": {
+		"message": "Нет заявок в друзья."
+	},
+	"app.messenger.friends.find": {
+		"message": "Найти"
+	},
+	"app.messenger.friends.incoming": {
+		"message": "Входящий запрос дружбы"
+	},
+	"app.messenger.friends.notFound": {
+		"message": "Никого не нашли. Проверьте ник."
+	},
+	"app.messenger.friends.online": {
+		"message": "В сети"
+	},
+	"app.messenger.friends.onlineCount": {
+		"message": "В сети — {count}"
+	},
+	"app.messenger.friends.outgoing": {
+		"message": "Исходящий запрос дружбы"
+	},
+	"app.messenger.friends.pending": {
+		"message": "Ожидание"
+	},
+	"app.messenger.friends.pendingCount": {
+		"message": "Ожидание — {count}"
+	},
+	"app.messenger.friends.pendingShort": {
+		"message": "Заявка"
+	},
+	"app.messenger.friends.remove": {
+		"message": "Удалить из друзей"
+	},
+	"app.messenger.friends.removeText": {
+		"message": "Вы уверены, что хотите удалить {name} из друзей?"
+	},
+	"app.messenger.friends.removeTitle": {
+		"message": "Удалить «{name}»"
+	},
+	"app.messenger.friends.sendRequest": {
+		"message": "Отправить заявку"
+	},
+	"app.messenger.friends.sent": {
+		"message": "Заявка отправлена"
+	},
+	"app.messenger.friends.sentTo": {
+		"message": "Заявка отправлена {name}"
+	},
+	"app.messenger.friends.title": {
+		"message": "Друзья"
+	},
+	"app.messenger.friends.unblock": {
+		"message": "Разблокировать"
+	},
+	"app.messenger.gate.check": {
+		"message": "Проверить снова"
+	},
+	"app.messenger.gate.ely": {
+		"message": "Войти через Ely.by"
+	},
+	"app.messenger.gate.failedText": {
+		"message": "Сервер Undefined не ответил. Проверьте интернет и попробуйте ещё раз."
+	},
+	"app.messenger.gate.failedTitle": {
+		"message": "Не удалось подключиться"
+	},
+	"app.messenger.gate.microsoft": {
+		"message": "Войти через Microsoft"
+	},
+	"app.messenger.gate.offline": {
+		"message": "Сейчас выбран офлайн-аккаунт «{name}». В мессенджере пишут только лицензионные и Ely.by-аккаунты — выберите другой или войдите."
+	},
+	"app.messenger.gate.retry": {
+		"message": "Повторить"
+	},
+	"app.messenger.gate.settings": {
+		"message": "Настройки аккаунтов"
+	},
+	"app.messenger.gate.text": {
+		"message": "Войдите через Microsoft или Ely.by, чтобы переписываться с друзьями, создавать серверы и звонить."
+	},
+	"app.messenger.gate.title": {
+		"message": "Нужен вход в аккаунт Undefined (Microsoft или Ely.by)"
+	},
+	"app.messenger.home": {
+		"message": "Личные сообщения"
+	},
+	"app.messenger.image.bad": {
+		"message": "Не удалось прочитать изображение"
+	},
+	"app.messenger.intro.channel": {
+		"message": "Это начало канала #{name}."
+	},
+	"app.messenger.intro.channelTitle": {
+		"message": "Добро пожаловать в #{name}"
+	},
+	"app.messenger.intro.dm": {
+		"message": "Это начало вашей истории личных сообщений с {name}."
+	},
+	"app.messenger.invite.1d": {
+		"message": "1 день"
+	},
+	"app.messenger.invite.1h": {
+		"message": "1 час"
+	},
+	"app.messenger.invite.30m": {
+		"message": "30 минут"
+	},
+	"app.messenger.invite.7d": {
+		"message": "7 дней"
+	},
+	"app.messenger.invite.create": {
+		"message": "Создать ссылку"
+	},
+	"app.messenger.invite.expires": {
+		"message": "Срок действия"
+	},
+	"app.messenger.invite.maxUses": {
+		"message": "Лимит использований"
+	},
+	"app.messenger.invite.never": {
+		"message": "Бессрочно"
+	},
+	"app.messenger.invite.none": {
+		"message": "Активных приглашений нет."
+	},
+	"app.messenger.invite.revoke": {
+		"message": "Отозвать"
+	},
+	"app.messenger.invite.text": {
+		"message": "Отправьте другу ссылку — по ней он сразу попадёт на сервер."
+	},
+	"app.messenger.invite.unlimited": {
+		"message": "Без ограничений"
+	},
+	"app.messenger.invite.until": {
+		"message": "до {date}"
+	},
+	"app.messenger.invite.uses": {
+		"message": "Использований: {uses}"
+	},
+	"app.messenger.jumpPresent": {
+		"message": "Перейти к новым"
+	},
+	"app.messenger.loadFailed": {
+		"message": "Не удалось загрузить сообщения"
+	},
+	"app.messenger.logout.confirm": {
+		"message": "Выйти"
+	},
+	"app.messenger.logout.text": {
+		"message": "Сессия мессенджера будет сброшена. Аккаунт в лаунчере останется — мы войдём заново при следующем подключении."
+	},
+	"app.messenger.logout.title": {
+		"message": "Выйти из сессии"
+	},
+	"app.messenger.members.kick": {
+		"message": "Исключить"
+	},
+	"app.messenger.members.kickText": {
+		"message": "{name} будет удалён с сервера «{server}». Его можно будет пригласить снова."
+	},
+	"app.messenger.members.kickTitle": {
+		"message": "Исключить {name}"
+	},
+	"app.messenger.members.loading": {
+		"message": "Загружаем участников…"
+	},
+	"app.messenger.members.offline": {
+		"message": "Не в сети"
+	},
+	"app.messenger.members.online": {
+		"message": "В сети"
+	},
+	"app.messenger.members.staff": {
+		"message": "Администрация"
+	},
+	"app.messenger.mention.title": {
+		"message": "Участники"
+	},
+	"app.messenger.myProfile": {
+		"message": "Мой профиль"
+	},
+	"app.messenger.newDm": {
+		"message": "Создать ЛС"
+	},
+	"app.messenger.newMessages": {
+		"message": "НОВЫЕ"
+	},
+	"app.messenger.noDms": {
+		"message": "Здесь появятся ваши личные беседы"
+	},
+	"app.messenger.nothingFound": {
+		"message": "Ничего не найдено"
+	},
+	"app.messenger.ok": {
+		"message": "Готово"
+	},
+	"app.messenger.panel.members": {
+		"message": "Список участников"
+	},
+	"app.messenger.panel.profile": {
+		"message": "Показать профиль пользователя"
+	},
+	"app.messenger.panel.toggle": {
+		"message": "Боковая панель"
+	},
+	"app.messenger.peer.account": {
+		"message": "Аккаунт"
+	},
+	"app.messenger.peer.friend": {
+		"message": "Друг"
+	},
+	"app.messenger.peer.fullProfile": {
+		"message": "Открыть полный профиль"
+	},
+	"app.messenger.peer.notFriend": {
+		"message": "Не в друзьях"
+	},
+	"app.messenger.peer.relation": {
+		"message": "Отношения"
+	},
+	"app.messenger.peer.sharedServers": {
+		"message": "Общие серверы — {count}"
+	},
+	"app.messenger.pin.added": {
+		"message": "Сообщение закреплено"
+	},
+	"app.messenger.pin.pin": {
+		"message": "Закрепить"
+	},
+	"app.messenger.pin.removed": {
+		"message": "Сообщение откреплено"
+	},
+	"app.messenger.pin.unpin": {
+		"message": "Открепить"
+	},
+	"app.messenger.pins.empty": {
+		"message": "Здесь пока нет закреплённых сообщений"
+	},
+	"app.messenger.pins.title": {
+		"message": "Закреплённые сообщения"
+	},
+	"app.messenger.plus.file": {
+		"message": "Загрузить файл"
+	},
+	"app.messenger.plus.image": {
+		"message": "Изображение или GIF"
+	},
+	"app.messenger.rail": {
+		"message": "Серверы"
+	},
+	"app.messenger.react.add": {
+		"message": "Добавить реакцию"
+	},
+	"app.messenger.react.heart": {
+		"message": "Нравится"
+	},
+	"app.messenger.reconnect": {
+		"message": "Переподключиться"
+	},
+	"app.messenger.replyingTo": {
+		"message": "Ответ"
+	},
+	"app.messenger.report.action": {
+		"message": "Пожаловаться"
+	},
+	"app.messenger.report.placeholder": {
+		"message": "Спам, оскорбления, мошенничество…"
+	},
+	"app.messenger.report.send": {
+		"message": "Отправить жалобу"
+	},
+	"app.messenger.report.sent": {
+		"message": "Жалоба отправлена"
+	},
+	"app.messenger.report.text": {
+		"message": "Опишите, что не так. Жалобу увидит модерация."
+	},
+	"app.messenger.report.title": {
+		"message": "Пожаловаться на сообщение"
+	},
+	"app.messenger.role.admin": {
+		"message": "Администратор"
+	},
+	"app.messenger.role.member": {
+		"message": "Участник"
+	},
+	"app.messenger.role.owner": {
+		"message": "Владелец"
+	},
+	"app.messenger.roles.color": {
+		"message": "Цвет"
+	},
+	"app.messenger.roles.count": {
+		"message": "Участников: {count}"
+	},
+	"app.messenger.roles.create": {
+		"message": "Создать роль"
+	},
+	"app.messenger.roles.delete": {
+		"message": "Удалить роль"
+	},
+	"app.messenger.roles.name": {
+		"message": "Название роли"
+	},
+	"app.messenger.roles.none": {
+		"message": "Ролей пока нет."
+	},
+	"app.messenger.roles.text": {
+		"message": "Роли подсвечивают участников цветом и группируют их в списке."
+	},
+	"app.messenger.save": {
+		"message": "Сохранить"
+	},
+	"app.messenger.search.count": {
+		"message": "Найдено: {count}"
+	},
+	"app.messenger.search.empty": {
+		"message": "Ничего не найдено"
+	},
+	"app.messenger.search.people": {
+		"message": "Поиск"
+	},
+	"app.messenger.search.placeholder": {
+		"message": "Поиск в чате"
+	},
+	"app.messenger.search.searching": {
+		"message": "Ищем…"
+	},
+	"app.messenger.searchPeople": {
+		"message": "Игроки"
+	},
+	"app.messenger.server.about": {
+		"message": "О сервере"
+	},
+	"app.messenger.server.add": {
+		"message": "Добавить сервер"
+	},
+	"app.messenger.server.copyId": {
+		"message": "Копировать ID сервера"
+	},
+	"app.messenger.server.create": {
+		"message": "Создать"
+	},
+	"app.messenger.server.createOwn": {
+		"message": "Создать свой сервер"
+	},
+	"app.messenger.server.createText": {
+		"message": "Сервер — место, где вы с друзьями общаетесь в текстовых и голосовых каналах."
+	},
+	"app.messenger.server.createTitle": {
+		"message": "Создайте сервер"
+	},
+	"app.messenger.server.customize": {
+		"message": "Настройте свой сервер"
+	},
+	"app.messenger.server.customizeText": {
+		"message": "Дайте серверу имя и значок. Всё это можно изменить позже."
+	},
+	"app.messenger.server.defaultName": {
+		"message": "Сервер {name}"
+	},
+	"app.messenger.server.description": {
+		"message": "Описание"
+	},
+	"app.messenger.server.haveInvite": {
+		"message": "Уже есть приглашение?"
+	},
+	"app.messenger.server.hide": {
+		"message": "Скрыть сервер"
+	},
+	"app.messenger.server.invite": {
+		"message": "Пригласить людей"
+	},
+	"app.messenger.server.inviteBad": {
+		"message": "Приглашение недействительно или истекло"
+	},
+	"app.messenger.server.inviteEmpty": {
+		"message": "Введите ссылку-приглашение или код"
+	},
+	"app.messenger.server.inviteLink": {
+		"message": "Ссылка-приглашение"
+	},
+	"app.messenger.server.join": {
+		"message": "Присоединиться к серверу"
+	},
+	"app.messenger.server.joinText": {
+		"message": "Введите приглашение, чтобы присоединиться к существующему серверу."
+	},
+	"app.messenger.server.joinTitle": {
+		"message": "Присоединиться к серверу"
+	},
+	"app.messenger.server.leave": {
+		"message": "Покинуть сервер"
+	},
+	"app.messenger.server.membersCount": {
+		"message": "Участников: {count}"
+	},
+	"app.messenger.server.name": {
+		"message": "Название сервера"
+	},
+	"app.messenger.server.settings": {
+		"message": "Настройки сервера"
+	},
+	"app.messenger.server.untitled": {
+		"message": "Сервер"
+	},
+	"app.messenger.server.upload": {
+		"message": "Загрузить"
+	},
+	"app.messenger.settings.about": {
+		"message": "О сервере"
+	},
+	"app.messenger.settings.addCount": {
+		"message": "Добавить ({count})"
+	},
+	"app.messenger.settings.addFriends": {
+		"message": "Добавить друзей"
+	},
+	"app.messenger.settings.added": {
+		"message": "Друзья добавлены на сервер"
+	},
+	"app.messenger.settings.banner": {
+		"message": "Сменить баннер"
+	},
+	"app.messenger.settings.dangerOwner": {
+		"message": "Удаление"
+	},
+	"app.messenger.settings.delete": {
+		"message": "Удалить сервер"
+	},
+	"app.messenger.settings.deleteHint": {
+		"message": "Удаляет сервер для всех участников без возможности восстановления."
+	},
+	"app.messenger.settings.deleteText": {
+		"message": "Сервер, все каналы и сообщения будут удалены навсегда."
+	},
+	"app.messenger.settings.deleteTitle": {
+		"message": "Удалить «{name}»"
+	},
+	"app.messenger.settings.hide": {
+		"message": "Скрыть сервер"
+	},
+	"app.messenger.settings.hideHint": {
+		"message": "Сервер скроется из списка и вернётся при новом сообщении."
+	},
+	"app.messenger.settings.invites": {
+		"message": "Приглашения"
+	},
+	"app.messenger.settings.kick": {
+		"message": "Исключить"
+	},
+	"app.messenger.settings.kickText": {
+		"message": "{name} будет удалён с сервера. Вернуться он сможет только по приглашению."
+	},
+	"app.messenger.settings.kickTitle": {
+		"message": "Исключить {name}"
+	},
+	"app.messenger.settings.leave": {
+		"message": "Покинуть"
+	},
+	"app.messenger.settings.leaveHint": {
+		"message": "Сервер пропадёт из списка, сообщения останутся у других участников."
+	},
+	"app.messenger.settings.leaveText": {
+		"message": "Вы уверены? Вернуться можно будет только по новому приглашению."
+	},
+	"app.messenger.settings.leaveTitle": {
+		"message": "Покинуть «{name}»"
+	},
+	"app.messenger.settings.members": {
+		"message": "Участники"
+	},
+	"app.messenger.settings.noDescription": {
+		"message": "Описание не задано."
+	},
+	"app.messenger.settings.overview": {
+		"message": "Обзор"
+	},
+	"app.messenger.settings.removeBanner": {
+		"message": "Убрать баннер"
+	},
+	"app.messenger.settings.removeIcon": {
+		"message": "Убрать значок"
+	},
+	"app.messenger.settings.reset": {
+		"message": "Сбросить"
+	},
+	"app.messenger.settings.roles": {
+		"message": "Роли"
+	},
+	"app.messenger.settings.rolesBtn": {
+		"message": "Роли"
+	},
+	"app.messenger.settings.saved": {
+		"message": "Изменения сохранены"
+	},
+	"app.messenger.settings.searchMembers": {
+		"message": "Поиск участников"
+	},
+	"app.messenger.settings.title": {
+		"message": "Настройки сервера"
+	},
+	"app.messenger.settings.unsaved": {
+		"message": "Есть несохранённые изменения"
+	},
+	"app.messenger.startChat": {
+		"message": "Начать беседу"
+	},
+	"app.messenger.status.busy": {
+		"message": "Отошёл"
+	},
+	"app.messenger.status.busyHint": {
+		"message": "Вы на месте, но можете ответить не сразу"
+	},
+	"app.messenger.status.dnd": {
+		"message": "Не беспокоить"
+	},
+	"app.messenger.status.dndHint": {
+		"message": "Звуки уведомлений приглушены"
+	},
+	"app.messenger.status.invisible": {
+		"message": "Невидимка"
+	},
+	"app.messenger.status.invisibleHint": {
+		"message": "Другие увидят вас «не в сети»"
+	},
+	"app.messenger.status.offline": {
+		"message": "Не в сети"
+	},
+	"app.messenger.status.online": {
+		"message": "В сети"
+	},
+	"app.messenger.today": {
+		"message": "Сегодня"
+	},
+	"app.messenger.typing.many": {
+		"message": "{names} печатают…"
+	},
+	"app.messenger.typing.one": {
+		"message": "{name} печатает…"
+	},
+	"app.messenger.viewProfile": {
+		"message": "Посмотреть профиль"
+	},
+	"app.messenger.viewingOlder": {
+		"message": "Вы просматриваете старые сообщения"
+	},
+	"app.messenger.voice.connected": {
+		"message": "Голос подключён"
+	},
+	"app.messenger.voice.deafen": {
+		"message": "Выключить звук"
+	},
+	"app.messenger.voice.failed": {
+		"message": "Не удалось подключиться к голосовому каналу"
+	},
+	"app.messenger.voice.joined": {
+		"message": "Вы подключились к «{name}»"
+	},
+	"app.messenger.voice.needChannel": {
+		"message": "Создайте голосовой канал в настройках сервера"
+	},
+	"app.messenger.voice.record": {
+		"message": "Записать голосовое"
+	},
+	"app.messenger.voice.recording": {
+		"message": "Идёт запись"
+	},
+	"app.messenger.voice.stop": {
+		"message": "Остановить и отправить"
+	},
+	"app.messenger.voice.tooShort": {
+		"message": "Слишком короткое голосовое"
+	},
+	"app.messenger.voice.undeafen": {
+		"message": "Включить звук"
+	},
+	"app.messenger.voice.unsupported": {
+		"message": "Запись голоса недоступна в этой системе"
+	},
+	"app.messenger.worlds.address": {
+		"message": "Адрес"
+	},
+	"app.messenger.worlds.ask": {
+		"message": "Попросить приглашение"
+	},
+	"app.messenger.worlds.build": {
+		"message": "Сборка"
+	},
+	"app.messenger.worlds.copied": {
+		"message": "Адрес скопирован — вставьте его в «Сетевая игра»"
+	},
+	"app.messenger.worlds.copy": {
+		"message": "Копировать адрес"
+	},
+	"app.messenger.worlds.empty": {
+		"message": "Сейчас никто из друзей не открыл мир по сети."
+	},
+	"app.messenger.worlds.hint": {
+		"message": "Здесь появляются миры и серверы, в которых сейчас играют ваши друзья. Скопируйте адрес и подключайтесь."
+	},
+	"app.messenger.worlds.title": {
+		"message": "Миры по сети"
+	},
+	"app.messenger.worlds.version": {
+		"message": "Версия"
+	},
+	"app.messenger.worlds.world": {
+		"message": "Мир"
+	},
+	"app.messenger.yesterday": {
+		"message": "Вчера"
+	},
+	"app.news.aboutText": {
+		"message": "Официальные статьи студии и сообщество игроков: посты, лайки, комментарии и репосты в чаты MC Messenger."
+	},
+	"app.news.aboutTitle": {
+		"message": "Новости Undefined"
+	},
+	"app.news.article": {
+		"message": "Статья"
+	},
+	"app.news.articlesFailed": {
+		"message": "Не удалось загрузить статьи Undefined"
+	},
+	"app.news.attachImages": {
+		"message": "Прикрепить фото (до {n})"
+	},
+	"app.news.bookmarkAdd": {
+		"message": "В закладки"
+	},
+	"app.news.bookmarkRemove": {
+		"message": "Убрать из закладок"
+	},
+	"app.news.bookmarked": {
+		"message": "Пост добавлен в закладки"
+	},
+	"app.news.cancel": {
+		"message": "Отмена"
+	},
+	"app.news.cancelReply": {
+		"message": "Отменить ответ"
+	},
+	"app.news.chatFallback": {
+		"message": "Чат"
+	},
+	"app.news.chatSearch": {
+		"message": "Найти чат"
+	},
+	"app.news.chatsFailed": {
+		"message": "Не удалось загрузить чаты"
+	},
+	"app.news.clearSearch": {
+		"message": "Очистить поиск"
+	},
+	"app.news.clearTag": {
+		"message": "Сбросить тег"
+	},
+	"app.news.close": {
+		"message": "Закрыть"
+	},
+	"app.news.commentDeleteFailed": {
+		"message": "Не удалось удалить комментарий"
+	},
+	"app.news.commentFailed": {
+		"message": "Не удалось отправить комментарий"
+	},
+	"app.news.commentNeedAccount": {
+		"message": "Войди через Microsoft или Ely.by, чтобы комментировать."
+	},
+	"app.news.commentsFailed": {
+		"message": "Не удалось загрузить комментарии"
+	},
+	"app.news.copyFailed": {
+		"message": "Не удалось скопировать"
+	},
+	"app.news.copyLink": {
+		"message": "Копировать ссылку"
+	},
+	"app.news.copyMediaLink": {
+		"message": "Копировать ссылку на фото"
+	},
+	"app.news.copyText": {
+		"message": "Копировать текст"
+	},
+	"app.news.dateAt": {
+		"message": "{date} в {time}"
+	},
+	"app.news.delete": {
+		"message": "Удалить"
+	},
+	"app.news.deleteFailed": {
+		"message": "Не удалось удалить пост"
+	},
+	"app.news.deletePost": {
+		"message": "Удалить пост"
+	},
+	"app.news.deleteText": {
+		"message": "Пост, комментарии и реакции к нему исчезнут без возможности восстановления."
+	},
+	"app.news.deleteTitle": {
+		"message": "Удалить пост?"
+	},
+	"app.news.deleted": {
+		"message": "Пост удалён"
+	},
+	"app.news.feedFailed": {
+		"message": "Не удалось загрузить ленту"
+	},
+	"app.news.followFailed": {
+		"message": "Не удалось изменить подписку"
+	},
+	"app.news.followersCount": {
+		"message": "{n} {word}"
+	},
+	"app.news.gateArticles": {
+		"message": "Статьи Undefined, Portalrinth и Noctrinth читаются и без аккаунта."
+	},
+	"app.news.gateNone": {
+		"message": "Войди через Microsoft или Ely.by — лента, комментарии и подписки привязаны к игровому аккаунту."
+	},
+	"app.news.gateOffline": {
+		"message": "Сейчас выбран офлайн-аккаунт. У него нет подтверждённой личности, поэтому публиковать, лайкать и читать ленту сообщества с ним нельзя."
+	},
+	"app.news.hashtags": {
+		"message": "Популярные хештеги"
+	},
+	"app.news.imageBroken": {
+		"message": "Не получилось прочитать «{name}»"
+	},
+	"app.news.imagesLimit": {
+		"message": "Можно прикрепить не больше {n} фото"
+	},
+	"app.news.like": {
+		"message": "Нравится"
+	},
+	"app.news.likeFailed": {
+		"message": "Не удалось поставить лайк"
+	},
+	"app.news.likesCount": {
+		"message": "{n} {word}"
+	},
+	"app.news.linkCopied": {
+		"message": "Ссылка скопирована"
+	},
+	"app.news.mediaN": {
+		"message": "Фото {n}"
+	},
+	"app.news.nextMedia": {
+		"message": "Следующее фото"
+	},
+	"app.news.noArticles": {
+		"message": "Статей пока нет"
+	},
+	"app.news.noBookmarks": {
+		"message": "Закладок пока нет — нажми на значок закладки под постом, чтобы сохранить его."
+	},
+	"app.news.noChats": {
+		"message": "Чатов не нашлось"
+	},
+	"app.news.noFollowing": {
+		"message": "Здесь появятся посты тех, на кого ты подписан. Начни с блока «Кого читать»."
+	},
+	"app.news.noPosts": {
+		"message": "В ленте пока пусто — напиши первый пост."
+	},
+	"app.news.nothingFound": {
+		"message": "Ничего не нашлось"
+	},
+	"app.news.openImage": {
+		"message": "Открыть изображение"
+	},
+	"app.news.openInBrowser": {
+		"message": "Открыть в браузере"
+	},
+	"app.news.openMedia": {
+		"message": "Открыть во весь экран"
+	},
+	"app.news.openOnSite": {
+		"message": "Открыть на сайте"
+	},
+	"app.news.openPost": {
+		"message": "Открыть пост"
+	},
+	"app.news.openProfile": {
+		"message": "Открыть профиль"
+	},
+	"app.news.photoPost": {
+		"message": "Пост с фото"
+	},
+	"app.news.pinned": {
+		"message": "закреплено"
+	},
+	"app.news.popularEmpty": {
+		"message": "За этот период популярных постов нет"
+	},
+	"app.news.postMenu": {
+		"message": "Действия с постом"
+	},
+	"app.news.postTitle": {
+		"message": "Пост"
+	},
+	"app.news.prevMedia": {
+		"message": "Предыдущее фото"
+	},
+	"app.news.publishHint": {
+		"message": "Опубликовать (Ctrl+Enter)"
+	},
+	"app.news.published": {
+		"message": "Пост опубликован"
+	},
+	"app.news.range30": {
+		"message": "30Д"
+	},
+	"app.news.range7": {
+		"message": "7Д"
+	},
+	"app.news.rangeAll": {
+		"message": "Всё"
+	},
+	"app.news.read": {
+		"message": "Читать"
+	},
+	"app.news.refresh": {
+		"message": "Обновить"
+	},
+	"app.news.removeImage": {
+		"message": "Убрать фото"
+	},
+	"app.news.reply": {
+		"message": "Ответить"
+	},
+	"app.news.replyTo": {
+		"message": "Ответ для {name}"
+	},
+	"app.news.report": {
+		"message": "Пожаловаться"
+	},
+	"app.news.reportAbuse": {
+		"message": "Оскорбления"
+	},
+	"app.news.reportFailed": {
+		"message": "Не удалось отправить жалобу"
+	},
+	"app.news.reportOther": {
+		"message": "Другое"
+	},
+	"app.news.reportReason": {
+		"message": "Причина жалобы"
+	},
+	"app.news.reportSent": {
+		"message": "Жалоба отправлена"
+	},
+	"app.news.reportSpam": {
+		"message": "Спам"
+	},
+	"app.news.reportThanks": {
+		"message": "Модераторы посмотрят пост."
+	},
+	"app.news.repost": {
+		"message": "Репост"
+	},
+	"app.news.repostChats": {
+		"message": "В чат"
+	},
+	"app.news.repostChatsSubmit": {
+		"message": "Отправить ({n})"
+	},
+	"app.news.repostComment": {
+		"message": "Добавь комментарий (необязательно)"
+	},
+	"app.news.repostFailed": {
+		"message": "Репост не удался"
+	},
+	"app.news.repostMark": {
+		"message": "репост"
+	},
+	"app.news.repostMedia": {
+		"message": "Пост с фото"
+	},
+	"app.news.repostPick": {
+		"message": "Выбери чаты"
+	},
+	"app.news.repostTitle": {
+		"message": "Поделиться постом"
+	},
+	"app.news.repostWall": {
+		"message": "На стену"
+	},
+	"app.news.repostWallSubmit": {
+		"message": "Репостнуть"
+	},
+	"app.news.repostedChats": {
+		"message": "Отправлено в чаты: {n}"
+	},
+	"app.news.repostedWall": {
+		"message": "Пост появился у тебя на стене"
+	},
+	"app.news.retry": {
+		"message": "Повторить"
+	},
+	"app.news.search": {
+		"message": "Поиск в ленте…"
+	},
+	"app.news.searchArticles": {
+		"message": "Поиск по статьям…"
+	},
+	"app.news.send": {
+		"message": "Отправить"
+	},
+	"app.news.sessionFailed": {
+		"message": "Не удалось войти в сервис Undefined. Проверь интернет и попробуй ещё раз."
+	},
+	"app.news.sessionTitle": {
+		"message": "Сервис ленты недоступен"
+	},
+	"app.news.showLess": {
+		"message": "Свернуть"
+	},
+	"app.news.showMore": {
+		"message": "Показать полностью"
+	},
+	"app.news.signInEly": {
+		"message": "Войти через Ely.by"
+	},
+	"app.news.signInMicrosoft": {
+		"message": "Войти через Microsoft"
+	},
+	"app.news.someone": {
+		"message": "Игрок"
+	},
+	"app.news.tabBookmarks": {
+		"message": "Закладки"
+	},
+	"app.news.tagFilter": {
+		"message": "Посты с тегом"
+	},
+	"app.news.textCopied": {
+		"message": "Текст скопирован"
+	},
+	"app.news.timeDaysShort": {
+		"message": "{n} д"
+	},
+	"app.news.timeHoursShort": {
+		"message": "{n} ч"
+	},
+	"app.news.timeMinutesShort": {
+		"message": "{n} мин"
+	},
+	"app.news.toArticles": {
+		"message": "К статьям"
+	},
+	"app.news.unbookmarked": {
+		"message": "Пост убран из закладок"
+	},
+	"app.news.userNotFound": {
+		"message": "Игрок {name} не найден"
+	},
+	"app.news.verified": {
+		"message": "Подтверждённый аккаунт"
+	},
+	"app.news.viewsTitle": {
+		"message": "Просмотры"
+	},
+	"app.news.whoToRead": {
+		"message": "Кого читать"
+	},
+	"app.ai.catalog.note.pixi": {
+		"message": "Агент Pixi из Undefined Client: Lite, Pro, Ultra и Flash. Ключ не нужен — вход через аккаунт Microsoft или Ely.by, выбранный в лаунчере."
+	},
+	"app.ai.picker.picked": {
+		"message": "Выбрана"
+	},
+	"app.ai.picker.pixi.checking": {
+		"message": "Проверяю доступ к Pixi…"
+	},
+	"app.ai.picker.pixi.open": {
+		"message": "Доступ открыт — все модели Pixi работают"
+	},
+	"app.ai.picker.pixi.no-account": {
+		"message": "Нужен вход в аккаунт Undefined (Microsoft или Ely.by) — выберите его в карточке аккаунтов"
+	},
+	"app.ai.picker.pixi.offline": {
+		"message": "Офлайн-аккаунт не входит в Undefined — выберите аккаунт Microsoft или Ely.by в карточке аккаунтов"
+	},
+	"app.ai.picker.pixi.denied": {
+		"message": "Сервер Undefined пока не выдал этому аккаунту доступ к Pixi"
+	},
+	"app.ai.picker.pixi.pending": {
+		"message": "Заявка отправлена — ожидайте решения Undefined"
+	},
+	"app.ai.picker.pixi.rejected": {
+		"message": "Заявка отклонена — можно подать её повторно"
+	},
+	"app.ai.picker.pixi.error": {
+		"message": "Сервер Undefined не ответил: {error}"
+	},
+	"app.ai.picker.pixi.reason": {
+		"message": "Зачем вам Pixi (необязательно)"
+	},
+	"app.ai.picker.pixi.apply": {
+		"message": "Подать заявку"
+	},
+	"app.ai.picker.pixi.retry": {
+		"message": "Проверить снова"
+	}
 }

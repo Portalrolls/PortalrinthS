@@ -271,13 +271,22 @@ const following = computed(() => Boolean(stats.value?.followedByMe))
 const canFollow = computed(() => Boolean(stats.value && !isSelf.value))
 
 async function toggleFollow() {
-	if (!target.value || followBusy.value) return
+	if (!target.value || !stats.value || followBusy.value) return
 	followBusy.value = true
-	const id = encodeURIComponent(String(target.value.id))
-	const response = await serviceRequest(`/social/users/${id}/follow`, { method: 'POST' })
-	if (response.ok && stats.value) {
-		stats.value = { ...stats.value, followedByMe: !following.value }
+	const was = following.value
+	const before = stats.value
+	const followers = Number(before.followerCount) || 0
+	stats.value = {
+		...before,
+		followedByMe: !was,
+		followerCount: Math.max(0, followers + (was ? -1 : 1)),
 	}
+	const id = encodeURIComponent(String(target.value.id))
+	const response = await serviceRequest(`/social/users/${id}/follow`, {
+		method: was ? 'DELETE' : 'POST',
+	})
+	if (!response.ok) stats.value = before
+	else if (response.data?.stats) stats.value = { ...stats.value, ...response.data.stats }
 	followBusy.value = false
 }
 

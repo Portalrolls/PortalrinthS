@@ -388,7 +388,25 @@ export function resolveServiceMedia(url: string | null | undefined): string {
 const avatarCache = new Map<string, string>()
 const avatarInflight = new Map<string, Promise<string>>()
 
-const STEVE_HEAD = 'https://mc-heads.net/avatar/MHF_Steve/64'
+/**
+ * Хосты скинов, которые сервис отдаёт через себя. Из РФ mc-heads, текстуры
+ * Mojang и CDN Modrinth напрямую часто не открываются (блокировка
+ * Cloudflare), а uprojects доступен — поэтому картинки идут через него.
+ */
+const SKIN_RELAY_HOSTS =
+	/^https:\/\/(mc-heads\.net|mineskin\.eu|textures\.minecraft\.net|skinsystem\.ely\.by|ely\.by|s\.namemc\.com)\//i
+const MODRINTH_CDN = /^https:\/\/cdn\.modrinth\.com\//i
+
+export function relayImageUrl(url: string): string {
+	if (!url || url.startsWith(UPROJECTS_BASE)) return url
+	if (SKIN_RELAY_HOSTS.test(url))
+		return `${UPROJECTS_BASE}/api/skin/image?url=${encodeURIComponent(url)}`
+	if (MODRINTH_CDN.test(url))
+		return `${UPROJECTS_BASE}/api/catalog/image?url=${encodeURIComponent(url)}`
+	return url
+}
+
+const STEVE_HEAD = relayImageUrl('https://mc-heads.net/avatar/MHF_Steve/64')
 
 function loadImage(src: string): Promise<HTMLImageElement> {
 	return new Promise((resolve, reject) => {
@@ -484,10 +502,10 @@ function isFinishedHeadUrl(raw: string): boolean {
 function serviceHead(key: string, size: number): string {
 	const trimmed = key.replace(/-/g, '').toLowerCase()
 	if (trimmed.length >= 32) {
-		return `https://mc-heads.net/avatar/${trimmed}/${size}`
+		return relayImageUrl(`https://mc-heads.net/avatar/${trimmed}/${size}`)
 	}
 	if (key) {
-		return `https://mc-heads.net/avatar/${encodeURIComponent(key)}/${size}`
+		return relayImageUrl(`https://mc-heads.net/avatar/${encodeURIComponent(key)}/${size}`)
 	}
 	return STEVE_HEAD
 }
@@ -539,19 +557,22 @@ export function loadSkinTexture(user: {
 		.replace(/-/g, '')
 		.toLowerCase()
 	const name = String(user.username || '').trim()
-	const own = resolveServiceMedia(user.skinUrl)
+	const own = relayImageUrl(resolveServiceMedia(user.skinUrl))
 	const key = `${own}|${uuid}|${name}`
 	const cached = skinTextureCache.get(key)
 	if (cached) return cached
 	const sources: string[] = []
 	if (own) sources.push(own)
 	if (user.provider === 'ely' && name) {
-		sources.push(`https://skinsystem.ely.by/skins/${encodeURIComponent(name)}.png`)
+		sources.push(relayImageUrl(`https://skinsystem.ely.by/skins/${encodeURIComponent(name)}.png`))
 	}
 	if (uuid.length >= 32) {
-		sources.push(`https://mc-heads.net/skin/${uuid}`, `https://crafatar.com/skins/${uuid}`)
+		sources.push(
+			relayImageUrl(`https://mc-heads.net/skin/${uuid}`),
+			`https://crafatar.com/skins/${uuid}`,
+		)
 	} else if (name) {
-		sources.push(`https://mc-heads.net/skin/${encodeURIComponent(name)}`)
+		sources.push(relayImageUrl(`https://mc-heads.net/skin/${encodeURIComponent(name)}`))
 	}
 	const job = (async () => {
 		for (const src of sources) {
@@ -602,7 +623,7 @@ async function buildAvatar(
 	// тогда кроп не сработает и картинка уйдёт как есть.
 	const direct = String(user.avatar || '').trim()
 	if (direct) {
-		const resolved = resolveServiceMedia(direct)
+		const resolved = relayImageUrl(resolveServiceMedia(direct))
 		if (isFinishedHeadUrl(resolved) || isFinishedHeadUrl(direct)) return resolved
 		const cropped = await cropSkinHead(resolved, size)
 		if (cropped) return cropped
@@ -610,7 +631,7 @@ async function buildAvatar(
 	}
 	const skin = String(user.skinUrl || '').trim()
 	if (skin) {
-		const resolved = resolveServiceMedia(skin)
+		const resolved = relayImageUrl(resolveServiceMedia(skin))
 		const cropped = await cropSkinHead(resolved, size)
 		if (cropped) return cropped
 	}

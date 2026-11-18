@@ -77,10 +77,7 @@ export type CallParticipant = {
 }
 
 const ICE_FALLBACK: RTCConfiguration = {
-	iceServers: [
-		{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-		{ urls: 'stun:stun.cloudflare.com:3478' },
-	],
+	iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
 }
 
 const RING_TIMEOUT = 45_000
@@ -206,7 +203,7 @@ export function isInCallWith(userId: string): boolean {
 	return Boolean(leg && leg.state !== 'incoming')
 }
 
-function asSdp(raw: unknown): RTCSessionDescriptionInit | null {
+export function asSdp(raw: unknown): RTCSessionDescriptionInit | null {
 	let value = raw
 	if (typeof value === 'string') {
 		try {
@@ -235,7 +232,7 @@ function parseObject(raw: unknown): Record<string, unknown> | null {
 	return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null
 }
 
-function asIce(raw: unknown): RTCIceCandidateInit | null {
+export function asIce(raw: unknown): RTCIceCandidateInit | null {
 	const obj = parseObject(raw)
 	if (!obj) return null
 	if (obj.candidate && typeof obj.candidate === 'object') return asIce(obj.candidate)
@@ -248,7 +245,7 @@ function asIce(raw: unknown): RTCIceCandidateInit | null {
 	}
 }
 
-function audioRoot(): HTMLElement {
+export function audioRoot(): HTMLElement {
 	let root = document.getElementById('portalrinth-call-audio')
 	if (!root) {
 		root = document.createElement('div')
@@ -449,7 +446,7 @@ async function tuneSender(sender: RTCRtpSender): Promise<void> {
 }
 
 /** Opus с FEC и DTX держит голос при потерях пакетов вместо обрывов. */
-function tuneOpus(desc: RTCSessionDescriptionInit): RTCSessionDescriptionInit {
+export function tuneOpus(desc: RTCSessionDescriptionInit): RTCSessionDescriptionInit {
 	if (!desc.sdp) return desc
 	const match = desc.sdp.match(/a=rtpmap:(\d+) opus\/48000/i)
 	if (!match) return desc

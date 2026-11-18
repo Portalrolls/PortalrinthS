@@ -159,6 +159,7 @@ import {
 import { generatePlayerHeadBlob, getPlayerHeadUrl } from '@/helpers/rendering/player-head'
 import type { Skin } from '@/helpers/skins'
 import { get_available_skins } from '@/helpers/skins'
+import { relayImageUrl } from '@/helpers/uprojects-service'
 
 const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
@@ -408,7 +409,8 @@ const STEVE_HEAD_URL = 'https://launcher-files.modrinth.com/assets/steve_head.pn
  */
 function microsoftHeadUrl(id: string): string {
 	return (
-		microsoftHeadCache.value.get(id) ?? `https://mc-heads.net/avatar/${id.replace(/-/g, '')}/128`
+		microsoftHeadCache.value.get(id) ??
+		relayImageUrl(`https://mc-heads.net/avatar/${id.replace(/-/g, '')}/128`)
 	)
 }
 

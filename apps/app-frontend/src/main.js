@@ -11,12 +11,14 @@ import App from '@/App.vue'
 import { overlayScrollbarsDirective } from '@/directives/overlayScrollbars'
 import { setupErrorReporting } from '@/helpers/error-reporting'
 import { installTooltipCleanup } from '@/helpers/portalrinth-tooltip-cleanup'
+import { installModrinthImageRoute } from '@/helpers/ru-route'
 import { debugStartup, traceStartupStep } from '@/helpers/startup-debug'
 import i18nPlugin from '@/plugins/i18n'
 import i18nDebugPlugin from '@/plugins/i18n-debug'
 import router from '@/routes'
 
 debugStartup('Frontend entry module evaluated')
+installModrinthImageRoute()
 const app = createApp(App)
 setupErrorReporting(app, router)
 

@@ -14,10 +14,7 @@
 					<span class="text-sm font-semibold text-contrast">
 						{{ formatMessage(messages.title) }}
 					</span>
-					<span
-						v-if="state === 'running'"
-						class="animate-pulse text-xs font-medium text-brand"
-					>
+					<span v-if="state === 'running'" class="animate-pulse text-xs font-medium text-brand">
 						{{ formatMessage(messages.running) }}
 					</span>
 				</div>
@@ -25,9 +22,29 @@
 				<!-- Автомобильный счётчик скорости -->
 				<svg viewBox="0 0 220 126" class="mx-auto h-auto w-full max-w-[19rem]">
 					<!-- Дорожка: зелёная / жёлтая / красная зоны -->
-					<path :d="paths.zone0" stroke="#34d399" stroke-opacity="0.4" stroke-width="9" fill="none" stroke-linecap="round" />
-					<path :d="paths.zone1" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="9" fill="none" />
-					<path :d="paths.zone2" stroke="#f87171" stroke-opacity="0.45" stroke-width="9" fill="none" stroke-linecap="round" />
+					<path
+						:d="paths.zone0"
+						stroke="#34d399"
+						stroke-opacity="0.4"
+						stroke-width="9"
+						fill="none"
+						stroke-linecap="round"
+					/>
+					<path
+						:d="paths.zone1"
+						stroke="#fbbf24"
+						stroke-opacity="0.45"
+						stroke-width="9"
+						fill="none"
+					/>
+					<path
+						:d="paths.zone2"
+						stroke="#f87171"
+						stroke-opacity="0.45"
+						stroke-width="9"
+						fill="none"
+						stroke-linecap="round"
+					/>
 					<!-- Пройденный путь -->
 					<path
 						:d="progressPath"
@@ -42,7 +59,13 @@
 						class="speed-progress"
 					/>
 					<!-- Деления -->
-					<g v-for="(tick, i) in ticks" :key="`t${i}`" stroke="currentColor" :stroke-opacity="tick.major ? 0.55 : 0.25" :stroke-width="tick.major ? 2 : 1">
+					<g
+						v-for="(tick, i) in ticks"
+						:key="`t${i}`"
+						stroke="currentColor"
+						:stroke-opacity="tick.major ? 0.55 : 0.25"
+						:stroke-width="tick.major ? 2 : 1"
+					>
 						<line :x1="tick.outer[0]" :y1="tick.outer[1]" :x2="tick.inner[0]" :y2="tick.inner[1]" />
 					</g>
 					<text
@@ -59,8 +82,24 @@
 					</text>
 					<!-- Стрелка -->
 					<g class="speed-needle" :style="{ transform: `rotate(${needleAngle.toFixed(2)}deg)` }">
-						<line x1="110" y1="105" x2="30" y2="105" stroke="var(--color-brand)" stroke-width="3" stroke-linecap="round" />
-						<line x1="110" y1="105" x2="52" y2="105" stroke="var(--color-brand)" stroke-width="6" stroke-linecap="round" />
+						<line
+							x1="110"
+							y1="105"
+							x2="30"
+							y2="105"
+							stroke="var(--color-brand)"
+							stroke-width="3"
+							stroke-linecap="round"
+						/>
+						<line
+							x1="110"
+							y1="105"
+							x2="52"
+							y2="105"
+							stroke="var(--color-brand)"
+							stroke-width="6"
+							stroke-linecap="round"
+						/>
 					</g>
 					<circle cx="110" cy="105" r="7" fill="var(--color-brand)" />
 					<circle cx="110" cy="105" r="2.6" fill="var(--color-raised-bg)" />
@@ -68,11 +107,15 @@
 
 				<div class="flex items-end justify-between px-1">
 					<div class="flex items-baseline gap-1.5">
-						<span class="text-2xl font-bold tabular-nums text-contrast">{{ state === 'fail' ? '—' : mbpsLabel }}</span>
+						<span class="text-2xl font-bold tabular-nums text-contrast">{{
+							state === 'fail' ? '—' : mbpsLabel
+						}}</span>
 						<span class="text-xs text-secondary">{{ formatMessage(messages.down) }}</span>
 					</div>
 					<div class="flex items-baseline gap-1">
-						<span class="text-sm font-semibold tabular-nums text-contrast">{{ state === 'fail' ? '—' : pingLabel }}</span>
+						<span class="text-sm font-semibold tabular-nums text-contrast">{{
+							state === 'fail' ? '—' : pingLabel
+						}}</span>
 						<span class="text-xs text-secondary">{{ formatMessage(messages.ping) }}</span>
 					</div>
 				</div>
@@ -82,9 +125,11 @@
 				</p>
 
 				<Button size="sm" :disabled="state === 'running'" @click="runTest">
-					{{ state === 'done' || state === 'fail'
-						? formatMessage(messages.again)
-						: formatMessage(messages.measure) }}
+					{{
+						state === 'done' || state === 'fail'
+							? formatMessage(messages.again)
+							: formatMessage(messages.measure)
+					}}
 				</Button>
 			</div>
 		</template>
@@ -242,16 +287,62 @@ function fitScale() {
 	kick()
 }
 
-async function measurePing(): Promise<number> {
+/**
+ * Where the test downloads from. Cloudflare goes first, but Russian ISPs
+ * stall its connections after the first 16 KB, so a host that cannot hand
+ * over a 64 KB check in time is skipped for Yandex's mirror (inside Russia)
+ * and then Hetzner.
+ */
+const SPEED_TARGETS = [
+	{
+		check: 'https://speed.cloudflare.com/__down?bytes=65536',
+		ping: 'https://speed.cloudflare.com/__down?bytes=0',
+		file: 'https://speed.cloudflare.com/__down?bytes=26000000',
+	},
+	{
+		check: 'https://mirror.yandex.ru/ubuntu/ls-lR.gz',
+		ping: 'https://mirror.yandex.ru/',
+		file: 'https://mirror.yandex.ru/ubuntu/ls-lR.gz',
+	},
+	{
+		check: 'https://fsn1-speed.hetzner.com/100MB.bin',
+		ping: 'https://fsn1-speed.hetzner.com/100MB.bin',
+		file: 'https://fsn1-speed.hetzner.com/100MB.bin',
+	},
+]
+
+type SpeedTarget = (typeof SPEED_TARGETS)[number]
+
+/** 64 KB has to arrive within four seconds, or the host is throttled. */
+async function passesCheck(target: SpeedTarget): Promise<void> {
+	const response = await tauriFetch(target.check, {
+		headers: { Range: 'bytes=0-65535' },
+		signal: AbortSignal.timeout(4000),
+	})
+	if (!response.ok) throw new Error(`HTTP ${response.status}`)
+	await response.arrayBuffer()
+}
+
+async function measurePing(url: string): Promise<number> {
 	const times: number[] = []
 	for (let attempt = 0; attempt < 3; attempt++) {
 		const started = performance.now()
-		await tauriFetch('https://speed.cloudflare.com/__down?bytes=0', {
-			signal: AbortSignal.timeout(8000),
-		})
+		await tauriFetch(url, { method: 'HEAD', signal: AbortSignal.timeout(8000) })
 		times.push(performance.now() - started)
 	}
 	return Math.round(Math.min(...times))
+}
+
+async function pickTarget() {
+	for (const target of SPEED_TARGETS) {
+		try {
+			await passesCheck(target)
+			return { target, ping: await measurePing(target.ping) }
+		} catch {
+			// Not reachable from here — the next one is.
+		}
+	}
+	throw new Error('no_target')
 }
 
 async function runTest() {
@@ -263,11 +354,11 @@ async function runTest() {
 	targetMbps = 0
 	kick()
 	try {
-		ping.value = await measurePing()
-		const bytes = 26_000_000
+		const picked = await pickTarget()
+		ping.value = picked.ping
 		const deadlineMs = 9000
 		const started = performance.now()
-		const response = await tauriFetch(`https://speed.cloudflare.com/__down?bytes=${bytes}`, {
+		const response = await tauriFetch(picked.target.file, {
 			signal: AbortSignal.timeout(30000),
 		})
 		if (!response.ok) throw new Error(`HTTP ${response.status}`)

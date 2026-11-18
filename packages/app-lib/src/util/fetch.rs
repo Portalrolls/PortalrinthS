@@ -493,6 +493,27 @@ pub static DOWNLOAD_REQWEST_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(||
 
 const FETCH_ATTEMPTS: usize = 2;
 
+/// Files from Modrinth's CDN, handed out by the uprojects service. Russian
+/// ISPs drop connections to cdn.modrinth.com (it sits behind Cloudflare),
+/// while uprojects stays reachable; the file is the same, and the sha1 the
+/// caller passed in is still checked against whatever comes back.
+const CDN_RELAY: &str = "https://uprojects.site/client/api/catalog/file?url=";
+/// How long a host that failed to connect is treated as unreachable.
+const UNREACHABLE_FOR: Duration = Duration::from_secs(10 * 60);
+
+static CDN_UNREACHABLE: Mutex<Option<Instant>> = Mutex::new(None);
+static API_UNREACHABLE: Mutex<Option<Instant>> = Mutex::new(None);
+
+fn still_unreachable(flag: &Mutex<Option<Instant>>) -> bool {
+    flag.lock()
+        .is_some_and(|since| since.elapsed() < UNREACHABLE_FOR)
+}
+
+fn cdn_relay_url(method: &Method, url: &str) -> Option<String> {
+    (*method == Method::GET && url.starts_with("https://cdn.modrinth.com/"))
+        .then(|| format!("{CDN_RELAY}{}", urlencoding::encode(url)))
+}
+
 pub type FetchProgressFn<'a> = dyn FnMut(
         u64,
         u64,
@@ -1067,6 +1088,10 @@ async fn fetch_advanced_with_target(
     let download_meta_header = download_meta
         .map(|m| (DOWNLOAD_META_HEADER.to_string(), m.to_header_value()));
 
+    let relay_url = cdn_relay_url(&method, url);
+    let mut via_relay =
+        relay_url.is_some() && still_unreachable(&CDN_UNREACHABLE);
+
     for attempt in 1..=(FETCH_ATTEMPTS + 1) {
         if is_api_url {
             crate::install::control::download_step(GLOBAL_API_RATE_LIMIT.wait_turn())
@@ -1081,7 +1106,11 @@ async fn fetch_advanced_with_target(
             ));
         }
 
-        let mut req = client.request(method.clone(), url);
+        let target = match (&relay_url, via_relay) {
+            (Some(relay), true) => relay.as_str(),
+            _ => url,
+        };
+        let mut req = client.request(method.clone(), target);
 
         if let Some(body) = &json_body {
             req = req.json(body);
@@ -1093,7 +1122,9 @@ async fn fetch_advanced_with_target(
             req = req.header(header.0, header.1);
         }
 
-        if let Some(ref creds) = creds {
+        if let Some(ref creds) = creds
+            && !via_relay
+        {
             req = req.header("Authorization", &creds.session);
         }
 
@@ -1105,6 +1136,9 @@ async fn fetch_advanced_with_target(
         let result = crate::install::control::download_step(req.send()).await?;
         match result {
             Ok(resp) => {
+                if is_api_url {
+                    *API_UNREACHABLE.lock() = None;
+                }
                 if is_api_url
                     && let Some(error) =
                         GLOBAL_API_RATE_LIMIT.handle_response(&resp)
@@ -1190,6 +1224,34 @@ async fn fetch_advanced_with_target(
                 } else {
                     bytes?;
                 }
+            }
+            Err(err) if err.is_connect() || err.is_timeout() => {
+                if relay_url.is_some()
+                    && !via_relay
+                    && attempt <= FETCH_ATTEMPTS
+                {
+                    tracing::warn!(
+                        "cdn.modrinth.com is unreachable, using the relay: {err}"
+                    );
+                    *CDN_UNREACHABLE.lock() = Some(Instant::now());
+                    via_relay = true;
+                    continue;
+                }
+                if is_api_url {
+                    // Against a blocked API every retry is one more full
+                    // connect timeout the page sits through. Once it failed
+                    // to connect, the next request tries once and reports.
+                    let known = still_unreachable(&API_UNREACHABLE);
+                    *API_UNREACHABLE.lock() = Some(Instant::now());
+                    if known || attempt > FETCH_ATTEMPTS {
+                        return Err(err.into());
+                    }
+                    continue;
+                }
+                if attempt <= FETCH_ATTEMPTS {
+                    continue;
+                }
+                return Err(err.into());
             }
             Err(_) if attempt <= FETCH_ATTEMPTS => continue,
             Err(err) => {

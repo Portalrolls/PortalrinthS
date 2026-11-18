@@ -69,6 +69,7 @@ import {
 	get_user_many,
 	get_version_many,
 } from '@/helpers/cache.js'
+import { catalogSearchV3 } from '@/helpers/catalog-search'
 import {
 	type BrowseMode,
 	type BrowseSource,
@@ -99,6 +100,7 @@ import {
 	browseScrollScope,
 } from '@/helpers/portalrinth-browse.ts'
 import { layoutFor } from '@/helpers/portalrinth-layouts.ts'
+import { isModrinthBlocked } from '@/helpers/ru-route'
 import { get as getSettings, set as setSettings } from '@/helpers/settings.ts'
 import { get_categories, get_game_versions, get_loaders } from '@/helpers/tags'
 import { get_instance_worlds } from '@/helpers/worlds'
@@ -1685,18 +1687,38 @@ async function search(requestParams: string) {
 	return await searchModrinth(requestParams)
 }
 
+type ModrinthSearch = {
+	result: Labrinth.Search.v3.SearchResults & {
+		hits: (Labrinth.Search.v3.ResultSearchProject & { installed?: boolean })[]
+	}
+} | null
+
+/**
+ * Portalrinth's own: with api.modrinth.com blocked by the provider the search
+ * used to sit through connect timeouts. The uprojects catalog serves the same
+ * index, so it answers when Modrinth is known to be unreachable or fails.
+ */
+async function searchModrinthOrCatalog(requestParams: string): Promise<ModrinthSearch> {
+	if (isModrinthBlocked()) {
+		const relayed = await catalogSearchV3(requestParams).catch(() => null)
+		if (relayed) return relayed
+	}
+	try {
+		return (await get_search_results_v3(requestParams, 'must_revalidate')) as ModrinthSearch
+	} catch (error) {
+		const relayed = await catalogSearchV3(requestParams).catch(() => null)
+		if (relayed) return relayed
+		throw error
+	}
+}
+
 async function searchModrinth(requestParams: string) {
 	debugLog('searching v3', requestParams)
 	const isServer = projectType.value === 'server'
 
 	const rawResults = await queryClient.fetchQuery({
 		queryKey: ['search', 'v3', requestParams],
-		queryFn: () =>
-			get_search_results_v3(requestParams, 'must_revalidate') as Promise<{
-				result: Labrinth.Search.v3.SearchResults & {
-					hits: (Labrinth.Search.v3.ResultSearchProject & { installed?: boolean })[]
-				}
-			} | null>,
+		queryFn: () => searchModrinthOrCatalog(requestParams),
 		staleTime: 30_000,
 	})
 

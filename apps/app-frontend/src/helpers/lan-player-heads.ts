@@ -13,10 +13,11 @@
 import { ref } from 'vue'
 
 import { users } from './auth'
-import { type ElyCredentials, ely_get_users } from './ely_auth'
+import { ely_get_users,type ElyCredentials } from './ely_auth'
 import { getElyHeadUrl } from './ely_skins'
-import { mojang_player_skin, type OfflineCredentials, offline_users } from './offline_auth'
+import { mojang_player_skin, offline_users,type OfflineCredentials } from './offline_auth'
 import { generatePlayerHeadBlob } from './rendering/player-head'
+import { relayImageUrl } from './uprojects-service'
 
 /** The classic face, for players nothing is known about. */
 export const STEVE_HEAD_URL = 'https://launcher-files.modrinth.com/assets/steve_head.png'
@@ -37,17 +38,15 @@ function knownAccounts(): Promise<KnownAccount[]> {
 		const microsoft = users().catch(() => [])
 		const ely = ely_get_users().catch(() => [] as ElyCredentials[])
 		const offline = offline_users().catch(() => [] as OfflineCredentials[])
-		accountsPromise = Promise.all([microsoft, ely, offline]).then(
-			([microsoft, ely, offline]) => [
-				...microsoft.map((account) => ({
-					name: account.profile.name,
-					provider: 'microsoft' as const,
-					id: account.profile.id,
-				})),
-				...ely.map((account) => ({ name: account.profile.name, provider: 'ely_by' as const })),
-				...offline.map((account) => ({ name: account.profile.name, provider: 'offline' as const })),
-			],
-		)
+		accountsPromise = Promise.all([microsoft, ely, offline]).then(([microsoft, ely, offline]) => [
+			...microsoft.map((account) => ({
+				name: account.profile.name,
+				provider: 'microsoft' as const,
+				id: account.profile.id,
+			})),
+			...ely.map((account) => ({ name: account.profile.name, provider: 'ely_by' as const })),
+			...offline.map((account) => ({ name: account.profile.name, provider: 'offline' as const })),
+		])
 	}
 	return accountsPromise
 }
@@ -132,7 +131,7 @@ async function licensedHead(id: string): Promise<string | null> {
  * place to ask.
  */
 async function mojangHead(player: string): Promise<string | null> {
-	const url = `https://mc-heads.net/avatar/${encodeURIComponent(player)}/64`
+	const url = relayImageUrl(`https://mc-heads.net/avatar/${encodeURIComponent(player)}/64`)
 	const known = await new Promise<boolean>((resolve) => {
 		const probe = new Image()
 		probe.onload = () => resolve(true)

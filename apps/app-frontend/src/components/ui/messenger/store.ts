@@ -8,6 +8,7 @@ import {
 	type LooseRecord,
 	readAccountState,
 	resolveAvatar,
+	resolveServiceMedia,
 	serviceRequest,
 	type ServiceSession,
 	serviceStreamUrl,
@@ -260,7 +261,7 @@ export function markAvatarBroken(id: string): void {
 	const user = state.users[id]
 	const key = String(user?.uuid || user?.username || '').replace(/-/g, '')
 	// mc-heads местами не открывается — пробуем minotar, и только потом букву.
-	if (key && failed.includes('mc-heads.net')) {
+	if (key && failed.includes('mc-heads')) {
 		state.avatars[id] = `https://minotar.net/helm/${encodeURIComponent(key)}/64`
 		return
 	}
@@ -272,6 +273,14 @@ export async function ensureAvatar(user: Partial<Peer> & { id?: string }): Promi
 	const id = String(user.id || '')
 	if (!id || state.avatars[id] || avatarQueued.has(id) || avatarBroken.has(id)) return
 	if (!user.uuid && !user.skinUrl && !user.avatar && !user.username) return
+	// У бота skinUrl — уже готовая квадратная иконка из настроек, а не лист
+	// скина: кроп её ломал, и вместо иконки подставлялась чужая голова по нику.
+	if (user.bot || user.provider === 'bot' || id.startsWith('bot:')) {
+		const icon = resolveServiceMedia(user.avatar || user.skinUrl)
+		if (icon) state.avatars[id] = icon
+		else avatarBroken.add(id)
+		return
+	}
 	avatarQueued.add(id)
 	try {
 		const url = await resolveAvatar({

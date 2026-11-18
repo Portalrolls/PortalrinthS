@@ -1,6 +1,13 @@
 import { reactive } from 'vue'
 
-import { getCallState, hangupCall } from '@/helpers/messenger-call'
+import {
+	asIce,
+	asSdp,
+	audioRoot,
+	getCallState,
+	hangupCall,
+	tuneOpus,
+} from '@/helpers/messenger-call'
 import { type LooseRecord, serviceRequest } from '@/helpers/uprojects-service'
 
 import { openMic, playSound, routeOutput } from './devices'
@@ -19,19 +26,25 @@ export const voice = reactive({
 })
 
 const FALLBACK_ICE: RTCConfiguration = {
-	iceServers: [
-		{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-		{ urls: 'stun:stun.cloudflare.com:3478' },
-	],
+	iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
 }
 
+/** Сколько ждём соединения с участником, прежде чем предложить его заново. */
+const STUCK_AFTER = 10000
+const NUDGE_EVERY = 4000
+const SPEAK_LEVEL = 0.035
+
 let ice: RTCConfiguration = FALLBACK_ICE
+let iceAt = 0
 let me = ''
 let mic: MediaStream | null = null
 const peers = new Map<string, RTCPeerConnection>()
 const pendingIce = new Map<string, RTCIceCandidateInit[]>()
 const audios = new Map<string, HTMLAudioElement>()
+const offeredAt = new Map<string, number>()
+const meters = new Map<string, { analyser: AnalyserNode; quiet: number }>()
 let vad: { ctx: AudioContext; raf: number } | null = null
+let nudgeTimer: ReturnType<typeof setInterval> | null = null
 let onError: (code: string) => void = () => undefined
 
 export function initVoiceChannels(opts: { myId: string; error: (code: string) => void }): void {
@@ -43,13 +56,26 @@ function enc(value: string): string {
 	return encodeURIComponent(value)
 }
 
+/**
+ * Без TURN двое за NAT провайдера друг друга не услышат, поэтому конфиг
+ * берём с сервера; пароль TURN живёт около часа — держим не дольше 4 минут.
+ */
 async function loadIce(): Promise<void> {
-	const response = await serviceRequest('/rtc-config').catch(() => null)
-	const servers = response?.data?.iceServers || response?.data?.config?.iceServers
-	ice =
-		Array.isArray(servers) && servers.length
-			? { iceServers: [...servers, ...(FALLBACK_ICE.iceServers ?? [])] }
-			: FALLBACK_ICE
+	if (iceAt && Date.now() - iceAt < 4 * 60 * 1000) return
+	for (let attempt = 0; attempt < 2; attempt += 1) {
+		const response = await serviceRequest('/rtc-config').catch(() => null)
+		const servers = response?.data?.iceServers || response?.data?.config?.iceServers
+		if (Array.isArray(servers) && servers.length) {
+			ice = {
+				iceServers: [...servers, ...(FALLBACK_ICE.iceServers ?? [])],
+				bundlePolicy: 'max-bundle',
+				rtcpMuxPolicy: 'require',
+			}
+			iceAt = Date.now()
+			return
+		}
+	}
+	if (!iceAt) ice = FALLBACK_ICE
 }
 
 function signal(to: string, type: string, extra: LooseRecord): void {
@@ -71,10 +97,50 @@ function applyTracks(): void {
 	for (const el of audios.values()) el.muted = voice.deafened
 }
 
+/**
+ * Голос участника. Элемент не прячем через display:none — Chromium такой
+ * <audio> может не играть; он живёт в общем невидимом контейнере звонков.
+ */
+function attachAudio(uid: string, stream: MediaStream): void {
+	let el = audios.get(uid)
+	if (!el) {
+		el = document.createElement('audio')
+		el.autoplay = true
+		el.dataset.msgrOutput = ''
+		el.setAttribute('playsinline', '')
+		audioRoot().appendChild(el)
+		audios.set(uid, el)
+	}
+	if (el.srcObject !== stream) el.srcObject = stream
+	el.muted = voice.deafened
+	const target = el
+	const play = () => {
+		if (target.paused) void target.play().catch(() => undefined)
+	}
+	stream.getAudioTracks().forEach((track) => {
+		track.onunmute = play
+	})
+	void routeOutput(target).finally(play)
+	watchRemote(uid, stream)
+}
+
+function watchRemote(uid: string, stream: MediaStream): void {
+	if (!vad || !stream.getAudioTracks().length) return
+	try {
+		const analyser = vad.ctx.createAnalyser()
+		analyser.fftSize = 512
+		vad.ctx.createMediaStreamSource(stream).connect(analyser)
+		meters.set(uid, { analyser, quiet: 0 })
+	} catch {
+		meters.delete(uid)
+	}
+}
+
 function dropPeer(uid: string): void {
 	const pc = peers.get(uid)
 	peers.delete(uid)
 	pendingIce.delete(uid)
+	meters.delete(uid)
 	try {
 		pc?.close()
 	} catch {
@@ -101,32 +167,66 @@ async function createPeer(uid: string, offerer: boolean): Promise<RTCPeerConnect
 		if (event.candidate) signal(uid, 'vc_ice', { candidate: event.candidate.toJSON() })
 	}
 	pc.ontrack = (event) => {
-		let el = audios.get(uid)
-		if (!el) {
-			el = document.createElement('audio')
-			el.autoplay = true
-			el.dataset.msgrOutput = ''
-			el.style.display = 'none'
-			document.body.appendChild(el)
-			audios.set(uid, el)
-		}
-		el.srcObject = event.streams[0] || new MediaStream([event.track])
-		el.muted = voice.deafened
-		const target = el
-		void routeOutput(target).then(() => target.play().catch(() => undefined))
+		if (peers.get(uid) !== pc) return
+		attachAudio(uid, event.streams[0] || new MediaStream([event.track]))
 	}
 	pc.onconnectionstatechange = () => {
+		if (peers.get(uid) !== pc) return
 		if (pc.connectionState === 'failed') {
 			dropPeer(uid)
-			if (shouldOffer(uid)) void createPeer(uid, true)
+			if (shouldOffer(uid)) void offerTo(uid)
 		}
 	}
 	if (offerer) {
-		const offer = await pc.createOffer({ offerToReceiveAudio: true })
-		await pc.setLocalDescription(offer)
-		signal(uid, 'vc_offer', { sdp: { type: offer.type, sdp: offer.sdp } })
+		offeredAt.set(uid, Date.now())
+		try {
+			const offer = tuneOpus(await pc.createOffer({ offerToReceiveAudio: true }))
+			await pc.setLocalDescription(offer)
+			signal(uid, 'vc_offer', { sdp: { type: offer.type, sdp: offer.sdp } })
+		} catch {
+			dropPeer(uid)
+			return null
+		}
 	}
 	return pc
+}
+
+function offerTo(uid: string): Promise<RTCPeerConnection | null> {
+	return createPeer(uid, true)
+}
+
+/**
+ * Страховка: оффер мог потеряться, пока поток событий переподключался, а
+ * событие о входе участника — прийти без состава канала. Каждые 4 секунды
+ * переигрываем тех, с кем связь так и не поднялась. Если оффер должен прийти
+ * от другой стороны, напоминаем о себе состоянием — сервер разошлёт его, и
+ * участник увидит, что со мной соединения нет.
+ */
+let remindedAt = 0
+
+function nudgePeers(): void {
+	if (!voice.channelId) return
+	const now = Date.now()
+	let waiting = false
+	for (const member of voice.members[voice.channelId] ?? []) {
+		const uid = member.userId
+		if (uid === me) continue
+		const pc = peers.get(uid)
+		const state = pc?.connectionState
+		if (state === 'connected') continue
+		const age = now - (offeredAt.get(uid) ?? voice.joinedAt)
+		if (!shouldOffer(uid)) {
+			if (age > STUCK_AFTER) waiting = true
+			continue
+		}
+		if (pc && state !== 'failed' && state !== 'closed' && age < STUCK_AFTER) continue
+		if (pc) dropPeer(uid)
+		void offerTo(uid)
+	}
+	if (waiting && now - remindedAt > STUCK_AFTER) {
+		remindedAt = now
+		publishState()
+	}
 }
 
 async function flushIce(uid: string): Promise<void> {
@@ -162,6 +262,15 @@ function startVad(): void {
 		if (loud) quiet = 0
 		const on = loud || (Boolean(voice.speaking[me]) && ++quiet < 15)
 		if (on !== Boolean(voice.speaking[me])) voice.speaking[me] = on
+		for (const [uid, meter] of meters) {
+			meter.analyser.getByteTimeDomainData(buffer)
+			let level = 0
+			for (const value of buffer) level += ((value - 128) / 128) ** 2
+			const talking = Math.sqrt(level / buffer.length) > SPEAK_LEVEL
+			if (talking) meter.quiet = 0
+			const shown = talking || (Boolean(voice.speaking[uid]) && ++meter.quiet < 15)
+			if (shown !== Boolean(voice.speaking[uid])) voice.speaking[uid] = shown
+		}
 		state.raf = requestAnimationFrame(tick)
 	}
 	void ctx.resume().catch(() => undefined)
@@ -173,6 +282,7 @@ function stopVad(): void {
 	cancelAnimationFrame(vad.raf)
 	void vad.ctx.close().catch(() => undefined)
 	vad = null
+	meters.clear()
 }
 
 function publishState(): void {
@@ -223,8 +333,10 @@ export async function joinVoice(convId: string, channelId: string): Promise<bool
 			])
 		publishState()
 		startVad()
+		if (nudgeTimer) clearInterval(nudgeTimer)
+		nudgeTimer = setInterval(nudgePeers, NUDGE_EVERY)
 		for (const member of voice.members[channelId] ?? []) {
-			if (member.userId !== me && shouldOffer(member.userId)) await createPeer(member.userId, true)
+			if (member.userId !== me && shouldOffer(member.userId)) void offerTo(member.userId)
 		}
 		return true
 	} finally {
@@ -235,7 +347,10 @@ export async function joinVoice(convId: string, channelId: string): Promise<bool
 export async function leaveVoice(): Promise<void> {
 	const { convId, channelId } = voice
 	if (!channelId) return
+	if (nudgeTimer) clearInterval(nudgeTimer)
+	nudgeTimer = null
 	for (const uid of [...peers.keys()]) dropPeer(uid)
+	offeredAt.clear()
 	playSound('hangup')
 	stopVad()
 	mic?.getTracks().forEach((track) => track.stop())
@@ -283,30 +398,50 @@ function setMembers(channelId: string, members: VoiceMember[]): void {
 	voice.members[channelId] = [...unique.values()]
 }
 
-/** Событие «voice» из потока: актуальный состав канала. */
+/**
+ * Событие «voice» из потока. Сервер шлёт либо полный состав канала, либо
+ * только action + userId — учитываем оба вида, иначе вошедшему никто не
+ * отправит оффер и в канале друг друга не слышно.
+ */
 export async function handleVoiceEvent(data: LooseRecord): Promise<void> {
 	const channelId = String(data.channelId || '')
 	if (!channelId) return
-	const members = parseMembers(data.members)
 	const userId = String(data.userId || '')
-	if (members.length || Array.isArray(data.members)) {
-		if (userId) {
-			for (const [id, list] of Object.entries(voice.members)) {
-				if (id !== channelId && list.some((member) => member.userId === userId)) {
-					setMembers(
-						id,
-						list.filter((member) => member.userId !== userId),
-					)
-				}
+	const action = String(data.action || '')
+	if (userId && action !== 'leave') {
+		for (const [id, list] of Object.entries(voice.members)) {
+			if (id !== channelId && list.some((member) => member.userId === userId)) {
+				setMembers(
+					id,
+					list.filter((member) => member.userId !== userId),
+				)
 			}
 		}
-		setMembers(channelId, members)
+	}
+	if (Array.isArray(data.members)) {
+		setMembers(channelId, parseMembers(data.members))
+	} else if (userId) {
+		const list = voice.members[channelId] ?? []
+		const entry = {
+			userId,
+			muted: Boolean(data.muted),
+			deafened: Boolean(data.deafened),
+		}
+		if (action === 'leave') {
+			setMembers(
+				channelId,
+				list.filter((member) => member.userId !== userId),
+			)
+		} else {
+			setMembers(channelId, [...list.filter((member) => member.userId !== userId), entry])
+		}
 	}
 	if (channelId !== voice.channelId) return
+	if (userId && userId !== me && action === 'join') playSound('connect')
 	const present = new Set((voice.members[channelId] ?? []).map((member) => member.userId))
 	for (const uid of [...peers.keys()]) if (!present.has(uid)) dropPeer(uid)
 	for (const uid of present) {
-		if (uid !== me && !peers.has(uid) && shouldOffer(uid)) await createPeer(uid, true)
+		if (uid !== me && !peers.has(uid) && shouldOffer(uid)) void offerTo(uid)
 	}
 }
 
@@ -321,33 +456,49 @@ export async function handleVoiceSignal(data: LooseRecord): Promise<void> {
 		return
 	}
 	if (!voice.channelId || (channelId && channelId !== voice.channelId)) return
-	if (type === 'vc_offer' && data.sdp) {
-		const prev = peers.get(from)
-		if (prev && ['failed', 'disconnected', 'closed'].includes(prev.connectionState)) dropPeer(from)
-		const pc = await createPeer(from, false)
-		if (!pc) return
-		await pc.setRemoteDescription(data.sdp as RTCSessionDescriptionInit)
-		await flushIce(from)
-		const answer = await pc.createAnswer()
-		await pc.setLocalDescription(answer)
-		signal(from, 'vc_answer', { sdp: { type: answer.type, sdp: answer.sdp } })
-		return
-	}
-	if (type === 'vc_answer' && data.sdp) {
-		const pc = peers.get(from)
-		if (!pc) return
-		await pc.setRemoteDescription(data.sdp as RTCSessionDescriptionInit)
-		await flushIce(from)
-		return
-	}
-	if (type === 'vc_ice' && data.candidate) {
-		const candidate = data.candidate as RTCIceCandidateInit
-		const pc = peers.get(from)
-		if (!pc || !pc.remoteDescription) {
-			pendingIce.set(from, [...(pendingIce.get(from) ?? []), candidate])
+	try {
+		if (type === 'vc_offer') {
+			const desc = asSdp(data.sdp)
+			if (!desc) return
+			const prev = peers.get(from)
+			// Новый оффер на неподнятое соединение — участник начал заново у себя.
+			if (prev && (prev.signalingState !== 'stable' || prev.connectionState !== 'connected')) {
+				// Кандидаты нового оффера могли прийти раньше него — их не теряем.
+				const early = pendingIce.get(from)
+				dropPeer(from)
+				if (early) pendingIce.set(from, early)
+			}
+			const pc = await createPeer(from, false)
+			if (!pc) return
+			await pc.setRemoteDescription(desc)
+			await flushIce(from)
+			const answer = tuneOpus(await pc.createAnswer())
+			await pc.setLocalDescription(answer)
+			signal(from, 'vc_answer', { sdp: { type: answer.type, sdp: answer.sdp } })
 			return
 		}
-		await pc.addIceCandidate(candidate).catch(() => undefined)
+		if (type === 'vc_answer') {
+			const desc = asSdp(data.sdp)
+			const pc = peers.get(from)
+			if (!desc || !pc || pc.signalingState !== 'have-local-offer') return
+			await pc.setRemoteDescription(desc)
+			await flushIce(from)
+			return
+		}
+		if (type === 'vc_ice') {
+			const candidate = asIce(data.candidate)
+			if (!candidate) return
+			const pc = peers.get(from)
+			if (!pc || !pc.remoteDescription) {
+				pendingIce.set(from, [...(pendingIce.get(from) ?? []), candidate])
+				return
+			}
+			await pc.addIceCandidate(candidate).catch(() => undefined)
+		}
+	} catch {
+		// Сломанный обмен не должен висеть: начнём заново с чистого соединения.
+		dropPeer(from)
+		if (shouldOffer(from)) void offerTo(from)
 	}
 }
 

@@ -362,12 +362,35 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 	})
 }
 
+/**
+ * Скины качаем не больше чем по четыре сразу: у сервера сотни участников, и
+ * если запросить все головы разом, сеть лаунчера захлёбывается — Modrinth и
+ * загрузка файлов сборок встают в очередь за ними.
+ */
+const SKIN_SLOTS = 4
+let skinBusy = 0
+const skinWaiting: (() => void)[] = []
+
+async function withSkinSlot<T>(task: () => Promise<T>): Promise<T> {
+	if (skinBusy >= SKIN_SLOTS) await new Promise<void>((resolve) => skinWaiting.push(resolve))
+	skinBusy += 1
+	try {
+		return await task()
+	} finally {
+		skinBusy -= 1
+		skinWaiting.shift()?.()
+	}
+}
+
 /** Кроп головы из листа скина 64×32/64×64 (и кратных ему HD-вариантов). */
 async function cropSkinHead(src: string, size = 64): Promise<string> {
 	try {
-		const probe = await proxiedFetch(src, { connectTimeout: 8000 })
-		if (!probe.ok) return ''
-		const blob = await probe.blob()
+		const probe = await withSkinSlot(async () => {
+			const response = await proxiedFetch(src, { connectTimeout: 8000 })
+			return { ok: response.ok, blob: response.ok ? await response.blob() : null }
+		})
+		if (!probe.ok || !probe.blob) return ''
+		const blob = probe.blob
 		const objectUrl = URL.createObjectURL(blob)
 		try {
 			const image = await loadImage(objectUrl)
@@ -465,7 +488,6 @@ async function buildAvatar(
 		const resolved = resolveServiceMedia(skin)
 		const cropped = await cropSkinHead(resolved, size)
 		if (cropped) return cropped
-		if (resolved) return resolved
 	}
 	if (!key) return ''
 	return serviceHead(key, size)

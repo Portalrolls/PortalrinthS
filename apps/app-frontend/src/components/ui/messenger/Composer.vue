@@ -87,8 +87,9 @@ let recordCancelled = false
 
 const recording = computed(() => Boolean(recorder.value))
 const recordSeconds = computed(() => {
+	if (!recordStart.value) return 0
 	void state.clock
-	return recordStart.value ? (Date.now() - recordStart.value) / 1000 : 0
+	return (Date.now() - recordStart.value) / 1000
 })
 
 const canSend = computed(

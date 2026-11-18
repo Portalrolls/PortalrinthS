@@ -9,6 +9,7 @@ import {
 	activeConversation,
 	activeServer,
 	displayName,
+	nameOf,
 	openServer,
 	presenceFor,
 	sharedServers,
@@ -47,47 +48,66 @@ const peerFriends = computed(() =>
 	peer.value ? state.friends.some((friend) => friend.id === peer.value!.id) : false,
 )
 
+type MemberRow = {
+	member: Member
+	name: string
+	color: string
+	activity: string
+	offline: boolean
+}
+
+/**
+ * Список собирается один раз на изменение состава/статусов, а не на каждый
+ * кадр: у больших серверов сотни участников, и считать имя, цвет роли и
+ * активность прямо в шаблоне было слишком дорого.
+ */
 const groups = computed(() => {
 	const server = activeServer.value
 	if (!server) return []
-	void state.clock
+	void state.presenceClock
 	const hoisted = [...server.roles]
 		.filter((role) => role.name)
 		.sort((a, b) => b.position - a.position)
-	const online: Member[] = []
-	const offline: Member[] = []
+	const colored = server.roles.filter((role) => role.color).sort((a, b) => b.position - a.position)
+	const online: MemberRow[] = []
+	const offline: MemberRow[] = []
 	for (const member of server.members) {
-		if (presenceFor(member.id) === 'offline') offline.push(member)
-		else online.push(member)
+		const isOffline = presenceFor(member.id) === 'offline'
+		const row: MemberRow = {
+			member,
+			name: member.nickname || nameOf(member.id) || member.username,
+			color: colored.find((role) => member.roleIds.includes(role.id))?.color ?? '',
+			activity: activityText(member.id),
+			offline: isOffline,
+		}
+		if (isOffline) offline.push(row)
+		else online.push(row)
 	}
-	const byName = (a: Member, b: Member) =>
-		displayName(a.id, a.username).localeCompare(displayName(b.id, b.username))
-	const out: { id: string; label: string; color: string; members: Member[] }[] = []
+	const byName = (a: MemberRow, b: MemberRow) => a.name.localeCompare(b.name)
+	const out: { id: string; label: string; members: MemberRow[] }[] = []
 	const taken = new Set<string>()
-	const staff = online.filter((member) => member.role === 'owner' || member.role === 'admin')
+	const staff = online.filter((row) => row.member.role === 'owner' || row.member.role === 'admin')
 	if (staff.length) {
 		out.push({
 			id: 'staff',
 			label: t('app.messenger.members.staff', 'Администрация'),
-			color: '',
 			members: staff.sort(byName),
 		})
-		staff.forEach((member) => taken.add(member.id))
+		staff.forEach((row) => taken.add(row.member.id))
 	}
 	for (const role of hoisted) {
 		const members = online.filter(
-			(member) => !taken.has(member.id) && member.roleIds.includes(role.id),
+			(row) => !taken.has(row.member.id) && row.member.roleIds.includes(role.id),
 		)
 		if (!members.length) continue
-		members.forEach((member) => taken.add(member.id))
-		out.push({ id: role.id, label: role.name, color: role.color, members: members.sort(byName) })
+		members.forEach((row) => taken.add(row.member.id))
+		out.push({ id: role.id, label: role.name, members: members.sort(byName) })
 	}
-	const rest = online.filter((member) => !taken.has(member.id))
+	const rest = online.filter((row) => !taken.has(row.member.id))
 	if (rest.length) {
 		out.push({
 			id: 'online',
 			label: t('app.messenger.members.online', 'В сети'),
-			color: '',
 			members: rest.sort(byName),
 		})
 	}
@@ -95,22 +115,11 @@ const groups = computed(() => {
 		out.push({
 			id: 'offline',
 			label: t('app.messenger.members.offline', 'Не в сети'),
-			color: '',
 			members: offline.sort(byName),
 		})
 	}
 	return out
 })
-
-function roleColor(member: Member): string {
-	const server = activeServer.value
-	if (!server) return ''
-	return (
-		server.roles
-			.filter((role) => member.roleIds.includes(role.id) && role.color)
-			.sort((a, b) => b.position - a.position)[0]?.color ?? ''
-	)
-}
 
 function activityText(id: string): string {
 	const activity = userOf(id)?.activity
@@ -221,16 +230,18 @@ function statusText(id: string): string {
 				<section v-for="group in groups" :key="group.id" class="msgr-members__group">
 					<h4>{{ group.label }} — {{ group.members.length }}</h4>
 					<button
-						v-for="member in group.members"
-						:key="member.id"
+						v-for="row in group.members"
+						:key="row.member.id"
 						type="button"
 						class="msgr-members__item"
-						:class="{ 'is-offline': presenceFor(member.id) === 'offline' }"
-						@click="openPopover(member.id, member.username, $event.currentTarget as HTMLElement)"
+						:class="{ 'is-offline': row.offline }"
+						@click="
+							openPopover(row.member.id, row.member.username, $event.currentTarget as HTMLElement)
+						"
 					>
 						<UserAvatar
-							:user-id="member.id"
-							:name="member.username"
+							:user-id="row.member.id"
+							:name="row.member.username"
 							:size="32"
 							status
 							ring="#18191c"
@@ -238,13 +249,13 @@ function statusText(id: string): string {
 						<span class="msgr-members__item-body">
 							<span
 								class="msgr-members__item-name"
-								:style="roleColor(member) ? { color: roleColor(member) } : undefined"
+								:style="row.color ? { color: row.color } : undefined"
 							>
-								{{ displayName(member.id, member.username) }}
-								<CrownIcon v-if="member.role === 'owner'" class="msgr-members__crown" />
-								<ShieldIcon v-else-if="member.role === 'admin'" class="msgr-members__shield" />
+								{{ row.name }}
+								<CrownIcon v-if="row.member.role === 'owner'" class="msgr-members__crown" />
+								<ShieldIcon v-else-if="row.member.role === 'admin'" class="msgr-members__shield" />
 							</span>
-							<small v-if="activityText(member.id)">{{ activityText(member.id) }}</small>
+							<small v-if="row.activity">{{ row.activity }}</small>
 						</span>
 					</button>
 				</section>
@@ -285,6 +296,8 @@ function statusText(id: string): string {
 
 .msgr-members__item {
 	display: flex;
+	content-visibility: auto;
+	contain-intrinsic-size: auto 44px;
 	width: 100%;
 	align-items: center;
 	gap: 0.6rem;

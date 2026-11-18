@@ -95,6 +95,8 @@ export const state = reactive({
 	myStatus: 'online' as PresenceStatus,
 	callTick: 0,
 	clock: Date.now(),
+	/** Редкий тик для статусов «в сети»: им хватает точности в 15 секунд. */
+	presenceClock: Date.now(),
 	toast: { text: '', id: 0 },
 })
 
@@ -210,6 +212,20 @@ function fail(response: { error?: string; code?: string; status: number }): void
 	showToast(failText(String(response.error || response.code || response.status || 'network')))
 }
 
+function samePeer(a: Peer, b: Peer): boolean {
+	const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+	for (const key of keys) {
+		const left = (a as LooseRecord)[key]
+		const right = (b as LooseRecord)[key]
+		if (left === right) continue
+		if (left && right && typeof left === 'object' && typeof right === 'object') {
+			if (JSON.stringify(left) === JSON.stringify(right)) continue
+		}
+		return false
+	}
+	return true
+}
+
 export function rememberUser(row: LooseRecord | null | undefined): Peer | null {
 	if (!row?.id) return null
 	const id = String(row.id)
@@ -228,16 +244,33 @@ export function rememberUser(row: LooseRecord | null | undefined): Peer | null {
 			}
 		: next
 	if (!merged.username && prev?.username) merged.username = prev.username
+	// Без изменений не перезаписываем: иначе каждое обновление списков
+	// перерисовывало бы всех участников сервера.
+	if (prev && samePeer(prev, merged)) return prev
 	state.users[id] = merged
-	void ensureAvatar(merged)
 	return merged
 }
 
 const avatarQueued = new Set<string>()
+const avatarBroken = new Set<string>()
+
+/** Картинка не открылась — дальше рисуем букву, а не битую иконку. */
+export function markAvatarBroken(id: string): void {
+	const failed = state.avatars[id] || ''
+	const user = state.users[id]
+	const key = String(user?.uuid || user?.username || '').replace(/-/g, '')
+	// mc-heads местами не открывается — пробуем minotar, и только потом букву.
+	if (key && failed.includes('mc-heads.net')) {
+		state.avatars[id] = `https://minotar.net/helm/${encodeURIComponent(key)}/64`
+		return
+	}
+	avatarBroken.add(id)
+	Reflect.deleteProperty(state.avatars, id)
+}
 
 export async function ensureAvatar(user: Partial<Peer> & { id?: string }): Promise<void> {
 	const id = String(user.id || '')
-	if (!id || state.avatars[id] || avatarQueued.has(id)) return
+	if (!id || state.avatars[id] || avatarQueued.has(id) || avatarBroken.has(id)) return
 	if (!user.uuid && !user.skinUrl && !user.avatar && !user.username) return
 	avatarQueued.add(id)
 	try {
@@ -277,7 +310,7 @@ export function displayName(id: string, fallback = ''): string {
 
 export function presenceFor(id: string): PresenceStatus {
 	if (id === myId.value) return state.myStatus
-	void state.clock
+	void state.presenceClock
 	const user = state.users[id]
 	if (!user || !isOnline(user)) return 'offline'
 	const manual = user.presenceStatus.toLowerCase()
@@ -745,30 +778,44 @@ export async function deleteMessage(msg: Msg): Promise<boolean> {
 	return response.ok
 }
 
+function flipReaction(reactions: Msg['reactions'], emoji: string, mine: boolean): Msg['reactions'] {
+	const next = reactions.map((reaction) => ({ ...reaction }))
+	const hit = next.find((reaction) => reaction.emoji === emoji)
+	if (hit) {
+		if (hit.me !== mine) {
+			hit.count += mine ? 1 : -1
+			hit.me = mine
+		}
+	} else if (mine) next.push({ emoji, count: 1, me: true })
+	return next.filter((reaction) => reaction.count > 0)
+}
+
+/** Повторный клик по своей реакции снимает её — как в оригинале, через DELETE. */
 export async function reactMessage(msg: Msg, emoji: string): Promise<void> {
 	const convId = msg.conversationId || activeConversation.value?.id || ''
+	const fresh = Object.values(state.threads)
+		.flatMap((thread) => thread.messages)
+		.find((entry) => entry.id === msg.id)
+	const current = (fresh ?? msg).reactions.find((reaction) => reaction.emoji === emoji)
+	const adding = !current?.me
+	patchEverywhere(msg.id, (entry) => ({
+		...entry,
+		reactions: flipReaction(entry.reactions, emoji, adding),
+	}))
 	const response = await serviceRequest(
 		`/conversations/${enc(convId)}/messages/${enc(msg.id)}/reactions`,
-		{ method: 'POST', body: { emoji } },
+		{ method: adding ? 'POST' : 'DELETE', body: { emoji } },
 	)
 	if (!response.ok) {
+		patchEverywhere(msg.id, (entry) => ({
+			...entry,
+			reactions: flipReaction(entry.reactions, emoji, !adding),
+		}))
 		fail(response)
 		return
 	}
 	const updated = response.data?.message ? mapMessage(response.data.message, mapOpts(convId)) : null
-	if (updated) {
-		patchEverywhere(msg.id, (entry) => ({ ...entry, reactions: updated.reactions }))
-		return
-	}
-	patchEverywhere(msg.id, (entry) => {
-		const reactions = entry.reactions.map((reaction) => ({ ...reaction }))
-		const hit = reactions.find((reaction) => reaction.emoji === emoji)
-		if (hit) {
-			hit.count += hit.me ? -1 : 1
-			hit.me = !hit.me
-		} else reactions.push({ emoji, count: 1, me: true })
-		return { ...entry, reactions: reactions.filter((reaction) => reaction.count > 0) }
-	})
+	if (updated) patchEverywhere(msg.id, (entry) => ({ ...entry, reactions: updated.reactions }))
 }
 
 export async function pinMessage(msg: Msg, pinned: boolean): Promise<boolean> {
@@ -868,12 +915,16 @@ export function sendTyping(): void {
 	})
 }
 
+const noTyping: string[] = []
+
 export const typingNames = computed(() => {
-	void state.clock
 	const key = activeKey.value
 	const conv = activeConversation.value
-	if (!key || !conv) return [] as string[]
+	if (!key || !conv) return noTyping
 	const bucket = { ...(state.typing[key] ?? {}), ...(conv.dm ? (state.typing[conv.id] ?? {}) : {}) }
+	if (!Object.keys(bucket).length) return noTyping
+	// Секундный тик нужен, только пока кто-то печатает, — иначе чат перерисовывался бы каждую секунду.
+	void state.clock
 	return Object.entries(bucket)
 		.filter(([id, row]) => id !== myId.value && Date.now() - row.at < 6000)
 		.map(([id, row]) => displayName(id, row.name))
@@ -1482,6 +1533,15 @@ export function handleLive(name: string, data: LooseRecord): void {
 
 let pulseTick = 0
 
+function pruneTyping(now: number): void {
+	for (const [key, bucket] of Object.entries(state.typing)) {
+		const stale = Object.keys(bucket).filter((id) => now - bucket[id].at >= 6000)
+		if (!stale.length) continue
+		if (stale.length === Object.keys(bucket).length) Reflect.deleteProperty(state.typing, key)
+		else for (const id of stale) Reflect.deleteProperty(bucket, id)
+	}
+}
+
 function startLive(token: string): void {
 	stopLive()
 	closeStream = openLiveStream(serviceStreamUrl(token), handleLive, (open) => {
@@ -1491,7 +1551,10 @@ function startLive(token: string): void {
 	})
 	pollTimer = setInterval(() => void pulse(), 4000)
 	clockTimer = setInterval(() => {
-		state.clock = Date.now()
+		const now = Date.now()
+		state.clock = now
+		if (now - state.presenceClock >= 15000) state.presenceClock = now
+		pruneTyping(now)
 	}, 1000)
 }
 
@@ -1507,9 +1570,14 @@ export function stopLive(): void {
 	state.liveOpen = false
 }
 
+let lastCatchUp = 0
+
 /** После обрыва потока забираем то, что успело прийти, пока его не было. */
 async function catchUp(): Promise<void> {
 	if (!state.session) return
+	// Частые переподключения не должны каждый раз заново тянуть все списки.
+	if (Date.now() - lastCatchUp < 15000) return
+	lastCatchUp = Date.now()
 	await loadLists()
 	await refreshActiveThread()
 }
@@ -1593,6 +1661,7 @@ export function resetState(): void {
 	state.section = 'home'
 	state.homePage = 'friends'
 	avatarQueued.clear()
+	avatarBroken.clear()
 }
 
 let connectSeq = 0

@@ -63,7 +63,7 @@ const tabs = computed<{ id: FriendsTab; label: string; count?: number }[]>(() =>
 type Row = { peer: Peer; kind: 'friend' | 'incoming' | 'outgoing' | 'blocked' }
 
 const rows = computed<Row[]>(() => {
-	void state.clock
+	void state.presenceClock
 	const lower = filter.value.trim().toLowerCase()
 	const match = (peer: Peer) =>
 		!lower || displayName(peer.id, peer.username).toLowerCase().includes(lower)

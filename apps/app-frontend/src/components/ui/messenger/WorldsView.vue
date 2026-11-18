@@ -9,7 +9,7 @@ import UserAvatar from './UserAvatar.vue'
 const t = useMessengerT()
 
 const worlds = computed(() => {
-	void state.clock
+	void state.presenceClock
 	return state.friends
 		.map((peer) => userOf(peer.id) ?? peer)
 		.filter(

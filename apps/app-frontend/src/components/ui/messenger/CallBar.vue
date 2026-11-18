@@ -35,8 +35,9 @@ const t = useMessengerT()
 
 const call = computed(() => {
 	void state.callTick
-	void state.clock
-	return getCallState()
+	const snapshot = getCallState()
+	if (snapshot.phase !== 'idle') void state.clock
+	return snapshot
 })
 
 const voiceChannel = computed(() => {
@@ -75,8 +76,8 @@ const callTitle = computed(() => {
 })
 
 const timer = computed(() => {
-	void state.clock
 	const started = dmActive.value ? call.value.startedAt : voice.joinedAt
+	if (started) void state.clock
 	return started ? formatDuration((Date.now() - started) / 1000) : ''
 })
 

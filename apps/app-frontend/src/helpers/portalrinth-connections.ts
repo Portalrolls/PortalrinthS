@@ -4,7 +4,7 @@
  * how it answered and how long it took - so the Settings' "Подключения" tab
  * can show the player exactly who the launcher talks to.
  */
-import { ref } from 'vue'
+import { shallowRef } from 'vue'
 
 export interface ConnectionEntry {
 	id: number
@@ -19,11 +19,11 @@ export interface ConnectionEntry {
 
 const LIMIT = 300
 
-const log = ref<ConnectionEntry[]>([])
+const log = shallowRef<ConnectionEntry[]>([])
 let nextId = 1
 
 /** The journal, newest first. */
-export const connectionLog = ref<ConnectionEntry[]>([])
+export const connectionLog = shallowRef<ConnectionEntry[]>([])
 
 function commit(entry: ConnectionEntry) {
 	log.value = [entry, ...log.value].slice(0, LIMIT)

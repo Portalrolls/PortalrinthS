@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 
-import { ensureAvatar, presenceFor, state } from './store'
+import { ensureAvatar, markAvatarBroken, presenceFor, state } from './store'
 
 const props = withDefaults(
 	defineProps<{
@@ -14,7 +14,32 @@ const props = withDefaults(
 	{ name: '', size: 40, status: false, ring: 'var(--msgr-panel)' },
 )
 
+const root = ref<HTMLElement | null>(null)
+/** Голову грузим, только когда аватарка видна, — длинные списки участников не дёргают сеть разом. */
+const seen = ref(false)
+let observer: IntersectionObserver | null = null
+
+onMounted(() => {
+	if (!root.value || typeof IntersectionObserver === 'undefined') {
+		seen.value = true
+		return
+	}
+	observer = new IntersectionObserver(
+		(entries) => {
+			if (!entries.some((entry) => entry.isIntersecting)) return
+			seen.value = true
+			observer?.disconnect()
+			observer = null
+		},
+		{ rootMargin: '200px' },
+	)
+	observer.observe(root.value)
+})
+
+onBeforeUnmount(() => observer?.disconnect())
+
 watchEffect(() => {
+	if (!seen.value) return
 	const user = state.users[props.userId]
 	if (user) void ensureAvatar(user)
 })
@@ -23,12 +48,19 @@ const src = computed(() => state.avatars[props.userId] || '')
 const letter = computed(() =>
 	(props.name || state.users[props.userId]?.username || '?').slice(0, 1),
 )
-const presence = computed(() => presenceFor(props.userId))
+const presence = computed(() => (props.status ? presenceFor(props.userId) : 'offline'))
 </script>
 
 <template>
-	<span class="msgr-avatar" :style="{ width: `${size}px`, height: `${size}px` }">
-		<img v-if="src" :src="src" alt="" draggable="false" />
+	<span ref="root" class="msgr-avatar" :style="{ width: `${size}px`, height: `${size}px` }">
+		<img
+			v-if="src"
+			:src="src"
+			alt=""
+			draggable="false"
+			loading="lazy"
+			@error="markAvatarBroken(userId)"
+		/>
 		<span v-else class="msgr-avatar__letter" :style="{ fontSize: `${Math.round(size * 0.42)}px` }">
 			{{ letter }}
 		</span>

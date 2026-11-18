@@ -125,7 +125,7 @@ function loadSkinTexture(): void {
 const userId = computed(() => String(target.value?.id ?? ''))
 
 const peer = computed<Peer | null>(() => {
-	void state.clock
+	void state.presenceClock
 	return userOf(userId.value)
 })
 
@@ -152,7 +152,7 @@ const bannerStyle = computed(() => {
 })
 
 const presence = computed(() => {
-	void state.clock
+	void state.presenceClock
 	return presenceFor(userId.value)
 })
 

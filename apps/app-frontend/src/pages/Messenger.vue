@@ -19,6 +19,7 @@ import Lightbox from '@/components/ui/messenger/Lightbox.vue'
 import MemberPanel from '@/components/ui/messenger/MemberPanel.vue'
 import MemberPopover from '@/components/ui/messenger/MemberPopover.vue'
 import type { Channel, Conversation } from '@/components/ui/messenger/model'
+import ProfileEditorModal from '@/components/ui/messenger/ProfileEditorModal.vue'
 import PromptModal from '@/components/ui/messenger/PromptModal.vue'
 import ServerRail from '@/components/ui/messenger/ServerRail.vue'
 import ServerSettingsModal from '@/components/ui/messenger/ServerSettingsModal.vue'
@@ -26,24 +27,16 @@ import {
 	activeConversation,
 	connect,
 	leaveServer,
-	me,
 	myId,
 	pageVisible,
-	resetState,
-	setFailText,
-	showToast,
 	state,
-	stopLive,
 	userOf,
 	writeTo,
 } from '@/components/ui/messenger/store'
 import { askConfirm, registerUi } from '@/components/ui/messenger/ui-bus'
 import UserPanel from '@/components/ui/messenger/UserPanel.vue'
 import UserProfileModal from '@/components/ui/messenger/UserProfileModal.vue'
-import { initVoiceChannels } from '@/components/ui/messenger/voice-channel'
 import WorldsView from '@/components/ui/messenger/WorldsView.vue'
-import { initMessengerCall } from '@/helpers/messenger-call'
-import { onServiceAccountChange, serviceRequest } from '@/helpers/uprojects-service'
 import { useRootBreadcrumb } from '@/shared/breadcrumbs'
 
 defineOptions({ name: 'MessengerPage' })
@@ -83,64 +76,6 @@ const view = computed(() => {
 })
 const showMembers = computed(
 	() => view.value === 'chat' && sidePanel.value && Boolean(activeConversation.value),
-)
-
-setFailText((code) => {
-	switch (code) {
-		case 'mic':
-			return t('app.messenger.call.micDenied', 'Нет доступа к микрофону')
-		case 'forward':
-			return t('app.messenger.error.forward', 'Не во все чаты удалось переслать сообщение')
-		case 'forbidden':
-		case '403':
-			return t('app.messenger.error.forbidden', 'Недостаточно прав для этого действия')
-		case 'not_found':
-		case '404':
-			return t('app.messenger.error.notFound', 'Не найдено — возможно, это уже удалили')
-		case 'too_large':
-		case 'payload_too_large':
-		case '413':
-			return t('app.messenger.error.tooLarge', 'Файл слишком большой (максимум 12 МБ)')
-		case 'rate_limited':
-		case '429':
-			return t('app.messenger.error.rate', 'Слишком часто. Подождите немного')
-		case 'blocked':
-			return t('app.messenger.error.blocked', 'Пользователь ограничил общение с вами')
-		case 'network':
-			return t('app.messenger.error.network', 'Нет связи с сервером')
-		default:
-			return t('app.messenger.error.generic', 'Не получилось: {code}', { code })
-	}
-})
-
-initMessengerCall({
-	req: (path, opts) => serviceRequest(path, opts),
-	me: () => (me.value ? { id: me.value.id, username: me.value.username } : null),
-	onChange: () => {
-		state.callTick += 1
-	},
-	toast: (text) => showToast(text),
-	micDeniedText: () => t('app.messenger.call.micDenied', 'Нет доступа к микрофону'),
-	failedText: () => t('app.messenger.call.failed', 'Не удалось соединиться'),
-	noAnswerText: () => t('app.messenger.call.noAnswer', 'Нет ответа'),
-	lostText: () => t('app.messenger.call.lost', 'Соединение со звонком потеряно'),
-	busyText: () => t('app.messenger.call.busy', 'Собеседник сейчас в другом звонке'),
-})
-
-watch(
-	myId,
-	(id) => {
-		initVoiceChannels({
-			myId: id,
-			error: (code) =>
-				showToast(
-					code === 'mic'
-						? t('app.messenger.call.micDenied', 'Нет доступа к микрофону')
-						: t('app.messenger.voice.failed', 'Не удалось подключиться к голосовому каналу'),
-				),
-		})
-	},
-	{ immediate: true },
 )
 
 registerUi({
@@ -206,11 +141,6 @@ function onVisibility(): void {
 	pageVisible.value = document.visibilityState === 'visible'
 }
 
-const stopAccountWatch = onServiceAccountChange(() => {
-	resetState()
-	void connect(true)
-})
-
 onMounted(() => {
 	readQuery()
 	document.addEventListener('visibilitychange', onVisibility)
@@ -231,11 +161,7 @@ onDeactivated(() => {
 onUnmounted(() => {
 	pageVisible.value = false
 	document.removeEventListener('visibilitychange', onVisibility)
-	stopAccountWatch()
-	stopLive()
 })
-
-const toastKey = computed(() => state.toast.id)
 </script>
 
 <template>
@@ -271,23 +197,15 @@ const toastKey = computed(() => state.toast.id)
 			</Transition>
 		</div>
 
-		<CallBar mode="incoming" />
 		<MemberPopover />
 		<UserProfileModal ref="profileModal" @write="onProfileWrite" />
+		<ProfileEditorModal />
 		<PromptModal ref="promptModal" />
 		<ForwardModal ref="forwardModal" />
 		<Lightbox ref="lightbox" />
 		<CreateServerModal ref="createModal" />
 		<ChannelModal ref="channelModal" />
 		<ServerSettingsModal ref="settingsModal" />
-
-		<Teleport to="body">
-			<Transition name="msgr-toast">
-				<div v-if="state.toast.text" :key="toastKey" class="msgr-toast" role="status">
-					{{ state.toast.text }}
-				</div>
-			</Transition>
-		</Teleport>
 	</div>
 </template>
 
@@ -338,35 +256,6 @@ const toastKey = computed(() => state.toast.id)
 	backdrop-filter: blur(14px);
 }
 
-.msgr-toast {
-	position: fixed;
-	bottom: 1.5rem;
-	left: 50%;
-	z-index: 350;
-	max-width: min(32rem, 90vw);
-	padding: 0.65rem 1rem;
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	border-radius: 10px;
-	background: #111214;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-	color: #f2f3f5;
-	font-size: 0.88rem;
-	transform: translateX(-50%);
-}
-
-.msgr-toast-enter-active,
-.msgr-toast-leave-active {
-	transition:
-		opacity 0.2s ease,
-		transform 0.2s ease;
-}
-
-.msgr-toast-enter-from,
-.msgr-toast-leave-to {
-	opacity: 0;
-	transform: translate(-50%, 10px);
-}
-
 .msgr-view-enter-active,
 .msgr-view-leave-active {
 	transition: opacity 0.12s ease;
@@ -397,8 +286,6 @@ const toastKey = computed(() => state.toast.id)
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.msgr-toast-enter-active,
-	.msgr-toast-leave-active,
 	.msgr-view-enter-active,
 	.msgr-view-leave-active,
 	.msgr-members-enter-active,

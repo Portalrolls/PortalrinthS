@@ -1090,11 +1090,11 @@ watch(locale, () => {
 <style scoped>
 .nf-page {
 	display: grid;
-	grid-template-columns: minmax(0, 620px) 240px;
+	grid-template-columns: minmax(0, 860px) minmax(260px, 320px);
 	justify-content: center;
 	align-items: start;
-	gap: 14px;
-	padding: 12px 16px 32px;
+	gap: 16px;
+	padding: 14px clamp(16px, 3vw, 40px) 36px;
 }
 
 .nf-main {
@@ -1888,6 +1888,12 @@ watch(locale, () => {
 	}
 	100% {
 		box-shadow: 0 0 0 0 transparent;
+	}
+}
+
+@media (max-width: 1100px) {
+	.nf-page {
+		grid-template-columns: minmax(0, 1fr) 260px;
 	}
 }
 

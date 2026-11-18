@@ -15,6 +15,7 @@ import {
 
 import { openLiveStream } from './live-stream'
 import {
+	attachmentKind,
 	type Category,
 	type Channel,
 	type Conversation,
@@ -30,6 +31,7 @@ import {
 	type PresenceStatus,
 	previewOf,
 } from './model'
+import { handleProfileSignal } from './profile-card'
 import { handleVoiceEvent, handleVoiceSignal, leaveVoice, resetVoice } from './voice-channel'
 
 export type HomePage = 'friends' | 'worlds' | 'dm'
@@ -275,6 +277,7 @@ export function displayName(id: string, fallback = ''): string {
 
 export function presenceFor(id: string): PresenceStatus {
 	if (id === myId.value) return state.myStatus
+	void state.clock
 	const user = state.users[id]
 	if (!user || !isOnline(user)) return 'offline'
 	const manual = user.presenceStatus.toLowerCase()
@@ -459,7 +462,7 @@ async function fetchLatest(key: string, unread = 0): Promise<void> {
 		const list = rows
 			.map((row: LooseRecord) => mapMessage(row, mapOpts(convId)))
 			.filter((msg: Msg | null): msg is Msg => Boolean(msg))
-			.filter((msg: Msg) => belongs(convId, channelId, msg))
+			.filter((msg: Msg) => belongs(convId, channelId, msg) && !isHiddenForMe(msg.id))
 			.sort((a: Msg, b: Msg) => a.createdAt - b.createdAt)
 		list.forEach(rememberMessage)
 		thread.messages = list
@@ -511,7 +514,7 @@ export async function loadOlder(): Promise<boolean> {
 		const older = rows
 			.map((row: LooseRecord) => mapMessage(row, mapOpts(convId)))
 			.filter((msg: Msg | null): msg is Msg => Boolean(msg) && !known.has(msg!.id))
-			.filter((msg: Msg) => belongs(convId, channelId, msg))
+			.filter((msg: Msg) => belongs(convId, channelId, msg) && !isHiddenForMe(msg.id))
 		older.forEach(rememberMessage)
 		thread.messages = [...older, ...thread.messages].sort((a, b) => a.createdAt - b.createdAt)
 		thread.hasMore = rows.length >= PAGE
@@ -536,7 +539,7 @@ export async function jumpTo(msg: Msg): Promise<void> {
 		const rows = Array.isArray(response.data?.messages) ? response.data.messages : []
 		const list = rows
 			.map((row: LooseRecord) => mapMessage(row, mapOpts(convId)))
-			.filter((entry: Msg | null): entry is Msg => Boolean(entry))
+			.filter((entry: Msg | null): entry is Msg => entry !== null && !isHiddenForMe(entry.id))
 			.sort((a: Msg, b: Msg) => a.createdAt - b.createdAt)
 		list.forEach(rememberMessage)
 		thread.messages = list
@@ -564,7 +567,7 @@ function markRead(conv: Conversation): void {
 
 function upsert(key: string, msg: Msg): void {
 	const thread = state.threads[key]
-	if (!thread) return
+	if (!thread || isHiddenForMe(msg.id)) return
 	const index = thread.messages.findIndex((entry) => entry.id === msg.id)
 	if (index >= 0) thread.messages.splice(index, 1, msg)
 	else if (!thread.detached) {
@@ -582,6 +585,8 @@ function patchEverywhere(id: string, patch: (msg: Msg) => Msg | null): void {
 		else thread.messages.splice(index, 1)
 	}
 }
+
+let pendingSeq = 0
 
 export async function sendMessage(payload: {
 	body: string
@@ -605,16 +610,19 @@ export async function sendMessage(payload: {
 			dataBase64: payload.attachment.dataBase64,
 		}
 	}
+	const key = threadKey(conv.id, conv.dm ? '' : channel)
+	const draft = optimisticMessage(conv.id, channel, payload)
+	if (draft) upsert(key, draft)
 	const response = await serviceRequest(`/conversations/${enc(conv.id)}/messages`, {
 		method: 'POST',
 		body,
 	})
+	if (draft) patchEverywhere(draft.id, () => null)
 	if (!response.ok) {
 		fail(response)
 		return false
 	}
 	const sent = response.data?.message ? mapMessage(response.data.message, mapOpts(conv.id)) : null
-	const key = threadKey(conv.id, conv.dm ? '' : channel)
 	if (sent) {
 		rememberMessage(sent)
 		upsert(key, sent)
@@ -625,6 +633,49 @@ export async function sendMessage(payload: {
 	if (thread) thread.firstNewId = ''
 	sortConversations()
 	return true
+}
+
+/** Сообщение видно в ленте сразу, пока сервер его принимает. */
+function optimisticMessage(
+	convId: string,
+	channelId: string,
+	payload: { body: string; replyToId?: string; attachment?: PendingAttachment | null },
+): Msg | null {
+	const self = me.value
+	if (!self) return null
+	const reply = payload.replyToId
+		? Object.values(state.threads)
+				.flatMap((thread) => thread.messages)
+				.find((msg) => msg.id === payload.replyToId)
+		: null
+	const att = payload.attachment
+	pendingSeq += 1
+	return {
+		id: `pending:${pendingSeq}`,
+		conversationId: convId,
+		channelId: channelId.startsWith('local:') ? '' : channelId,
+		senderId: self.id,
+		senderName: self.username,
+		body: payload.body,
+		createdAt: Date.now(),
+		editedAt: 0,
+		attachment: att
+			? {
+					name: att.name,
+					size: att.size,
+					mime: att.mime,
+					url: att.preview || `data:${att.mime};base64,${att.dataBase64}`,
+					kind: attachmentKind(att.name, att.mime),
+				}
+			: null,
+		replyTo: reply
+			? { id: reply.id, senderId: reply.senderId, senderName: reply.senderName, body: reply.body }
+			: null,
+		reactions: [],
+		pinned: false,
+		kind: 'text',
+		pending: true,
+	}
 }
 
 function sortConversations(): void {
@@ -649,13 +700,49 @@ export async function editMessage(msg: Msg, text: string): Promise<boolean> {
 	return true
 }
 
-export async function deleteMessage(msg: Msg): Promise<void> {
+const HIDDEN_KEY = 'portalrinth-messenger-hidden:'
+
+function hiddenKey(): string {
+	return `${HIDDEN_KEY}${myId.value}`
+}
+
+function readHidden(): Set<string> {
+	try {
+		const raw = localStorage.getItem(hiddenKey())
+		return new Set(raw ? (JSON.parse(raw) as string[]) : [])
+	} catch {
+		return new Set()
+	}
+}
+
+let hiddenIds: Set<string> | null = null
+
+export function isHiddenForMe(id: string): boolean {
+	if (!hiddenIds) hiddenIds = readHidden()
+	return hiddenIds.has(id)
+}
+
+/** «Удалить у меня» — сообщение пропадает только в этом лаунчере. */
+export function hideMessageForMe(msg: Msg): void {
+	if (!hiddenIds) hiddenIds = readHidden()
+	hiddenIds.add(msg.id)
+	try {
+		localStorage.setItem(hiddenKey(), JSON.stringify([...hiddenIds].slice(-2000)))
+	} catch {
+		return
+	} finally {
+		patchEverywhere(msg.id, () => null)
+	}
+}
+
+export async function deleteMessage(msg: Msg): Promise<boolean> {
 	const response = await serviceRequest(
 		`/conversations/${enc(msg.conversationId || activeConversation.value?.id || '')}/messages/${enc(msg.id)}`,
 		{ method: 'DELETE' },
 	)
 	if (response.ok) patchEverywhere(msg.id, () => null)
 	else fail(response)
+	return response.ok
 }
 
 export async function reactMessage(msg: Msg, emoji: string): Promise<void> {
@@ -1234,6 +1321,16 @@ function scheduleStructure(convId: string): void {
 
 export const pageVisible = { value: true }
 
+type IncomingListener = (msg: Msg, conv: Conversation) => void
+
+const incomingListeners = new Set<IncomingListener>()
+
+/** Новое чужое сообщение не в открытом сейчас чате — для всплывающих уведомлений. */
+export function onIncomingMessage(listener: IncomingListener): () => void {
+	incomingListeners.add(listener)
+	return () => incomingListeners.delete(listener)
+}
+
 function onLiveMessage(data: LooseRecord): void {
 	const convId = String(data.conversationId || data.message?.conversationId || '')
 	const msg = mapMessage(data.message, mapOpts(convId))
@@ -1256,6 +1353,9 @@ function onLiveMessage(data: LooseRecord): void {
 	}
 	conv.lastPreview = previewOf(data.message)
 	conv.updatedAt = msg.createdAt
+	if (!mine && !active && !isHiddenForMe(msg.id)) {
+		for (const listener of incomingListeners) listener(msg, conv)
+	}
 	if (state.typing[key]) Reflect.deleteProperty(state.typing[key], msg.senderId)
 	if (state.typing[convId]) Reflect.deleteProperty(state.typing[convId], msg.senderId)
 	if (!mine) {
@@ -1350,6 +1450,7 @@ export function handleLive(name: string, data: LooseRecord): void {
 			}
 			return
 		case 'signal':
+			if (handleProfileSignal(data)) return
 			if (String(data.type || '').startsWith('vc_')) {
 				void handleVoiceSignal(data)
 				return
@@ -1379,12 +1480,16 @@ export function handleLive(name: string, data: LooseRecord): void {
 	}
 }
 
+let pulseTick = 0
+
 function startLive(token: string): void {
 	stopLive()
 	closeStream = openLiveStream(serviceStreamUrl(token), handleLive, (open) => {
+		const reopened = open && !state.liveOpen
 		state.liveOpen = open
+		if (reopened) void catchUp()
 	})
-	pollTimer = setInterval(() => void pulse(), 20000)
+	pollTimer = setInterval(() => void pulse(), 4000)
 	clockTimer = setInterval(() => {
 		state.clock = Date.now()
 	}, 1000)
@@ -1402,14 +1507,30 @@ export function stopLive(): void {
 	state.liveOpen = false
 }
 
-/** Страховка на случай, если поток молчит: тихо сверяем списки и открытую ленту. */
+/** После обрыва потока забираем то, что успело прийти, пока его не было. */
+async function catchUp(): Promise<void> {
+	if (!state.session) return
+	await loadLists()
+	await refreshActiveThread()
+}
+
+/**
+ * Страховка на случай, если поток молчит или оборвался: без потока
+ * открытый чат сверяем каждые 4 секунды, с потоком — раз в 20.
+ */
 async function pulse(): Promise<void> {
 	if (!state.session) return
-	if (state.liveOpen && Date.now() % 3 !== 0) return
-	await loadLists()
+	pulseTick += 1
+	const live = state.liveOpen
+	if (pulseTick % (live ? 15 : 4) === 0) await loadLists()
+	if (live && pulseTick % 5 !== 0) return
+	await refreshActiveThread()
+}
+
+async function refreshActiveThread(): Promise<void> {
 	const key = activeKey.value
 	const thread = key ? state.threads[key] : null
-	if (!thread || thread.detached || !thread.loaded) return
+	if (!thread || thread.detached || !thread.loaded || !pageVisible.value) return
 	const { convId, channelId } = channelQuery(key)
 	const response = await serviceRequest(`/conversations/${enc(convId)}/messages`, {
 		query: { limit: 20, channelId: channelId || undefined },
@@ -1421,6 +1542,32 @@ async function pulse(): Promise<void> {
 		if (msg && belongs(convId, channelId, msg)) {
 			rememberMessage(msg)
 			upsert(key, msg)
+		}
+	}
+}
+
+let activityPayload: LooseRecord = { playing: false }
+let activityTimer: ReturnType<typeof setInterval> | null = null
+
+/** Что видят друзья: «Играет в …» держится, пока лаунчер шлёт это раз в 45 секунд. */
+export function setActivity(payload: LooseRecord | null): void {
+	activityPayload = payload?.playing
+		? { ...payload, playing: true, hosting: false, worldShare: false }
+		: { playing: false, hosting: false, worldShare: false }
+	if (activityTimer) clearInterval(activityTimer)
+	activityTimer = null
+	void postActivity()
+	if (activityPayload.playing) activityTimer = setInterval(() => void postActivity(), 45000)
+}
+
+async function postActivity(): Promise<void> {
+	if (!state.session) return
+	await serviceRequest('/activity', { method: 'POST', body: activityPayload }).catch(() => null)
+	const id = myId.value
+	if (id && state.users[id]) {
+		state.users[id] = {
+			...state.users[id],
+			activity: activityPayload.playing ? (activityPayload as Peer['activity']) : null,
 		}
 	}
 }
@@ -1483,6 +1630,7 @@ export async function connect(force = false): Promise<void> {
 		await loadLists()
 		if (seq !== connectSeq) return
 		startLive(session.token)
+		if (activityPayload.playing) void postActivity()
 		if (state.section === 'server' && state.activeServerId) await openServer(state.activeServerId)
 		else if (state.homePage === 'dm' && state.activeDmId) await openDm(state.activeDmId)
 	} catch {

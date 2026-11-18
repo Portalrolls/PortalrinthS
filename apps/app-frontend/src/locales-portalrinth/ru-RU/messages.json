@@ -6076,12 +6076,6 @@
 	"app.messenger.pickChat": {
 		"message": "Выберите чат слева"
 	},
-	"app.ai.picker.modes": {
-		"message": "Режимы агента — все бесплатные"
-	},
-	"app.ai.picker.custom-mode": {
-		"message": "Свой выбор"
-	},
 	"app.messenger.profile.open": {
 		"message": "Открыть профиль"
 	},
@@ -7565,7 +7559,7 @@
 		"message": "Проверяю доступ к Pixi…"
 	},
 	"app.ai.picker.pixi.open": {
-		"message": "Доступ открыт — все модели Pixi работают"
+		"message": "Pixi работает бесплатно через аккаунт Undefined"
 	},
 	"app.ai.picker.pixi.no-account": {
 		"message": "Нужен вход в аккаунт Undefined (Microsoft или Ely.by) — выберите его в карточке аккаунтов"
@@ -7574,7 +7568,7 @@
 		"message": "Офлайн-аккаунт не входит в Undefined — выберите аккаунт Microsoft или Ely.by в карточке аккаунтов"
 	},
 	"app.ai.picker.pixi.denied": {
-		"message": "Сервер Undefined пока не выдал этому аккаунту доступ к Pixi"
+		"message": "Undefined пока не открыл Pixi этому аккаунту — вместо него бесплатно ответят модели каталога"
 	},
 	"app.ai.picker.pixi.pending": {
 		"message": "Заявка отправлена — ожидайте решения Undefined"
@@ -7593,5 +7587,92 @@
 	},
 	"app.ai.picker.pixi.retry": {
 		"message": "Проверить снова"
+	},
+	"app.settings.voice.title": {
+		"message": "Голос и уведомления"
+	},
+	"app.settings.voice.description": {
+		"message": "Микрофон и наушники для звонков в MC Messenger и то, как приходят новые сообщения."
+	},
+	"app.settings.voice.denied": {
+		"message": "Нет доступа к микрофону — названия устройств скрыты, пока доступ не разрешён."
+	},
+	"app.settings.voice.input": {
+		"message": "Микрофон"
+	},
+	"app.settings.voice.output": {
+		"message": "Наушники / динамики"
+	},
+	"app.settings.voice.default": {
+		"message": "Как в системе"
+	},
+	"app.settings.voice.input-gain": {
+		"message": "Громкость микрофона"
+	},
+	"app.settings.voice.output-volume": {
+		"message": "Громкость звонка"
+	},
+	"app.settings.voice.test": {
+		"message": "Проверка микрофона"
+	},
+	"app.settings.voice.test-hint": {
+		"message": "Скажите что-нибудь — полоска покажет, насколько громко вас слышно."
+	},
+	"app.settings.voice.loopback": {
+		"message": "Слышать себя"
+	},
+	"app.settings.voice.test-start": {
+		"message": "Проверить"
+	},
+	"app.settings.voice.test-stop": {
+		"message": "Остановить"
+	},
+	"app.settings.voice.test-failed": {
+		"message": "Не удалось открыть микрофон."
+	},
+	"app.settings.voice.noise": {
+		"message": "Шумоподавление"
+	},
+	"app.settings.voice.noise-description": {
+		"message": "Убирает щелчки клавиатуры и фоновый гул."
+	},
+	"app.settings.voice.echo": {
+		"message": "Эхоподавление"
+	},
+	"app.settings.voice.echo-description": {
+		"message": "Собеседник не слышит сам себя через ваши динамики."
+	},
+	"app.settings.voice.call-sounds": {
+		"message": "Звуки звонка"
+	},
+	"app.settings.voice.call-sounds-description": {
+		"message": "Гудки, подключение и завершение звонка."
+	},
+	"app.settings.voice.toasts": {
+		"message": "Всплывающие сообщения"
+	},
+	"app.settings.voice.toasts-description": {
+		"message": "Карточка в правом нижнем углу: ник, аватар и текст сообщения."
+	},
+	"app.settings.voice.notify-sound": {
+		"message": "Звук сообщения"
+	},
+	"app.settings.voice.notify-sound-description": {
+		"message": "Короткий сигнал, когда приходит новое сообщение."
+	},
+	"app.settings.voice.notify-volume": {
+		"message": "Громкость уведомлений"
+	},
+	"app.settings.voice.preview": {
+		"message": "Прослушать"
+	},
+	"app.appearance-settings.loop-animation.title": {
+		"message": "Loop Animation"
+	},
+	"app.appearance-settings.loop-animation.description": {
+		"message": "Кнопка или ссылка под курсором чуть увеличивается, а соседние на той же панели или баре отходят назад."
+	},
+	"app.ai.picker.pixi.locked": {
+		"message": "Закрыта — ответит открытая"
 	}
 }

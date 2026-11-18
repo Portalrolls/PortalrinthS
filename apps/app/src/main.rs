@@ -145,6 +145,51 @@ fn show_window(app: tauri::AppHandle, background: Option<[u8; 3]>) {
     }
 }
 
+/// Calls and voice notes ask WebView2 for the microphone, and its own prompt
+/// names the page origin (`tauri.localhost`). The launcher is the only thing
+/// running in this window, so the request is answered here instead.
+#[cfg(windows)]
+fn allow_microphone(window: &tauri::WebviewWindow) {
+    let result = window.with_webview(|webview| {
+        use webview2_com::Microsoft::Web::WebView2::Win32::{
+            COREWEBVIEW2_PERMISSION_KIND, COREWEBVIEW2_PERMISSION_KIND_AUTOPLAY,
+            COREWEBVIEW2_PERMISSION_KIND_MICROPHONE,
+            COREWEBVIEW2_PERMISSION_STATE_ALLOW,
+        };
+        use webview2_com::PermissionRequestedEventHandler;
+
+        let Ok(core) = (unsafe { webview.controller().CoreWebView2() }) else {
+            return;
+        };
+        let handler =
+            PermissionRequestedEventHandler::create(Box::new(|_, args| {
+                let Some(args) = args else { return Ok(()) };
+                let mut kind = COREWEBVIEW2_PERMISSION_KIND::default();
+                unsafe { args.PermissionKind(&mut kind)? };
+                if kind == COREWEBVIEW2_PERMISSION_KIND_MICROPHONE
+                    || kind == COREWEBVIEW2_PERMISSION_KIND_AUTOPLAY
+                {
+                    unsafe {
+                        args.SetState(COREWEBVIEW2_PERMISSION_STATE_ALLOW)?
+                    };
+                }
+                Ok(())
+            }));
+        let mut token = 0i64;
+        if let Err(error) =
+            unsafe { core.add_PermissionRequested(&handler, &mut token) }
+        {
+            tracing::warn!(
+                ?error,
+                "Failed to hook WebView2 permission requests"
+            );
+        }
+    });
+    if let Err(e) = result {
+        tracing::warn!("Failed to reach the main webview: {e}");
+    }
+}
+
 #[tauri::command]
 fn is_dev() -> bool {
     cfg!(debug_assertions)
@@ -536,6 +581,11 @@ fn main() {
                 && let Err(e) = window.set_shadow(true)
             {
                 tracing::warn!("Failed to set window shadow: {e}");
+            }
+
+            #[cfg(windows)]
+            if let Some(window) = app.get_webview_window("main") {
+                allow_microphone(&window);
             }
 
             Ok(())

@@ -45,6 +45,7 @@ import {
 	setInterfaceFont,
 	useInterfaceFont,
 } from '@/composables/use-font.ts'
+import { loopAnimation, setLoopAnimation } from '@/composables/use-loop-animation'
 import { type ColorTheme, isDarkTheme, useTheme } from '@/composables/use-theme.ts'
 import { injectAppSettingsModal } from '@/features/settings/app-settings-modal/context'
 import PortalrinthBackgroundSettings from '@/features/settings/display/PortalrinthBackgroundSettings.vue'
@@ -122,6 +123,11 @@ const gradientAnimated = computed({
 const iconsAccentMode = computed({
 	get: () => iconsAccent.value,
 	set: setIconsAccent,
+})
+
+const loopAnimationMode = computed({
+	get: () => loopAnimation.value,
+	set: setLoopAnimation,
 })
 
 /** How fast the run pours: one walk of the gradient in seconds. */
@@ -230,6 +236,15 @@ const messages = defineMessages({
 	fontCustomNone: {
 		id: 'app.appearance-settings.font.custom.none',
 		defaultMessage: 'No installed font is called that',
+	},
+	loopAnimationTitle: {
+		id: 'app.appearance-settings.loop-animation.title',
+		defaultMessage: 'Loop Animation',
+	},
+	loopAnimationDescription: {
+		id: 'app.appearance-settings.loop-animation.description',
+		defaultMessage:
+			'The button or link under the cursor grows a little while its neighbours on the same bar or panel step back.',
 	},
 	iconsAccentTitle: {
 		id: 'app.appearance-settings.accent-icons.title',
@@ -645,6 +660,21 @@ provideAppearanceSettings({
 				</p>
 			</div>
 			<Toggle id="accent-icons" v-model="iconsAccentMode" aria-labelledby="accent-icons-label" />
+		</div>
+		<div class="mt-3 flex items-center justify-between gap-4">
+			<div class="min-w-0">
+				<h3 id="loop-animation-label" class="m-0 text-lg font-semibold text-contrast">
+					{{ formatMessage(messages.loopAnimationTitle) }}
+				</h3>
+				<p class="m-0 mt-1 text-secondary">
+					{{ formatMessage(messages.loopAnimationDescription) }}
+				</p>
+			</div>
+			<Toggle
+				id="loop-animation"
+				v-model="loopAnimationMode"
+				aria-labelledby="loop-animation-label"
+			/>
 		</div>
 	</div>
 

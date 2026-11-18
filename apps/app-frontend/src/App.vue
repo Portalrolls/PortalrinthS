@@ -92,6 +92,7 @@ import HostingUpdateRequired from '@/components/ui/HostingUpdateRequired.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
 import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWarningModal.vue'
 import IconEditorModal from '@/components/ui/instance_settings/InstanceIconEditorModal.vue'
+import MessengerHost from '@/components/ui/messenger/MessengerHost.vue'
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
 import MinecraftRequiredModal from '@/components/ui/minecraft-required-modal/MinecraftRequiredModal.vue'
 import InstallToPlayModal from '@/components/ui/modal/InstallToPlayModal.vue'
@@ -3116,6 +3117,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 		/>
 	</div>
 	<I18nDebugPanel />
+	<MessengerHost />
 	<NotificationPanel :has-sidebar="sidebarVisible" :sidebar-width="sidebarOccupiedWidth" />
 	<PopupNotificationPanel :has-sidebar="sidebarVisible" />
 	<ErrorModal ref="errorModal" />

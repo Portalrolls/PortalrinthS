@@ -7,6 +7,8 @@ export type LiveHandler = (name: string, data: Record<string, unknown>) => void
  * поэтому поток читаем через тот же fetch, что и API, и разбираем SSE сами.
  * Возвращает функцию, которая закрывает поток насовсем.
  */
+const STALE_MS = 45000
+
 export function openLiveStream(
 	url: string,
 	onEvent: LiveHandler,
@@ -16,6 +18,12 @@ export function openLiveStream(
 	let controller: AbortController | null = null
 	let retries = 0
 	let retryTimer: ReturnType<typeof setTimeout> | null = null
+	let lastByte = 0
+
+	/** Прокси иногда держит соединение открытым, но молчит — тогда рвём его сами. */
+	const watchdog = setInterval(() => {
+		if (controller && lastByte && Date.now() - lastByte > STALE_MS) controller.abort()
+	}, 10000)
 
 	function dispatch(block: string): void {
 		let name = 'message'
@@ -47,6 +55,7 @@ export function openLiveStream(
 			})
 			if (!response.ok || !response.body) throw new Error(`stream_${response.status}`)
 			retries = 0
+			lastByte = Date.now()
 			onState(true)
 			const reader = response.body.getReader()
 			const decoder = new TextDecoder()
@@ -54,6 +63,7 @@ export function openLiveStream(
 			while (!closed) {
 				const { value, done } = await reader.read()
 				if (done) break
+				lastByte = Date.now()
 				buffer += decoder.decode(value, { stream: true }).replace(/\r\n?/g, '\n')
 				let split = buffer.indexOf('\n\n')
 				while (split >= 0) {
@@ -65,16 +75,18 @@ export function openLiveStream(
 		} catch {
 			/* переподключимся ниже */
 		}
+		lastByte = 0
 		onState(false)
 		if (closed) return
 		retries += 1
-		retryTimer = setTimeout(() => void run(), Math.min(30000, 1500 * retries))
+		retryTimer = setTimeout(() => void run(), Math.min(5000, 700 * retries))
 	}
 
 	void run()
 
 	return () => {
 		closed = true
+		clearInterval(watchdog)
 		if (retryTimer) clearTimeout(retryTimer)
 		controller?.abort()
 		onState(false)

@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { DownloadIcon, ExternalIcon, FileIcon, PauseIcon, PlayIcon } from '@modrinth/assets'
+import {
+	DownloadIcon,
+	ExternalIcon,
+	FileIcon,
+	PackageIcon,
+	PauseIcon,
+	PlayIcon,
+} from '@modrinth/assets'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, onBeforeUnmount, ref } from 'vue'
 
+import { installBuild, isBuildFile } from './builds'
 import { useMessengerT } from './i18n'
 import { downloadAttachment, mediaBlobUrl } from './media'
 import MicIcon from './MicIcon.vue'
@@ -31,6 +39,23 @@ const isVisual = computed(
 const isSound = computed(
 	() => props.attachment.kind === 'audio' || props.attachment.kind === 'voice',
 )
+const isBuild = computed(() => isBuildFile(props.attachment.name))
+const installing = ref(false)
+const installed = ref(false)
+
+async function install(): Promise<void> {
+	if (installing.value || installed.value) return
+	installing.value = true
+	const ok = await installBuild(props.attachment.url, props.attachment.name)
+	installing.value = false
+	installed.value = ok
+	showToast(
+		ok
+			? t('app.messenger.build.installing', 'Сборка устанавливается — она появится в библиотеке')
+			: t('app.messenger.build.installFailed', 'Не удалось установить сборку'),
+	)
+}
+
 const progress = computed(() => (duration.value ? Math.min(1, position.value / duration.value) : 0))
 
 async function loadMedia(): Promise<boolean> {
@@ -95,12 +120,12 @@ onBeforeUnmount(() => audio.value?.pause())
 			v-if="isVisual && !imageFailed"
 			type="button"
 			class="msgr-att__image"
-			:title="attachment.name"
 			@click="openLightbox(attachment.url, attachment.name)"
 		>
 			<img
 				:src="attachment.url"
-				:alt="attachment.name"
+				alt=""
+				draggable="false"
 				:loading="attachment.kind === 'gif' ? 'eager' : 'lazy'"
 				decoding="async"
 				@error="imageFailed = true"
@@ -184,8 +209,11 @@ onBeforeUnmount(() => audio.value?.pause())
 			/>
 		</div>
 
-		<div v-else class="msgr-att__file">
-			<span class="msgr-att__file-icon"><FileIcon /></span>
+		<div v-else class="msgr-att__file" :class="{ 'is-build': isBuild }">
+			<span class="msgr-att__file-icon">
+				<PackageIcon v-if="isBuild" />
+				<FileIcon v-else />
+			</span>
 			<div class="msgr-att__file-body">
 				<button
 					type="button"
@@ -207,7 +235,29 @@ onBeforeUnmount(() => audio.value?.pause())
 			>
 				<ExternalIcon />
 			</button>
-			<button type="button" class="msgr-att__download" :disabled="downloading" @click="download">
+			<button
+				v-if="isBuild"
+				type="button"
+				class="msgr-att__download is-install"
+				:disabled="installing || installed"
+				@click="install"
+			>
+				<PackageIcon />
+				{{
+					installed
+						? t('app.messenger.build.installed', 'Установлено')
+						: installing
+							? t('app.messenger.build.installingShort', 'Установка…')
+							: t('app.messenger.build.install', 'Установить')
+				}}
+			</button>
+			<button
+				v-else
+				type="button"
+				class="msgr-att__download"
+				:disabled="downloading"
+				@click="download"
+			>
 				<DownloadIcon />
 				{{
 					downloading
@@ -497,6 +547,15 @@ onBeforeUnmount(() => audio.value?.pause())
 	cursor: pointer;
 	white-space: nowrap;
 	transition: filter 0.12s ease;
+}
+
+.msgr-att__file.is-build .msgr-att__file-icon {
+	background: color-mix(in srgb, var(--color-brand) 18%, transparent);
+	color: var(--color-brand);
+}
+
+.msgr-att__download.is-install {
+	background: #23a55a;
 }
 
 .msgr-att__download:hover {

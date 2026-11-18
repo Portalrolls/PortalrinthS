@@ -1,6 +1,7 @@
 import 'overlayscrollbars/overlayscrollbars.css'
 import '@/assets/stylesheets/portalrinth-motion.css'
 import '@/assets/stylesheets/portalrinth-themes.css'
+import '@/composables/use-loop-animation'
 
 import { installTooltipDirective } from '@modrinth/ui'
 import { VueQueryPlugin } from '@tanstack/vue-query'

@@ -1,0 +1,505 @@
+<script setup lang="ts">
+import './messenger.css'
+
+import { XIcon } from '@modrinth/assets'
+import { computed, onMounted, onUnmounted, reactive, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { useAppEvent } from '@/composables/use-app-event'
+import { get as getInstance } from '@/helpers/instance'
+import { initMessengerCall } from '@/helpers/messenger-call'
+import { get_all as runningProcesses } from '@/helpers/process'
+import { onServiceAccountChange, serviceRequest } from '@/helpers/uprojects-service'
+
+import CallBar from './CallBar.vue'
+import { playSound, voicePrefs } from './devices'
+import { useMessengerT } from './i18n'
+import type { Conversation, Msg } from './model'
+import { stickerPreviewText } from './stickers'
+import {
+	connect,
+	me,
+	myId,
+	onIncomingMessage,
+	openDm,
+	resetState,
+	setActivity,
+	setFailText,
+	showToast,
+	state,
+} from './store'
+import UserAvatar from './UserAvatar.vue'
+import { initVoiceChannels } from './voice-channel'
+
+const t = useMessengerT()
+const router = useRouter()
+
+setFailText((code) => {
+	switch (code) {
+		case 'mic':
+			return t('app.messenger.call.micDenied', 'Нет доступа к микрофону')
+		case 'forward':
+			return t('app.messenger.error.forward', 'Не во все чаты удалось переслать сообщение')
+		case 'forbidden':
+		case '403':
+			return t('app.messenger.error.forbidden', 'Недостаточно прав для этого действия')
+		case 'not_found':
+		case '404':
+			return t('app.messenger.error.notFound', 'Не найдено — возможно, это уже удалили')
+		case 'too_large':
+		case 'payload_too_large':
+		case '413':
+			return t('app.messenger.error.tooLarge', 'Файл слишком большой (максимум 12 МБ)')
+		case 'rate_limited':
+		case '429':
+			return t('app.messenger.error.rate', 'Слишком часто. Подождите немного')
+		case 'blocked':
+			return t('app.messenger.error.blocked', 'Пользователь ограничил общение с вами')
+		case 'network':
+			return t('app.messenger.error.network', 'Нет связи с сервером')
+		default:
+			return t('app.messenger.error.generic', 'Не получилось: {code}', { code })
+	}
+})
+
+initMessengerCall({
+	req: (path, opts) => serviceRequest(path, opts),
+	me: () => (me.value ? { id: me.value.id, username: me.value.username } : null),
+	onChange: () => {
+		state.callTick += 1
+	},
+	toast: (text) => showToast(text),
+	micDeniedText: () => t('app.messenger.call.micDenied', 'Нет доступа к микрофону'),
+	failedText: () => t('app.messenger.call.failed', 'Не удалось соединиться'),
+	noAnswerText: () => t('app.messenger.call.noAnswer', 'Нет ответа'),
+	lostText: () => t('app.messenger.call.lost', 'Соединение со звонком потеряно'),
+	busyText: () => t('app.messenger.call.busy', 'Собеседник сейчас в другом звонке'),
+})
+
+watch(
+	myId,
+	(id) => {
+		initVoiceChannels({
+			myId: id,
+			error: (code) =>
+				showToast(
+					code === 'mic'
+						? t('app.messenger.call.micDenied', 'Нет доступа к микрофону')
+						: t('app.messenger.voice.failed', 'Не удалось подключиться к голосовому каналу'),
+				),
+		})
+	},
+	{ immediate: true },
+)
+
+const stopAccountWatch = onServiceAccountChange(() => {
+	resetState()
+	void connect(true)
+})
+
+type ProcessRow = { uuid: string; instance_id: string }
+
+const playing = new Map<string, string>()
+
+/** Друзья видят «Играет в …», только пока мы сами сообщаем серверу, что игра запущена. */
+async function syncActivity(): Promise<void> {
+	const rows = ((await runningProcesses().catch(() => [])) || []) as ProcessRow[]
+	playing.clear()
+	for (const row of rows) playing.set(row.uuid, row.instance_id)
+	const instanceId = [...playing.values()].pop()
+	if (!instanceId) {
+		setActivity(null)
+		return
+	}
+	const instance = await getInstance(instanceId).catch(() => null)
+	setActivity({
+		playing: true,
+		buildName: instance?.name || '',
+		gameVersion: instance?.game_version || '',
+		loader: instance?.loader || '',
+	})
+}
+
+useAppEvent('process', (event) => {
+	if (event.event === 'launched' || event.event === 'finished') void syncActivity()
+})
+
+watch(
+	() => state.session,
+	(session, before) => {
+		if (session && !before) void syncActivity()
+	},
+)
+
+type PushToast = {
+	id: string
+	convId: string
+	senderId: string
+	name: string
+	text: string
+	attachments: Msg['attachment'][]
+	open: boolean
+	timer: ReturnType<typeof setTimeout> | null
+}
+
+const toasts = reactive<PushToast[]>([])
+
+function scheduleClose(toast: PushToast, ms = 6500): void {
+	if (toast.timer) clearTimeout(toast.timer)
+	toast.timer = setTimeout(() => closeToast(toast.id), ms)
+}
+
+function closeToast(id: string): void {
+	const index = toasts.findIndex((entry) => entry.id === id)
+	if (index < 0) return
+	const [toast] = toasts.splice(index, 1)
+	if (toast.timer) clearTimeout(toast.timer)
+}
+
+function holdToast(toast: PushToast): void {
+	if (toast.timer) clearTimeout(toast.timer)
+	toast.timer = null
+}
+
+function previewText(msg: Msg): string {
+	const sticker = stickerPreviewText(msg.body)
+	if (sticker) return t('app.messenger.push.sticker', 'Стикер')
+	const text = msg.body.replace(/\s+/g, ' ').trim()
+	if (text) return text.length > 220 ? `${text.slice(0, 220)}…` : text
+	if (msg.kind === 'voice' || msg.attachment?.kind === 'voice') {
+		return t('app.messenger.push.voice', 'Голосовое сообщение')
+	}
+	return msg.attachment ? t('app.messenger.push.attachment', 'Вложение') : ''
+}
+
+const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
+	if (voicePrefs.notifySound) playSound('message')
+	if (!voicePrefs.notifyToasts) return
+	const existing = toasts.find((entry) => entry.convId === conv.id)
+	const name = msg.senderName || conv.title
+	const title = conv.dm ? name : `${name} · ${conv.title}`
+	if (existing) {
+		existing.text = previewText(msg)
+		existing.name = title
+		existing.attachments = msg.attachment ? [msg.attachment] : []
+		existing.open = false
+		scheduleClose(existing)
+		return
+	}
+	const toast: PushToast = {
+		id: msg.id,
+		convId: conv.id,
+		senderId: msg.senderId,
+		name: title,
+		text: previewText(msg),
+		attachments: msg.attachment ? [msg.attachment] : [],
+		open: false,
+		timer: null,
+	}
+	toasts.unshift(toast)
+	while (toasts.length > 4) {
+		const last = toasts.pop()
+		if (last?.timer) clearTimeout(last.timer)
+	}
+	scheduleClose(toast)
+})
+
+async function openToast(toast: PushToast): Promise<void> {
+	closeToast(toast.id)
+	await router.push('/messenger')
+	await openDm(toast.convId)
+}
+
+const toastKey = computed(() => state.toast.id)
+
+onMounted(() => {
+	if (!state.session && !state.loading) void connect()
+})
+
+onUnmounted(() => {
+	stopAccountWatch()
+	stopIncoming()
+	for (const toast of toasts) if (toast.timer) clearTimeout(toast.timer)
+})
+</script>
+
+<template>
+	<div class="msgr-root msgr-host">
+		<CallBar mode="incoming" />
+		<Teleport to="body">
+			<Transition name="msgr-toast">
+				<div v-if="state.toast.text" :key="toastKey" class="msgr-toast" role="status">
+					{{ state.toast.text }}
+				</div>
+			</Transition>
+			<TransitionGroup tag="div" name="msgr-push" class="msgr-push-stack msgr-root">
+				<article
+					v-for="toast in toasts"
+					:key="toast.id"
+					class="msgr-push"
+					role="button"
+					tabindex="0"
+					@mouseenter="holdToast(toast)"
+					@mouseleave="scheduleClose(toast, 3500)"
+					@click="openToast(toast)"
+					@keydown.enter="openToast(toast)"
+				>
+					<UserAvatar :user-id="toast.senderId" :name="toast.name" :size="40" />
+					<div class="msgr-push__body">
+						<header>
+							<b>{{ toast.name }}</b>
+							<button
+								type="button"
+								class="msgr-push__close"
+								:aria-label="t('app.messenger.push.close', 'Закрыть')"
+								@click.stop="closeToast(toast.id)"
+							>
+								<XIcon />
+							</button>
+						</header>
+						<p v-if="toast.text">{{ toast.text }}</p>
+						<button
+							v-if="toast.attachments.length"
+							type="button"
+							class="msgr-push__toggle"
+							@click.stop="toast.open = !toast.open"
+						>
+							{{
+								toast.open
+									? t('app.messenger.push.hideAttachments', 'Скрыть вложения')
+									: t('app.messenger.push.showAttachments', 'Показать вложения ({count})', {
+											count: toast.attachments.length,
+										})
+							}}
+						</button>
+						<Transition name="msgr-push-media">
+							<div v-if="toast.open" class="msgr-push__media">
+								<template v-for="(att, index) in toast.attachments" :key="index">
+									<img
+										v-if="att && (att.kind === 'image' || att.kind === 'gif')"
+										:src="att.url"
+										alt=""
+										draggable="false"
+									/>
+									<span v-else-if="att" class="msgr-push__file">{{ att.name }}</span>
+								</template>
+							</div>
+						</Transition>
+					</div>
+				</article>
+			</TransitionGroup>
+		</Teleport>
+	</div>
+</template>
+
+<style scoped>
+.msgr-host {
+	display: contents;
+}
+
+.msgr-toast {
+	position: fixed;
+	bottom: 1.5rem;
+	left: 50%;
+	z-index: 350;
+	max-width: min(32rem, 90vw);
+	padding: 0.65rem 1rem;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 10px;
+	background: #111214;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+	color: #f2f3f5;
+	font-size: 0.88rem;
+	transform: translateX(-50%);
+}
+
+.msgr-toast-enter-active,
+.msgr-toast-leave-active {
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+.msgr-toast-enter-from,
+.msgr-toast-leave-to {
+	opacity: 0;
+	transform: translate(-50%, 10px);
+}
+
+.msgr-push-stack {
+	position: fixed;
+	right: 1.25rem;
+	bottom: 1.25rem;
+	z-index: 340;
+	display: flex;
+	width: min(22rem, calc(100vw - 2.5rem));
+	flex-direction: column-reverse;
+	gap: 0.6rem;
+	pointer-events: none;
+}
+
+.msgr-push {
+	display: flex;
+	gap: 0.7rem;
+	padding: 0.75rem 0.8rem;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 14px;
+	background: #16171b;
+	box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+	color: #dbdee1;
+	cursor: pointer;
+	pointer-events: auto;
+	transition:
+		transform 0.18s ease,
+		border-color 0.18s ease;
+}
+
+.msgr-push:hover {
+	border-color: color-mix(in srgb, var(--color-brand) 45%, transparent);
+	transform: translateY(-2px);
+}
+
+.msgr-push__body {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.msgr-push__body header {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.msgr-push__body b {
+	overflow: hidden;
+	flex: 1;
+	color: #f2f3f5;
+	font-size: 0.9rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-push__body p {
+	display: -webkit-box;
+	overflow: hidden;
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+}
+
+.msgr-push__close {
+	display: grid;
+	width: 1.4rem;
+	height: 1.4rem;
+	flex-shrink: 0;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	color: var(--color-secondary);
+	cursor: pointer;
+}
+
+.msgr-push__close:hover {
+	background: rgba(255, 255, 255, 0.08);
+	color: #f2f3f5;
+}
+
+.msgr-push__close svg {
+	width: 0.9rem;
+	height: 0.9rem;
+}
+
+.msgr-push__toggle {
+	align-self: flex-start;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-brand);
+	font: inherit;
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.msgr-push__toggle:hover {
+	text-decoration: underline;
+}
+
+.msgr-push__media {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin-top: 0.25rem;
+}
+
+.msgr-push__media img {
+	max-width: 100%;
+	max-height: 11rem;
+	border-radius: 8px;
+	object-fit: cover;
+}
+
+.msgr-push__file {
+	overflow: hidden;
+	max-width: 100%;
+	padding: 0.3rem 0.55rem;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.06);
+	font-size: 0.78rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-push-enter-active,
+.msgr-push-leave-active,
+.msgr-push-move {
+	transition:
+		opacity 0.24s ease,
+		transform 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+.msgr-push-enter-from {
+	opacity: 0;
+	transform: translateX(110%);
+}
+
+.msgr-push-leave-to {
+	opacity: 0;
+	transform: translateX(40%) scale(0.96);
+}
+
+.msgr-push-leave-active {
+	position: absolute;
+	right: 0;
+	left: 0;
+}
+
+.msgr-push-media-enter-active,
+.msgr-push-media-leave-active {
+	transition: opacity 0.18s ease;
+}
+
+.msgr-push-media-enter-from,
+.msgr-push-media-leave-to {
+	opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.msgr-toast-enter-active,
+	.msgr-toast-leave-active,
+	.msgr-push-enter-active,
+	.msgr-push-leave-active,
+	.msgr-push-move,
+	.msgr-push {
+		transition: none;
+	}
+}
+</style>

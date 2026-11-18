@@ -95,6 +95,7 @@ export type Msg = {
 	reactions: Reaction[]
 	pinned: boolean
 	kind: string
+	pending?: boolean
 }
 
 export const ONLINE_MS = 2 * 60 * 1000
@@ -345,17 +346,24 @@ export function mapMessage(
 
 export function previewOf(row: LooseRecord): string {
 	const body = String(row.body || '').trim()
+	if (/^\[\[(?:sticker:\d+|psticker)\]\]$/.test(body)) return '✦ Стикер'
 	if (body) return body
 	const name = String(row.attachment?.name || '')
 	return name ? `📎 ${name}` : ''
 }
 
+export function isInGame(peer: Pick<Peer, 'activity'> | undefined | null): boolean {
+	const activity = peer?.activity
+	return Boolean(activity && (activity.playing || activity.hosting || activity.worldShare))
+}
+
 export function isOnline(
-	peer: Pick<Peer, 'bot' | 'presenceStatus' | 'lastSeenAt'> | undefined | null,
+	peer: Pick<Peer, 'bot' | 'presenceStatus' | 'lastSeenAt' | 'activity'> | undefined | null,
 ): boolean {
 	if (!peer) return false
 	if (peer.bot) return true
 	if (String(peer.presenceStatus || '').toLowerCase() === 'offline') return false
+	if (isInGame(peer)) return true
 	const seen = Number(peer.lastSeenAt)
 	return Number.isFinite(seen) && seen > 0 && Date.now() - seen < ONLINE_MS
 }

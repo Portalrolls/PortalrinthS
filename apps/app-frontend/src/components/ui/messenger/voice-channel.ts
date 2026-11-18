@@ -3,6 +3,8 @@ import { reactive } from 'vue'
 import { getCallState, hangupCall } from '@/helpers/messenger-call'
 import { type LooseRecord, serviceRequest } from '@/helpers/uprojects-service'
 
+import { openMic, playSound, routeOutput } from './devices'
+
 type VoiceMember = { userId: string; muted: boolean; deafened: boolean }
 
 export const voice = reactive({
@@ -16,7 +18,12 @@ export const voice = reactive({
 	speaking: {} as Record<string, boolean>,
 })
 
-const FALLBACK_ICE: RTCConfiguration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+const FALLBACK_ICE: RTCConfiguration = {
+	iceServers: [
+		{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+		{ urls: 'stun:stun.cloudflare.com:3478' },
+	],
+}
 
 let ice: RTCConfiguration = FALLBACK_ICE
 let me = ''
@@ -39,7 +46,10 @@ function enc(value: string): string {
 async function loadIce(): Promise<void> {
 	const response = await serviceRequest('/rtc-config').catch(() => null)
 	const servers = response?.data?.iceServers || response?.data?.config?.iceServers
-	ice = Array.isArray(servers) && servers.length ? { iceServers: servers } : FALLBACK_ICE
+	ice =
+		Array.isArray(servers) && servers.length
+			? { iceServers: [...servers, ...(FALLBACK_ICE.iceServers ?? [])] }
+			: FALLBACK_ICE
 }
 
 function signal(to: string, type: string, extra: LooseRecord): void {
@@ -95,13 +105,15 @@ async function createPeer(uid: string, offerer: boolean): Promise<RTCPeerConnect
 		if (!el) {
 			el = document.createElement('audio')
 			el.autoplay = true
+			el.dataset.msgrOutput = ''
 			el.style.display = 'none'
 			document.body.appendChild(el)
 			audios.set(uid, el)
 		}
 		el.srcObject = event.streams[0] || new MediaStream([event.track])
 		el.muted = voice.deafened
-		void el.play().catch(() => undefined)
+		const target = el
+		void routeOutput(target).then(() => target.play().catch(() => undefined))
 	}
 	pc.onconnectionstatechange = () => {
 		if (pc.connectionState === 'failed') {
@@ -179,9 +191,7 @@ export async function joinVoice(convId: string, channelId: string): Promise<bool
 	try {
 		await loadIce()
 		try {
-			mic = await navigator.mediaDevices.getUserMedia({
-				audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-			})
+			mic = await openMic()
 		} catch {
 			onError('mic')
 			return false
@@ -202,6 +212,7 @@ export async function joinVoice(convId: string, channelId: string): Promise<bool
 		voice.convId = convId
 		voice.channelId = channelId
 		voice.joinedAt = Date.now()
+		playSound('connect')
 		applyTracks()
 		const members = parseMembers(response.data?.members)
 		if (members.length) setMembers(channelId, members)
@@ -225,6 +236,7 @@ export async function leaveVoice(): Promise<void> {
 	const { convId, channelId } = voice
 	if (!channelId) return
 	for (const uid of [...peers.keys()]) dropPeer(uid)
+	playSound('hangup')
 	stopVad()
 	mic?.getTracks().forEach((track) => track.stop())
 	mic = null

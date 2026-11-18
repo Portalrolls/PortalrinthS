@@ -257,109 +257,6 @@ export const AI_PROVIDERS: AiProvider[] = [
 	},
 ]
 
-/**
- * Режимы агента — как у UAgent (Pixi): Lite, Pro, Ultra и Flash. Все четыре
- * бесплатные: держатся на бесплатных провайдерах каталога, ключ не нужен.
- * Режим связывает свою версию мозга (провайдер, модель, размышления) со своей
- * версией инструментов: Flash и Lite отвечают без тяжёлых шагов, Pro и Ultra
- * включают полный набор суперинструментов и длинные сборки.
- */
-export type AgentModeId = 'flash' | 'lite' | 'pro' | 'ultra' | 'custom'
-
-export interface AgentMode {
-	id: Exclude<AgentModeId, 'custom'>
-	/** Значок, как у Pixi: Lite / Pro / Ultra / Flash. */
-	tier: string
-	label: string
-	description: string
-	/** Тон пилюли: свой цвет каждого режима. */
-	tone: 'lite' | 'pro' | 'ultra' | 'flash'
-	/** Куда встаёт мозг: бесплатный провайдер + модель. */
-	provider: string
-	model: string
-	deepThink: boolean
-	effort: 'low' | 'medium' | 'high'
-}
-
-export const AGENT_MODES: AgentMode[] = [
-	{
-		id: 'flash',
-		tier: 'Flash',
-		label: 'Флеш',
-		description: 'Самая быстрая: мгновенные ответы для коротких вопросов',
-		tone: 'flash',
-		provider: 'kilo',
-		model: 'nvidia/nemotron-3.5-lightning:free',
-		deepThink: false,
-		effort: 'low',
-	},
-	{
-		id: 'lite',
-		tier: 'Lite',
-		label: 'Лайт',
-		description: 'Лёгкий: быстрые ответы и базовые действия в лаунчере',
-		tone: 'lite',
-		provider: 'kilo',
-		model: 'kilo-auto/free',
-		deepThink: false,
-		effort: 'low',
-	},
-	{
-		id: 'pro',
-		tier: 'Pro',
-		label: 'Про',
-		description: 'Умный: размышления, сборки, поиск и правка файлов',
-		tone: 'pro',
-		provider: 'ovh',
-		model: 'Qwen3.5-397B-A17B',
-		deepThink: true,
-		effort: 'medium',
-	},
-	{
-		id: 'ultra',
-		tier: 'Ultra',
-		label: 'Ультра',
-		description: 'Максимальный: самая умная модель и все суперинструменты',
-		tone: 'ultra',
-		provider: 'kilo',
-		model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
-		deepThink: true,
-		effort: 'high',
-	},
-]
-
-export function agentModeById(id: string | undefined): AgentMode | undefined {
-	return AGENT_MODES.find((mode) => mode.id === id)
-}
-
-/** Включить режим: мозг и его настройки применяются сразу и сохраняются. */
-export function applyAgentMode(mode: AgentMode): void {
-	aiSettings.value = {
-		...aiSettings.value,
-		agentMode: mode.id,
-		provider: mode.provider,
-		models: { ...aiSettings.value.models, [mode.provider]: mode.model },
-		deepThink: mode.deepThink,
-		effort: mode.effort,
-	}
-	saveAiSettings()
-}
-
-/** Строка промпта про текущий режим: его версия инструментов. */
-function agentModeHint(settings: AiSettings): string {
-	const mode = agentModeById(settings.agentMode)
-	if (!mode) return ''
-	const depth =
-		mode.id === 'flash' || mode.id === 'lite'
-			? 'Ты сейчас в режиме ' +
-				mode.tier +
-				': отвечай БЫСТРО и коротко (1-3 предложения), действуй базовым набором инструментов (list_instances, instance_info, launcher_search_mods, launcher_install, launch_instance, find_mod_in_build, launcher_info, web_search) — тяжёлые многоходовые сборки в этом режиме не собирай, а предлагай включить режим Pro или Ultra (игрок переключает его в панели моделей).'
-			: 'Ты сейчас в режиме ' +
-				mode.tier +
-				': полный набор инструментов и суперинструментов доступен, многоходовые задачи (сборки, компиляция, правка файлов) выполняй целиком в этом ходе.'
-	return depth + (settings.deepThink ? ' Размышления включены.' : '')
-}
-
 /** Приглашение суперинструментов — вставляется в промпт рядом с AI_LAUNCHER_HINT. */
 export const AI_SUPER_HINT = [
 	'Суперинструменты (слияние 2 в 1 — знаешь путь, структуру папок и живое состояние):',
@@ -387,6 +284,21 @@ export interface AiSkill {
 	name: string
 	text: string
 	on: boolean
+}
+
+/** Настройка личности: пустое поле — поведение по умолчанию. */
+export interface AiPersona {
+	name: string
+	role: string
+	style: string
+	callMe: string
+}
+
+export const PERSONA_LIMITS = { name: 32, role: 600, style: 900, callMe: 40 } as const
+
+/** Имя, которым агент подписывается в чате и на которое отзывается. */
+export function agentDisplayName(settings: AiSettings = aiSettings.value): string {
+	return settings.persona?.name?.trim() || settings.mascotName || 'Portalus'
 }
 
 /** Everything that survives a restart lives here. */
@@ -424,8 +336,8 @@ export interface AiSettings {
 	disabledModels: Record<string, boolean>
 	/** Ask answers only and looks things up; Build also acts in the launcher. */
 	mode: AiMode
-	/** Активный режим агента: Lite/Pro/Ultra/Flash (бесплатные) или свой выбор. */
-	agentMode?: AgentModeId
+	/** Личность агента: имя, кто он, как работать и как звать игрока. */
+	persona: AiPersona
 	/** What the player works on right now: narrows hints and references. */
 	focus: AiFocus
 }
@@ -464,6 +376,7 @@ const DEFAULT_SETTINGS: AiSettings = {
 	disabledModels: {},
 	mode: 'build',
 	focus: 'any',
+	persona: { name: '', role: '', style: '', callMe: '' },
 }
 
 function readSettings(): AiSettings {
@@ -485,6 +398,14 @@ function readSettings(): AiSettings {
 		}
 		if (settings.mode !== 'ask') settings.mode = 'build'
 		if (!AI_FOCUSES.includes(settings.focus)) settings.focus = 'any'
+		const persona = (settings.persona ?? {}) as Partial<AiPersona>
+		settings.persona = {
+			name: String(persona.name ?? '').slice(0, PERSONA_LIMITS.name),
+			role: String(persona.role ?? '').slice(0, PERSONA_LIMITS.role),
+			style: String(persona.style ?? '').slice(0, PERSONA_LIMITS.style),
+			callMe: String(persona.callMe ?? '').slice(0, PERSONA_LIMITS.callMe),
+		}
+		delete (settings as { agentMode?: unknown }).agentMode
 		return settings
 	} catch {
 		return { ...DEFAULT_SETTINGS }
@@ -1684,9 +1605,29 @@ function replyLanguageRule(): string {
 	return `The launcher's interface language is ${name} (${locale}): ALWAYS reply in ${name}, even though these instructions are written in Russian, unless the player writes in another language.`
 }
 
+/** Начало промпта: кто агент, как его зовут и как он зовёт игрока. */
+function personaLines(settings: AiSettings, warmth: string): string[] {
+	const persona = settings.persona ?? DEFAULT_SETTINGS.persona
+	const fallback = settings.mascotName?.trim()
+	const customName = persona.name.trim() || (fallback && fallback !== 'Portalus' ? fallback : '')
+	const callMe = persona.callMe.trim()
+	const lines = [
+		customName
+			? `Ты — ${customName}, ИИ-агент лаунчера Portalrinth (форк Modrinth App) для Minecraft. Это имя дал тебе игрок: представляйся им и отзывайся на него.`
+			: 'Ты — Portalus, ИИ-агент лаунчера Portalrinth (форк Modrinth App) для Minecraft. Твоё имя — Portalus (по-русски Порталус): так и представляйся, когда здороваешься или тебя спрашивают «кто ты», и отзывайся на оба варианта.',
+		warmth,
+		callMe
+			? `Общайся как живой игровой приятель: обращайся к игроку «${callMe}» — так он попросил себя называть. Уместный игровой сленг разрешён, канцелярит — нет, грубость и мат — нет.`
+			: 'Общайся как живой игровой приятель: обращайся к игроку по имени его аккаунта, уместный игровой сленг разрешён, канцелярит — нет, грубость и мат — нет.',
+	]
+	if (persona.role.trim()) lines.push(`Кто ты — так тебя описал игрок: ${persona.role.trim()}`)
+	if (persona.style.trim())
+		lines.push(`Как работать — правила игрока, они важнее общих советов: ${persona.style.trim()}`)
+	return lines
+}
+
 export function buildSystemPrompt(kind: 'tab' | 'mascot', extra?: string): string {
 	const settings = aiSettings.value
-	const name = settings.mascotName || 'Portalus'
 	const affection = Math.max(0, Math.min(100, settings.affection))
 	const warmth =
 		affection > 70
@@ -1695,9 +1636,7 @@ export function buildSystemPrompt(kind: 'tab' | 'mascot', extra?: string): strin
 				? 'Ты дружелюбен к игроку.'
 				: 'Ты держишься сдержанно, но честно.'
 	const lines = [
-		`Ты — ${name}, ИИ-агент лаунчера Portalrinth (форк Modrinth App) для Minecraft. Твоё имя — Portalus (по-русски Порталус): так и представляйся, когда здороваешься или тебя спрашивают «кто ты», и отзывайся на оба варианта.`,
-		warmth,
-		'Общайся как живой игровой приятель: обращайся к игроку по имени его аккаунта, уместный игровой сленг разрешён, канцелярит — нет, грубость и мат — нет.',
+		...personaLines(settings, warmth),
 		'НИКОГДА не подставляй заглушки вроде {{account}} или [имя] — если имя игрока есть в контексте, пиши его, а если нет — просто обходись без имени.',
 		AI_CHARACTER_HINT,
 		replyLanguageRule() +
@@ -1713,7 +1652,6 @@ export function buildSystemPrompt(kind: 'tab' | 'mascot', extra?: string): strin
 		AI_LAUNCHER_HINT,
 		AI_SUPER_HINT,
 		AI_LAUNCHER_KNOWLEDGE,
-		agentModeHint(settings),
 		AI_SLANG_HINT,
 		AI_SKILLS_HINT,
 		AI_INTENT_HINT,
@@ -1840,7 +1778,6 @@ export function isSimpleChat(text: string): boolean {
  */
 export function buildSmallTalkPrompt(kind: 'tab' | 'mascot', identity?: PlayerIdentity): string {
 	const settings = aiSettings.value
-	const name = settings.mascotName || 'Portalus'
 	const affection = Math.max(0, Math.min(100, settings.affection))
 	const warmth =
 		affection > 70
@@ -1849,9 +1786,7 @@ export function buildSmallTalkPrompt(kind: 'tab' | 'mascot', identity?: PlayerId
 				? 'Ты дружелюбен к игроку.'
 				: 'Ты держишься сдержанно, но честно.'
 	const lines = [
-		`Ты — ${name}, ИИ-агент лаунчера Portalrinth (форк Modrinth App) для Minecraft. Твоё имя — Portalus (по-русски Порталус): так и представляйся, когда здороваешься или тебя спрашивают «кто ты», и отзывайся на оба варианта.`,
-		warmth,
-		'Общайся как живой игровой приятель: обращайся к игроку по имени его аккаунта, уместный игровой сленг разрешён, канцелярит — нет, грубость и мат — нет.',
+		...personaLines(settings, warmth),
 		'НИКОГДА не подставляй заглушки вроде {{account}} или [имя] — если имени нет, просто обходись без имени.',
 		replyLanguageRule() +
 			' БУДЬ КРАТОК: 1–3 предложения максимум. Никаких вступлений, никаких встречных вопросов без крайней необходимости.',
@@ -2651,8 +2586,13 @@ function isPermanentRefusal(error: unknown): boolean {
  * provider the player cannot use for free. */
 function fallbackChain(primary: string): string[] {
 	const chain = [primary]
-	if (primary === 'pixi') return chain
-	for (const candidate of ['zai', 'llm7', 'kilo', 'openrouter', 'nvidia', 'ovh', 'pollinations']) {
+	// Pixi без доступа к аккаунту не должен оставлять игрока без ответа:
+	// за ним идут те же бесплатные провайдеры, что и за остальными.
+	const order =
+		primary === 'pixi'
+			? ['kilo', 'llm7', 'ovh', 'zai', 'openrouter', 'nvidia', 'pollinations']
+			: ['zai', 'llm7', 'kilo', 'openrouter', 'nvidia', 'ovh', 'pollinations']
+	for (const candidate of order) {
 		if (candidate === primary) continue
 		const provider = providerById(candidate)
 		if (!provider) continue

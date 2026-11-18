@@ -3535,12 +3535,6 @@
 	"app.messenger.pickChat": {
 		"message": "Pick a chat on the left"
 	},
-	"app.ai.picker.modes": {
-		"message": "Agent modes — all free"
-	},
-	"app.ai.picker.custom-mode": {
-		"message": "Custom pick"
-	},
 	"app.messenger.profile.open": {
 		"message": "Open profile"
 	},
@@ -5029,7 +5023,7 @@
 		"message": "Checking Pixi access…"
 	},
 	"app.ai.picker.pixi.open": {
-		"message": "Access granted — all Pixi models work"
+		"message": "Pixi works for free through your Undefined account"
 	},
 	"app.ai.picker.pixi.no-account": {
 		"message": "Sign in to an Undefined account (Microsoft or Ely.by) — pick it in the accounts card"
@@ -5038,7 +5032,7 @@
 		"message": "Offline accounts can't sign in to Undefined — pick a Microsoft or Ely.by account in the accounts card"
 	},
 	"app.ai.picker.pixi.denied": {
-		"message": "The Undefined server hasn't granted this account access to Pixi yet"
+		"message": "Undefined has not opened Pixi for this account yet — free catalogue models answer instead"
 	},
 	"app.ai.picker.pixi.pending": {
 		"message": "Application sent — waiting for Undefined's decision"
@@ -5057,5 +5051,14 @@
 	},
 	"app.ai.picker.pixi.retry": {
 		"message": "Check again"
+	},
+	"app.appearance-settings.loop-animation.title": {
+		"message": "Loop Animation"
+	},
+	"app.appearance-settings.loop-animation.description": {
+		"message": "The button or link under the cursor grows a little while its neighbours on the same bar or panel step back."
+	},
+	"app.ai.picker.pixi.locked": {
+		"message": "Locked — an open one answers"
 	}
 }

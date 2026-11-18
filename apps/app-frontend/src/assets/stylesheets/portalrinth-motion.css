@@ -225,3 +225,52 @@
 		display: none;
 	}
 }
+
+/*
+ * Loop Animation (Настройки → Внешний вид). Под курсором элемент подрастает,
+ * соседи по его ряду — та же панель, бар или список — чуть сжимаются и
+ * гаснут. Работает через свойство scale, а не transform, поэтому не ломает
+ * собственные сдвиги и повороты кнопок.
+ */
+html.pr-loop-anim :is(a[href], button, [role='tab'], [role='menuitem'], [role='option']) {
+	transition:
+		scale 0.26s var(--nm-ease-out),
+		opacity 0.26s ease,
+		filter 0.26s ease;
+}
+
+html.pr-loop-anim
+	:is(
+		nav,
+		header,
+		aside,
+		footer,
+		menu,
+		ul,
+		ol,
+		section,
+		div,
+		[role='tablist'],
+		[role='toolbar']
+	):has(
+		> :is(a[href], button, [role='tab'], [role='menuitem'], [role='option']):not(:disabled):hover
+	)
+	> :is(a[href], button, [role='tab'], [role='menuitem'], [role='option']):not(:hover) {
+	scale: 0.95;
+	opacity: 0.72;
+}
+
+html.pr-loop-anim
+	:is(a[href], button, [role='tab'], [role='menuitem'], [role='option']):not(:disabled):hover {
+	scale: 1.06;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html.pr-loop-anim :is(a[href], button, [role='tab'], [role='menuitem'], [role='option']) {
+		transition: opacity 0.2s ease;
+	}
+
+	html.pr-loop-anim :is(a[href], button, [role='tab'], [role='menuitem'], [role='option']) {
+		scale: none !important;
+	}
+}

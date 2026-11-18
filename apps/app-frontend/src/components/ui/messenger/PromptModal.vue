@@ -36,6 +36,11 @@ function submit(): void {
 	modal.value?.hide()
 }
 
+function pick(id: string): void {
+	finish(id)
+	modal.value?.hide()
+}
+
 function cancel(): void {
 	finish(null)
 	modal.value?.hide()
@@ -84,7 +89,20 @@ defineExpose({ ask })
 				<button type="button" class="msgr-btn is-ghost" @click="cancel">
 					{{ t('app.messenger.cancel', 'Отмена') }}
 				</button>
+				<template v-if="opts.choices?.length">
+					<button
+						v-for="choice in opts.choices"
+						:key="choice.id"
+						type="button"
+						class="msgr-btn"
+						:class="{ 'is-danger': choice.danger }"
+						@click="pick(choice.id)"
+					>
+						{{ choice.label }}
+					</button>
+				</template>
 				<button
+					v-else
 					type="button"
 					class="msgr-btn"
 					:class="{ 'is-danger': opts.danger }"

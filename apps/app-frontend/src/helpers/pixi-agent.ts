@@ -2,8 +2,9 @@
  * Pixi Agent — модели Undefined Client (uprojects.site), отдельный провайдер
  * ассистента. Сервер тот же, что у их лаунчера: вход по сессии сервиса
  * (аккаунт Microsoft или Ely.by), ответ приходит потоком SSE с событиями
- * delta / done / error. Все четыре модели доступны в выборе без ограничений;
- * если сервер Undefined сам не выдал доступ, игрок видит причину словами.
+ * delta / done / error. Pixi бесплатен: если сервер не пускает аккаунт к
+ * выбранной модели, запрос сам уходит на ту, что открыта (обычно Lite), а без
+ * доступа совсем ассистент отвечает бесплатными провайдерами каталога.
  */
 import { ref } from 'vue'
 
@@ -87,6 +88,26 @@ export type PixiAccess =
 /** Последний известный доступ к Pixi: панель моделей показывает его словами. */
 export const pixiAccess = ref<PixiAccess>({ state: 'checking' })
 
+/** Модели, которые сервер отдал этому аккаунту; null — ещё не спрашивали. */
+export const pixiOpenModels = ref<string[] | null>(null)
+
+/** Модели, на которых сервер уже ответил отказом в этой сессии лаунчера. */
+const lockedModels = new Set<string>()
+
+export function isPixiModelOpen(id: string): boolean {
+	if (lockedModels.has(id)) return false
+	return !pixiOpenModels.value || pixiOpenModels.value.includes(id)
+}
+
+/** Порядок попыток: выбранная модель, затем открытые, Lite — первой из запасных. */
+function pixiCandidates(model: PixiModel): PixiModel[] {
+	const rest = PIXI_MODELS.filter((entry) => entry.id !== model.id).sort(
+		(a, b) => Number(b.tone === 'lite') - Number(a.tone === 'lite'),
+	)
+	const open = [model, ...rest].filter((entry) => isPixiModelOpen(entry.id))
+	return open.length ? open : [model]
+}
+
 interface PixiStatusResponse {
 	configured?: boolean
 	access?: boolean
@@ -139,6 +160,9 @@ export async function refreshPixiAccess(): Promise<PixiAccess> {
 			pixiAccess.value = { state: 'error', message: data.error || `HTTP ${response.status}` }
 		} else if (data.access) {
 			pixiAccess.value = { state: 'open' }
+			if (Array.isArray(data.models) && data.models.length) {
+				pixiOpenModels.value = data.models.map(String)
+			}
 		} else if (data.reason === 'missing_auth' || data.reason === 'auth_unavailable') {
 			forgetServiceSession()
 			pixiAccess.value = await noAccountAccess()
@@ -180,6 +204,8 @@ export async function applyForPixi(reason: string): Promise<{ ok: boolean; messa
 
 onServiceAccountChange(() => {
 	pixiAccess.value = { state: 'checking' }
+	pixiOpenModels.value = null
+	lockedModels.clear()
 })
 
 export interface PixiPayloadMessage {
@@ -283,9 +309,9 @@ function deniedMessage(model: PixiModel | undefined, reason: string | undefined)
 		return 'Pixi: нужен вход в аккаунт Undefined — выберите аккаунт Microsoft или Ely.by в карточке аккаунтов'
 	}
 	if (reason === 'model_locked' || reason === 'model_unavailable') {
-		return `Pixi: сервер Undefined сейчас не отдаёт модель ${name} — выберите другую модель Pixi`
+		return `Pixi: сервер Undefined сейчас не отдаёт модель ${name}`
 	}
-	return `Pixi: сервер Undefined не выдал доступ к ${name} для этого аккаунта — подайте заявку в панели моделей`
+	return `Pixi: модель ${name} закрыта для этого аккаунта — отвечу бесплатной моделью`
 }
 
 async function readPixiStream(
@@ -350,8 +376,9 @@ async function readPixiStream(
 
 /**
  * Один запрос к Pixi. Возвращает текст ответа; дельты рисуются по мере
- * прихода. 401 один раз пересоздаёт сессию, остальные отказы сервера
- * превращаются в понятную фразу для чата.
+ * прихода. 401 один раз пересоздаёт сессию; отказ по модели переводит запрос
+ * на следующую открытую модель Pixi, и только если закрыты все — ошибка
+ * уходит наверх, где цепочка бесплатных провайдеров отвечает вместо Pixi.
  */
 export async function callPixi(
 	modelId: string,
@@ -360,62 +387,72 @@ export async function callPixi(
 		signal?: AbortSignal
 		onDelta?: (chunk: string, full: string) => void
 		onActivity?: () => void
+		onSwitch?: (model: PixiModel) => void
 	} = {},
 ): Promise<string> {
-	const model = pixiModelById(modelId) ?? PIXI_MODELS[0]
+	const wanted = pixiModelById(modelId) ?? PIXI_MODELS[0]
 	let session = await ensureServiceSession()
 	if (!session) {
 		pixiAccess.value = await noAccountAccess()
-		throw new PixiError(deniedMessage(model, 'missing_auth'), 403, 'no_account')
+		throw new PixiError(deniedMessage(wanted, 'missing_auth'), 403, 'no_account')
 	}
-	const body = JSON.stringify({
-		messages: toPixiMessages(payload, model.vision),
-		model: model.id,
-		clientVersion: PIXI_CLIENT_VERSION,
-	})
-	let response: Response | null = null
-	for (let attempt = 0; attempt < 2; attempt++) {
-		response = await proxiedFetch(`${baseFor(model)}/api/ai/chat/stream`, {
-			method: 'POST',
-			headers: pixiHeaders(session.token, 'text/event-stream'),
-			body,
-			signal: options.signal,
+	let refusal: PixiError | null = null
+	for (const model of pixiCandidates(wanted)) {
+		if (model !== wanted) options.onSwitch?.(model)
+		const body = JSON.stringify({
+			messages: toPixiMessages(payload, model.vision),
+			model: model.id,
+			clientVersion: PIXI_CLIENT_VERSION,
 		})
-		if (response.status !== 401 || attempt > 0) break
-		forgetServiceSession()
-		session = await ensureServiceSession(true)
-		if (!session) {
-			pixiAccess.value = await noAccountAccess()
-			throw new PixiError(deniedMessage(model, 'missing_auth'), 401, 'no_account')
+		let response: Response | null = null
+		for (let attempt = 0; attempt < 2; attempt++) {
+			response = await proxiedFetch(`${baseFor(model)}/api/ai/chat/stream`, {
+				method: 'POST',
+				headers: pixiHeaders(session.token, 'text/event-stream'),
+				body,
+				signal: options.signal,
+			})
+			if (response.status !== 401 || attempt > 0) break
+			forgetServiceSession()
+			session = await ensureServiceSession(true)
+			if (!session) {
+				pixiAccess.value = await noAccountAccess()
+				throw new PixiError(deniedMessage(model, 'missing_auth'), 401, 'no_account')
+			}
 		}
-	}
-	if (!response) throw new PixiError('Pixi: сервер не ответил')
-	const type = response.headers.get('content-type') || ''
-	if (response.ok && type.includes('text/event-stream') && response.body) {
-		const streamed = await readPixiStream(
-			response,
-			options.onDelta ?? (() => {}),
-			options.onActivity ?? (() => {}),
-		)
-		pixiAccess.value = { state: 'open' }
-		if (!streamed.reply.trim()) throw new PixiError('Pixi: пустой ответ')
-		return streamed.reply
-	}
-	const data = (await response.json().catch(() => ({}))) as {
-		reply?: string
-		error?: string
-		code?: string
-		reason?: string
-	}
-	if (!response.ok) {
+		if (!response) throw new PixiError('Pixi: сервер не ответил')
+		const type = response.headers.get('content-type') || ''
+		if (response.ok && type.includes('text/event-stream') && response.body) {
+			const streamed = await readPixiStream(
+				response,
+				options.onDelta ?? (() => {}),
+				options.onActivity ?? (() => {}),
+			)
+			pixiAccess.value = { state: 'open' }
+			if (!streamed.reply.trim()) throw new PixiError('Pixi: пустой ответ')
+			return streamed.reply
+		}
+		const data = (await response.json().catch(() => ({}))) as {
+			reply?: string
+			error?: string
+			code?: string
+			reason?: string
+		}
+		if (response.ok) {
+			const reply = String(data.reply || '')
+			if (!reply.trim()) throw new PixiError('Pixi: пустой ответ')
+			options.onDelta?.(reply, reply)
+			return reply
+		}
 		if (response.status === 403 || data.code === 'access_denied') {
 			if (data.reason === 'missing_auth' || data.reason === 'auth_unavailable') {
 				forgetServiceSession()
 				pixiAccess.value = await noAccountAccess()
-			} else {
-				void refreshPixiAccess()
+				throw new PixiError(deniedMessage(model, data.reason), 403, 'no_account')
 			}
-			throw new PixiError(deniedMessage(model, data.reason), 403, data.code || 'access_denied')
+			lockedModels.add(model.id)
+			refusal = new PixiError(deniedMessage(model, data.reason), 403, data.code || 'access_denied')
+			continue
 		}
 		throw new PixiError(
 			`Pixi: HTTP ${response.status}${data.error ? ` — ${String(data.error).slice(0, 200)}` : ''}`,
@@ -423,8 +460,6 @@ export async function callPixi(
 			data.code,
 		)
 	}
-	const reply = String(data.reply || '')
-	if (!reply.trim()) throw new PixiError('Pixi: пустой ответ')
-	options.onDelta?.(reply, reply)
-	return reply
+	void refreshPixiAccess()
+	throw refusal ?? new PixiError(deniedMessage(wanted, undefined), 403, 'access_denied')
 }

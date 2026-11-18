@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { CrownIcon, ShieldIcon } from '@modrinth/assets'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 
 import { useMessengerT } from './i18n'
-import type { Member } from './model'
+import { isInGame, type Member } from './model'
+import { cardOf, requestCard } from './profile-card'
 import {
 	activeConversation,
 	activeServer,
@@ -23,6 +24,24 @@ const conv = computed(() => activeConversation.value)
 const peer = computed(() =>
 	conv.value?.peer ? (userOf(conv.value.peer.id) ?? conv.value.peer) : null,
 )
+const peerCard = computed(() => (peer.value ? cardOf(peer.value.id) : null))
+
+const peerBanner = computed(() => {
+	const card = peerCard.value
+	if (!card) return undefined
+	if (card.bannerImage) return { backgroundImage: `url("${card.bannerImage}")` }
+	const color = card.bannerColor || card.accent
+	return color ? { background: `linear-gradient(135deg, ${color}, ${color}99)` } : undefined
+})
+
+watch(
+	() => peer.value?.id,
+	(id) => {
+		if (id) requestCard(id)
+	},
+	{ immediate: true },
+)
+
 const peerServers = computed(() => (peer.value ? sharedServers(peer.value.id) : []))
 const peerFriends = computed(() =>
 	peer.value ? state.friends.some((friend) => friend.id === peer.value!.id) : false,
@@ -99,8 +118,10 @@ function activityText(id: string): string {
 	if (activity.hosting || activity.worldShare)
 		return t('app.messenger.activity.hosting', 'Открыл мир по сети')
 	if (activity.playing) {
-		return activity.serverName
-			? t('app.messenger.activity.server', 'Играет на {name}', { name: activity.serverName })
+		if (activity.serverName)
+			return t('app.messenger.activity.server', 'Играет на {name}', { name: activity.serverName })
+		return activity.buildName
+			? t('app.messenger.activity.playingBuild', 'Играет в {name}', { name: activity.buildName })
 			: t('app.messenger.activity.playing', 'Играет в Minecraft')
 	}
 	return ''
@@ -124,7 +145,7 @@ function statusText(id: string): string {
 	<aside class="msgr-members">
 		<template v-if="conv?.dm && peer">
 			<div class="msgr-members__peer">
-				<div class="msgr-members__banner" />
+				<div class="msgr-members__banner" :style="peerBanner" />
 				<button
 					type="button"
 					class="msgr-members__peer-avatar"
@@ -135,9 +156,20 @@ function statusText(id: string): string {
 				<div class="msgr-members__peer-body">
 					<h3>{{ displayName(peer.id, peer.username) }}</h3>
 					<span class="msgr-members__peer-handle">{{ peer.username }}</span>
-					<span class="msgr-members__peer-status" :class="`is-${presenceFor(peer.id)}`">{{
-						activityText(peer.id) || statusText(peer.id)
+					<span
+						class="msgr-members__peer-status"
+						:class="isInGame(peer) ? 'is-game' : `is-${presenceFor(peer.id)}`"
+						>{{ activityText(peer.id) || statusText(peer.id) }}</span
+					>
+					<span v-if="peerCard?.pronouns" class="msgr-members__peer-handle">{{
+						peerCard.pronouns
 					}}</span>
+					<div v-if="peerCard?.bio" class="msgr-members__peer-card">
+						<div class="msgr-members__peer-label">
+							{{ t('app.messenger.profile.about', 'Обо мне') }}
+						</div>
+						<p class="msgr-members__peer-bio">{{ peerCard.bio }}</p>
+					</div>
 					<div class="msgr-members__peer-card">
 						<div class="msgr-members__peer-row">
 							<span>{{ t('app.messenger.peer.account', 'Аккаунт') }}</span>
@@ -338,6 +370,8 @@ function statusText(id: string): string {
 	background:
 		radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.2), transparent 60%),
 		linear-gradient(135deg, var(--color-brand), #5b1a8a);
+	background-position: center;
+	background-size: cover;
 }
 
 .msgr-members__peer-avatar {
@@ -380,8 +414,22 @@ function statusText(id: string): string {
 	font-size: 0.8rem;
 }
 
-.msgr-members__peer-status.is-online {
+.msgr-members__peer-status.is-online,
+.msgr-members__peer-status.is-game {
 	color: #23a55a;
+}
+
+.msgr-members__peer-status.is-game {
+	font-weight: 600;
+}
+
+.msgr-members__peer-bio {
+	margin: 0.35rem 0 0;
+	color: var(--color-text);
+	font-size: 0.82rem;
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+	white-space: pre-wrap;
 }
 
 .msgr-members__peer-card {

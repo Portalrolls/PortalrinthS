@@ -1,23 +1,31 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { SearchIcon, UserPlusIcon } from '@modrinth/assets'
+import { computed, ref } from 'vue'
 
 import {
 	acceptIncoming,
+	type CallParticipant,
 	declineIncoming,
+	dropFromCall,
 	getCallState,
 	hangupCall,
+	inviteToCall,
+	setPeerVolume,
+	toggleCallDeafen,
 	toggleCallMute,
 } from '@/helpers/messenger-call'
 
+import FloatingMenu from './FloatingMenu.vue'
 import HeadphonesIcon from './HeadphonesIcon.vue'
 import { useMessengerT } from './i18n'
 import MicIcon from './MicIcon.vue'
 import MicOffIcon from './MicOffIcon.vue'
-import { formatDuration } from './model'
+import { formatDuration, isOnline } from './model'
 import PhoneIcon from './PhoneIcon.vue'
 import PhoneOffIcon from './PhoneOffIcon.vue'
-import { dmWith, openDm, openServer, state } from './store'
+import { displayName, me, openDm, openServer, startDm, state } from './store'
 import { vTip } from './tooltip'
+import type { Anchor } from './ui-bus'
 import UserAvatar from './UserAvatar.vue'
 import { leaveVoice, toggleVoiceDeafen, toggleVoiceMute, voice } from './voice-channel'
 
@@ -58,6 +66,14 @@ const phaseLabel = computed(() => {
 	}
 })
 
+const callTitle = computed(() => {
+	const people = call.value.participants
+	if (people.length > 1) {
+		return t('app.messenger.call.group', 'Групповой звонок · {count}', { count: people.length + 1 })
+	}
+	return call.value.peerName
+})
+
 const timer = computed(() => {
 	void state.clock
 	const started = dmActive.value ? call.value.startedAt : voice.joinedAt
@@ -69,13 +85,80 @@ function openCallChat(): void {
 	else if (voice.convId) void openServer(voice.convId)
 }
 
-async function bump(fn: () => Promise<void> | void): Promise<void> {
+async function bump(fn: () => Promise<unknown> | unknown): Promise<void> {
 	await fn()
 	state.callTick += 1
 }
 
-const incomingAvatar = computed(() => call.value.peerId || '')
-const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerId) : null))
+const incoming = computed(() => call.value.incoming)
+
+async function accept(): Promise<void> {
+	const convId = incoming.value?.convId || ''
+	await bump(acceptIncoming)
+	if (convId) await openDm(convId)
+}
+
+const peerAnchor = ref<Anchor | null>(null)
+const peerMenu = ref<CallParticipant | null>(null)
+const inviteAnchor = ref<Anchor | null>(null)
+const inviteQuery = ref('')
+const inviting = ref('')
+
+function anchorOf(event: Event): Anchor {
+	const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+	return { x: rect.left, y: rect.top, w: rect.width, h: rect.height }
+}
+
+function openPeer(event: MouseEvent, peer: CallParticipant): void {
+	inviteAnchor.value = null
+	peerMenu.value = peer
+	peerAnchor.value = anchorOf(event)
+}
+
+const peerVolume = computed(() => {
+	const id = peerMenu.value?.id
+	return call.value.participants.find((entry) => entry.id === id)?.volume ?? 100
+})
+
+function onVolume(event: Event): void {
+	const id = peerMenu.value?.id
+	if (!id) return
+	setPeerVolume(id, Number((event.target as HTMLInputElement).value))
+}
+
+async function kick(): Promise<void> {
+	const id = peerMenu.value?.id
+	peerAnchor.value = null
+	if (id) await bump(() => dropFromCall(id))
+}
+
+function openInvite(event: MouseEvent): void {
+	peerAnchor.value = null
+	inviteQuery.value = ''
+	inviteAnchor.value = inviteAnchor.value ? null : anchorOf(event)
+}
+
+const inviteList = computed(() => {
+	const inCall = new Set(call.value.participants.map((entry) => entry.id))
+	const q = inviteQuery.value.trim().toLowerCase()
+	return state.friends
+		.filter((friend) => !inCall.has(friend.id) && friend.id !== me.value?.id)
+		.filter((friend) => !q || friend.username.toLowerCase().includes(q))
+		.sort((a, b) => Number(isOnline(b)) - Number(isOnline(a)))
+		.slice(0, 30)
+})
+
+async function invite(id: string, username: string): Promise<void> {
+	if (inviting.value) return
+	inviting.value = id
+	try {
+		const conv = await startDm({ id, username })
+		if (conv) await bump(() => inviteToCall(conv.id, id, displayName(id, username)))
+	} finally {
+		inviting.value = ''
+		inviteAnchor.value = null
+	}
+}
 </script>
 
 <template>
@@ -100,7 +183,7 @@ const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerI
 								: t('app.messenger.voice.connected', 'Голос подключён')
 					}}</b>
 					<button type="button" @click="openCallChat">
-						<template v-if="dmActive">{{ call.peerName }}</template>
+						<template v-if="dmActive">{{ callTitle }}</template>
 						<template v-else-if="voiceChannel"
 							>{{ voiceChannel.name }} / {{ voiceServer?.title }}</template
 						>
@@ -108,21 +191,70 @@ const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerI
 					</button>
 				</div>
 			</div>
-			<div class="msgr-callbar__actions">
-				<button
-					v-if="dmActive"
-					v-tip="
-						call.muted
-							? t('app.messenger.call.unmute', 'Включить микрофон')
-							: t('app.messenger.call.mute', 'Выключить микрофон')
-					"
-					type="button"
-					:class="{ 'is-off': call.muted }"
-					@click="bump(toggleCallMute)"
+
+			<div v-if="dmActive" class="msgr-callbar__people">
+				<span
+					v-if="me"
+					v-tip="t('app.messenger.call.you', 'Вы')"
+					class="msgr-callbar__person"
+					:class="{ 'is-speaking': call.selfSpeaking && !call.muted, 'is-muted': call.muted }"
 				>
-					<MicOffIcon v-if="call.muted" />
-					<MicIcon v-else />
+					<UserAvatar :user-id="me.id" :name="me.username" :size="26" />
+					<MicOffIcon v-if="call.muted" class="msgr-callbar__badge" />
+				</span>
+				<button
+					v-for="peer in call.participants"
+					:key="peer.id"
+					v-tip="displayName(peer.id, peer.name)"
+					type="button"
+					class="msgr-callbar__person"
+					:class="{
+						'is-speaking': peer.speaking,
+						'is-waiting': peer.state === 'ringing' || peer.state === 'connecting',
+					}"
+					@click="openPeer($event, peer)"
+				>
+					<UserAvatar :user-id="peer.id" :name="peer.name" :size="26" />
 				</button>
+				<button
+					v-tip="t('app.messenger.call.invite', 'Добавить друга в звонок')"
+					type="button"
+					class="msgr-callbar__add"
+					:class="{ 'is-on': inviteAnchor }"
+					@click.stop="openInvite"
+				>
+					<UserPlusIcon />
+				</button>
+			</div>
+
+			<div class="msgr-callbar__actions">
+				<template v-if="dmActive">
+					<button
+						v-tip="
+							call.muted
+								? t('app.messenger.call.unmute', 'Включить микрофон')
+								: t('app.messenger.call.mute', 'Выключить микрофон')
+						"
+						type="button"
+						:class="{ 'is-off': call.muted }"
+						@click="bump(toggleCallMute)"
+					>
+						<MicOffIcon v-if="call.muted" />
+						<MicIcon v-else />
+					</button>
+					<button
+						v-tip="
+							call.deafened
+								? t('app.messenger.voice.undeafen', 'Включить звук')
+								: t('app.messenger.voice.deafen', 'Выключить звук')
+						"
+						type="button"
+						:class="{ 'is-off': call.deafened }"
+						@click="bump(toggleCallDeafen)"
+					>
+						<HeadphonesIcon :off="call.deafened" />
+					</button>
+				</template>
 				<template v-else-if="voice.channelId">
 					<button
 						v-tip="
@@ -159,19 +291,104 @@ const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerI
 					<PhoneOffIcon />
 				</button>
 			</div>
+
+			<FloatingMenu
+				:anchor="peerAnchor"
+				placement="top-start"
+				:width="230"
+				@close="peerAnchor = null"
+			>
+				<div v-if="peerMenu" class="msgr-callpeer">
+					<div class="msgr-callpeer__head">
+						<UserAvatar :user-id="peerMenu.id" :name="peerMenu.name" :size="32" />
+						<b>{{ displayName(peerMenu.id, peerMenu.name) }}</b>
+					</div>
+					<label class="msgr-callpeer__volume">
+						<span>
+							{{ t('app.messenger.call.volume', 'Громкость') }}
+							<b>{{ peerVolume }}%</b>
+						</span>
+						<input
+							type="range"
+							min="0"
+							max="200"
+							step="5"
+							:value="peerVolume"
+							:disabled="peerMenu.relayed"
+							@input="onVolume"
+						/>
+					</label>
+					<p v-if="peerMenu.relayed" class="msgr-callpeer__hint">
+						{{ t('app.messenger.call.relayed', 'Голос идёт через другого участника звонка') }}
+					</p>
+					<button v-else type="button" class="msgr-menu-item is-danger" @click="kick">
+						<PhoneOffIcon /> {{ t('app.messenger.call.drop', 'Отключить от звонка') }}
+					</button>
+				</div>
+			</FloatingMenu>
+
+			<FloatingMenu
+				:anchor="inviteAnchor"
+				placement="top-start"
+				:width="260"
+				@close="inviteAnchor = null"
+			>
+				<div class="msgr-invite">
+					<label class="msgr-invite__search">
+						<SearchIcon />
+						<input
+							v-model="inviteQuery"
+							type="search"
+							:placeholder="t('app.messenger.call.inviteSearch', 'Найти друга')"
+							autocomplete="off"
+						/>
+					</label>
+					<div class="msgr-invite__list">
+						<button
+							v-for="friend in inviteList"
+							:key="friend.id"
+							type="button"
+							class="msgr-invite__item"
+							:disabled="Boolean(inviting)"
+							@click="invite(friend.id, friend.username)"
+						>
+							<UserAvatar
+								:user-id="friend.id"
+								:name="friend.username"
+								:size="28"
+								status
+								ring="#1c1d22"
+							/>
+							<span>{{ displayName(friend.id, friend.username) }}</span>
+							<span v-if="inviting === friend.id" class="msgr-spinner msgr-invite__spin" />
+							<PhoneIcon v-else class="msgr-invite__call" />
+						</button>
+						<p v-if="!inviteList.length" class="msgr-invite__empty">
+							{{ t('app.messenger.call.inviteEmpty', 'Некого добавить') }}
+						</p>
+					</div>
+				</div>
+			</FloatingMenu>
 		</div>
 	</Transition>
 	<Teleport to="body">
 		<Transition name="msgr-incoming">
-			<div v-if="props.mode === 'incoming' && call.phase === 'incoming'" class="msgr-incoming">
+			<div v-if="props.mode === 'incoming' && incoming" class="msgr-incoming msgr-root">
 				<div class="msgr-incoming__card">
 					<div class="msgr-incoming__avatar">
 						<span class="msgr-incoming__ring" />
 						<span class="msgr-incoming__ring is-late" />
-						<UserAvatar :user-id="incomingAvatar" :name="call.peerName" :size="84" />
+						<UserAvatar :user-id="incoming.peerId" :name="incoming.peerName" :size="84" />
 					</div>
-					<b>{{ call.peerName || t('app.messenger.call.someone', 'Кто-то') }}</b>
-					<span>{{ t('app.messenger.call.incoming', 'Входящий голосовой звонок…') }}</span>
+					<b>{{
+						displayName(incoming.peerId, incoming.peerName) ||
+						t('app.messenger.call.someone', 'Кто-то')
+					}}</b>
+					<span>{{
+						dmActive
+							? t('app.messenger.call.incomingJoin', 'Зовёт вас в свой звонок…')
+							: t('app.messenger.call.incoming', 'Входящий голосовой звонок…')
+					}}</span>
 					<div class="msgr-incoming__actions">
 						<button
 							v-tip="t('app.messenger.call.decline', 'Отклонить')"
@@ -185,12 +402,7 @@ const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerI
 							v-tip="t('app.messenger.call.accept', 'Принять')"
 							type="button"
 							class="is-accept"
-							@click="
-								bump(async () => {
-									await acceptIncoming()
-									if (incomingConv) await openDm(incomingConv.id)
-								})
-							"
+							@click="accept"
 						>
 							<PhoneIcon />
 						</button>
@@ -204,6 +416,7 @@ const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerI
 <style scoped>
 .msgr-callbar {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.5rem;
 	padding: 0.55rem 0.6rem;
@@ -295,6 +508,225 @@ const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerI
 .msgr-callbar__actions {
 	display: flex;
 	gap: 0.2rem;
+	margin-left: auto;
+}
+
+.msgr-callbar__people {
+	display: flex;
+	width: 100%;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.3rem;
+	order: 3;
+	padding-top: 0.15rem;
+}
+
+.msgr-callbar__person {
+	position: relative;
+	display: grid;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	box-shadow: 0 0 0 2px transparent;
+	cursor: pointer;
+	transition:
+		box-shadow 0.14s ease,
+		opacity 0.2s ease;
+}
+
+.msgr-callbar__person.is-speaking {
+	box-shadow:
+		0 0 0 2px #111214,
+		0 0 0 4px #23a55a;
+}
+
+.msgr-callbar__person.is-waiting {
+	opacity: 0.45;
+	animation: msgr-signal 1.2s ease-in-out infinite;
+}
+
+.msgr-callbar__badge {
+	position: absolute;
+	right: -3px;
+	bottom: -3px;
+	width: 0.85rem;
+	height: 0.85rem;
+	padding: 1px;
+	border-radius: 50%;
+	background: #111214;
+	color: #f23f43;
+}
+
+.msgr-callbar__add {
+	display: grid;
+	width: 26px;
+	height: 26px;
+	place-items: center;
+	padding: 0;
+	border: 1px dashed rgba(255, 255, 255, 0.2);
+	border-radius: 50%;
+	background: none;
+	color: var(--color-secondary);
+	cursor: pointer;
+	transition:
+		border-color 0.14s ease,
+		color 0.14s ease;
+}
+
+.msgr-callbar__add:hover,
+.msgr-callbar__add.is-on {
+	border-color: #23a55a;
+	color: #23a55a;
+}
+
+.msgr-callbar__add svg {
+	width: 0.85rem;
+	height: 0.85rem;
+}
+
+.msgr-callpeer {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+}
+
+.msgr-callpeer__head {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+}
+
+.msgr-callpeer__head b {
+	overflow: hidden;
+	color: var(--color-contrast);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-callpeer__volume {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	color: var(--color-secondary);
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.msgr-callpeer__volume span {
+	display: flex;
+	justify-content: space-between;
+}
+
+.msgr-callpeer__volume b {
+	color: var(--color-contrast);
+}
+
+.msgr-callpeer__volume input {
+	width: 100%;
+	accent-color: #23a55a;
+}
+
+.msgr-callpeer__hint {
+	margin: 0;
+	color: var(--color-secondary);
+	font-size: 0.75rem;
+}
+
+.msgr-invite {
+	display: flex;
+	max-height: 20rem;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.msgr-invite__search {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0 0.6rem;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.28);
+	color: var(--color-secondary);
+}
+
+.msgr-invite__search svg {
+	width: 0.95rem;
+	height: 0.95rem;
+}
+
+.msgr-invite__search input {
+	min-width: 0;
+	flex: 1;
+	height: 2rem;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--color-contrast);
+	font: inherit;
+	font-size: 0.85rem;
+	outline: none;
+}
+
+.msgr-invite__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	overflow-y: auto;
+	scrollbar-width: thin;
+}
+
+.msgr-invite__item {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	padding: 0.35rem 0.45rem;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--color-contrast);
+	font: inherit;
+	font-size: 0.86rem;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.14s ease;
+}
+
+.msgr-invite__item:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.07);
+}
+
+.msgr-invite__item > span:nth-child(2) {
+	overflow: hidden;
+	flex: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-invite__call {
+	width: 0.95rem;
+	height: 0.95rem;
+	color: #23a55a;
+	opacity: 0;
+	transition: opacity 0.14s ease;
+}
+
+.msgr-invite__item:hover .msgr-invite__call {
+	opacity: 1;
+}
+
+.msgr-invite__spin {
+	width: 0.95rem;
+	height: 0.95rem;
+}
+
+.msgr-invite__empty {
+	margin: 0;
+	padding: 0.8rem;
+	color: var(--color-secondary);
+	font-size: 0.82rem;
+	text-align: center;
 }
 
 .msgr-callbar__actions button {
@@ -486,6 +918,7 @@ const incomingConv = computed(() => (call.value.peerId ? dmWith(call.value.peerI
 	.msgr-incoming__ring,
 	.msgr-incoming__actions .is-accept,
 	.msgr-callbar__signal i,
+	.msgr-callbar__person.is-waiting,
 	.msgr-incoming-enter-active .msgr-incoming__card {
 		animation: none;
 	}

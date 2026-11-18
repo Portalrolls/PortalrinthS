@@ -25,7 +25,16 @@ type Face = {
 	aiming: boolean
 	ink: string
 	inkSign: string
+	modeAt: number
+	alertUntil: number
+	wanted: string
+	wantedAt: number
 }
+
+/** Сколько держится поза до следующей смены и через сколько гаснет тревога. */
+const HOLD = 0.7
+const SETTLE = 0.18
+const ALERT_FOR = 2.6
 
 const faces = new Set<Face>()
 let frame = 0
@@ -99,14 +108,27 @@ function createFace(el: HTMLElement): Face {
 		aiming: false,
 		ink: '',
 		inkSign: '',
+		modeAt: -HOLD,
+		alertUntil: 0,
+		wanted: el.dataset.mode || 'idle',
+		wantedAt: -SETTLE,
+	}
+	if (el.dataset.still === '1' || reducedMotion?.matches) {
+		paintStill(face)
+		el.dataset.drawn = `${el.dataset.shape}|${el.dataset.color}|${el.dataset.expr}|${el.dataset.mode}`
+		return face
 	}
 	applyMode(face, clock)
 	paint(face, engine.sample(clock))
 	return face
 }
 
-function applyMode(face: Face, now: number): void {
-	const raw = face.el.dataset.mode || 'idle'
+function modeOf(raw: string): StateId {
+	if (raw === 'thinking' || raw === 'notify' || raw === 'alert') return raw
+	return raw === 'speaking' ? 'wide' : 'idle'
+}
+
+function applyLook(face: Face, now: number): void {
 	const shape = face.el.dataset.shape || 'cercle'
 	const expr = face.el.dataset.expr || 'heureux'
 	if (shape !== face.shape) {
@@ -117,13 +139,26 @@ function applyMode(face: Face, now: number): void {
 		face.engine.setExpression(EXPRESSION_BY_ID.get(expr) ?? null, now)
 		face.expr = expr
 	}
-	const next: StateId =
-		raw === 'thinking' || raw === 'notify' || raw === 'alert'
-			? raw
-			: raw === 'speaking'
-				? 'wide'
-				: 'idle'
+}
+
+/**
+ * Смена позы с гистерезисом: думает/говорит во время ответа переключаются
+ * на каждом куске потока, и без задержки движок перезапускал анимацию
+ * каждый кадр. Тревога после ошибки — короткий всплеск, а не поза навсегда.
+ */
+function applyMode(face: Face, now: number): void {
+	applyLook(face, now)
+	const raw = face.el.dataset.mode || 'idle'
+	if (raw !== face.wanted) {
+		face.wanted = raw
+		face.wantedAt = now
+		if (raw !== 'alert') face.alertUntil = 0
+	}
+	let next = modeOf(raw)
+	if (next === 'alert' && face.alertUntil && now >= face.alertUntil) next = 'idle'
 	if (next === face.mode) return
+	const urgent = next === 'alert' || next === 'notify'
+	if (!urgent && (now - face.wantedAt < SETTLE || now - face.modeAt < HOLD)) return
 	if (face.mode === 'thinking' && next === 'idle') {
 		face.engine.setState('wink', now)
 		face.winkUntil = now + 0.9
@@ -131,7 +166,27 @@ function applyMode(face: Face, now: number): void {
 		face.engine.setState(next, now)
 		face.winkUntil = 0
 	}
+	if (next === 'alert') face.alertUntil = now + ALERT_FOR
 	face.mode = next
+	face.modeAt = now
+}
+
+/** Неподвижные превью рисуются свежим движком в устоявшейся позе. */
+function paintStill(face: Face): void {
+	const shape = face.el.dataset.shape || 'cercle'
+	const expr = face.el.dataset.expr || 'heureux'
+	face.engine = new BotEngine(
+		RAYON,
+		'idle',
+		SHAPE_BY_ID.get(shape)?.radii ?? null,
+		EXPRESSION_BY_ID.get(expr) ?? null,
+	)
+	face.shape = shape
+	face.expr = expr
+	const mode = modeOf(face.el.dataset.mode || 'idle')
+	if (mode !== 'idle' && mode !== 'alert') face.engine.setState(mode, 0)
+	face.mode = mode
+	paint(face, face.engine.sample(mode === 'idle' ? 0 : 3))
 }
 
 function aim(face: Face, now: number): void {
@@ -189,8 +244,7 @@ function tick(nowMs: number): void {
 		if (face.el.dataset.still === '1' || reducedMotion?.matches) {
 			const sign = `${face.el.dataset.shape}|${face.el.dataset.color}|${face.el.dataset.expr}|${face.el.dataset.mode}`
 			if (face.el.dataset.drawn === sign) continue
-			applyMode(face, 0.4)
-			paint(face, face.engine.sample(0.4))
+			paintStill(face)
 			face.el.dataset.drawn = sign
 			continue
 		}

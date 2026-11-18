@@ -15,13 +15,11 @@ import {
 import { Input, Toggle, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
+import AiBrandIcon from '@/components/ui/ai/AiBrandIcon.vue'
 import {
-	AGENT_MODES,
-	agentModeById,
 	AI_PROVIDERS,
 	type AiProvider,
 	aiSettings,
-	applyAgentMode,
 	chosenModel,
 	isModelEnabled,
 	saveAiSettings,
@@ -30,7 +28,13 @@ import {
 	zaiPeakHoursNow,
 } from '@/helpers/ai-assistant'
 import { useAiCatalogText } from '@/helpers/ai-catalog-text'
-import { applyForPixi, PIXI_MODELS, pixiAccess, refreshPixiAccess } from '@/helpers/pixi-agent'
+import {
+	applyForPixi,
+	isPixiModelOpen,
+	PIXI_MODELS,
+	pixiAccess,
+	refreshPixiAccess,
+} from '@/helpers/pixi-agent'
 
 const emit = defineEmits<{ picked: [] }>()
 
@@ -38,8 +42,6 @@ const { formatMessage } = useVIntl()
 const catalog = useAiCatalogText()
 const messages = {
 	search: { id: 'app.ai.picker.search', defaultMessage: 'Найти модель' },
-	modes: { id: 'app.ai.picker.modes', defaultMessage: 'Режимы агента — все бесплатные' },
-	customMode: { id: 'app.ai.picker.custom-mode', defaultMessage: 'Свой выбор' },
 	providers: { id: 'app.ai.picker.providers', defaultMessage: 'Провайдеры' },
 	models: { id: 'app.ai.picker.models', defaultMessage: 'Модели' },
 	active: { id: 'app.ai.picker.active', defaultMessage: 'Сейчас отвечает' },
@@ -79,7 +81,7 @@ const messages = {
 	pixiChecking: { id: 'app.ai.picker.pixi.checking', defaultMessage: 'Проверяю доступ к Pixi…' },
 	pixiOpen: {
 		id: 'app.ai.picker.pixi.open',
-		defaultMessage: 'Доступ открыт — все модели Pixi работают',
+		defaultMessage: 'Pixi работает бесплатно через аккаунт Undefined',
 	},
 	pixiNoAccount: {
 		id: 'app.ai.picker.pixi.no-account',
@@ -93,7 +95,8 @@ const messages = {
 	},
 	pixiDenied: {
 		id: 'app.ai.picker.pixi.denied',
-		defaultMessage: 'Сервер Undefined пока не выдал этому аккаунту доступ к Pixi',
+		defaultMessage:
+			'Undefined пока не открыл Pixi этому аккаунту — вместо него бесплатно ответят модели каталога',
 	},
 	pixiPending: {
 		id: 'app.ai.picker.pixi.pending',
@@ -113,11 +116,10 @@ const messages = {
 	},
 	pixiApply: { id: 'app.ai.picker.pixi.apply', defaultMessage: 'Подать заявку' },
 	pixiRetry: { id: 'app.ai.picker.pixi.retry', defaultMessage: 'Проверить снова' },
+	pixiLocked: { id: 'app.ai.picker.pixi.locked', defaultMessage: 'Закрыта — ответит открытая' },
 }
 
 const viewedId = ref(aiSettings.value.provider)
-
-const activeMode = computed(() => agentModeById(aiSettings.value.agentMode))
 
 const pixiReason = ref('')
 const pixiApplying = ref(false)
@@ -159,10 +161,6 @@ async function sendPixiApplication() {
 	else pixiApplyError.value = result.message ?? ''
 }
 
-function chooseMode(id: string) {
-	const mode = AGENT_MODES.find((row) => row.id === id)
-	if (mode) applyAgentMode(mode)
-}
 const query = ref('')
 const managing = ref(false)
 const keyVisible = ref(false)
@@ -217,7 +215,6 @@ function selectModel(p: AiProvider, modelId: string) {
 	saveAiSettings({
 		provider: p.id,
 		models: { ...aiSettings.value.models, [p.id]: modelId },
-		agentMode: undefined,
 	})
 	if (hasKey(p)) {
 		emit('picked')
@@ -228,7 +225,7 @@ function selectModel(p: AiProvider, modelId: string) {
 }
 
 function useCustom() {
-	saveAiSettings({ provider: 'custom', agentMode: undefined })
+	saveAiSettings({ provider: 'custom' })
 	emit('picked')
 }
 
@@ -313,34 +310,6 @@ async function runTest() {
 
 <template>
 	<div class="ai-picker">
-		<div class="ai-picker-modes">
-			<p class="ai-picker-caption">{{ formatMessage(messages.modes) }}</p>
-			<div class="ai-picker-modes-row">
-				<button
-					v-for="mode in AGENT_MODES"
-					:key="mode.id"
-					type="button"
-					class="ai-picker-mode"
-					:data-tone="mode.tone"
-					:class="{ 'ai-picker-mode--on': activeMode?.id === mode.id }"
-					:title="mode.description"
-					:aria-pressed="activeMode?.id === mode.id"
-					@click="chooseMode(mode.id)"
-				>
-					<span class="ai-picker-mode-tier">{{ mode.tier }}</span>
-					<span class="ai-picker-mode-label">{{ mode.label }}</span>
-				</button>
-				<span
-					v-if="!activeMode"
-					class="ai-picker-mode ai-picker-mode--on ai-picker-mode--custom"
-					:title="formatMessage(messages.customMode)"
-				>
-					<span class="ai-picker-mode-tier">★</span>
-					<span class="ai-picker-mode-label">{{ formatMessage(messages.customMode) }}</span>
-				</span>
-			</div>
-		</div>
-
 		<div class="ai-picker-top">
 			<Input
 				v-model="query"
@@ -363,7 +332,10 @@ async function runTest() {
 
 		<div v-if="query.trim()" class="ai-picker-results">
 			<template v-for="group in searchResults" :key="group.provider.id">
-				<p class="ai-picker-caption">{{ catalog.label(group.provider.label) }}</p>
+				<p class="ai-picker-caption ai-picker-caption--brand">
+					<AiBrandIcon :provider="group.provider.id" />
+					{{ catalog.label(group.provider.label) }}
+				</p>
 				<button
 					v-for="model in group.models"
 					:key="model.id"
@@ -372,6 +344,7 @@ async function runTest() {
 					:class="{ 'ai-picker-model--on': isCurrent(group.provider, model.id) }"
 					@click="selectModel(group.provider, model.id)"
 				>
+					<AiBrandIcon :provider="group.provider.id" :model="model.id" :label="model.label" />
 					<span class="min-w-0 grow">
 						<span class="ai-picker-model-name">{{ catalog.label(model.label) }}</span>
 						<span class="ai-picker-model-id">{{ model.id }}</span>
@@ -398,6 +371,7 @@ async function runTest() {
 					@click="viewedId = p.id"
 				>
 					<span class="ai-picker-provider-row">
+						<AiBrandIcon :provider="p.id" />
 						<span class="ai-picker-provider-name">{{ catalog.label(p.label) }}</span>
 						<span
 							v-if="aiSettings.provider === p.id"
@@ -420,7 +394,10 @@ async function runTest() {
 
 			<section class="ai-picker-detail">
 				<div class="ai-picker-detail-head">
-					<span class="ai-picker-detail-title">{{ catalog.label(viewed.label) }}</span>
+					<span class="ai-picker-detail-title">
+						<AiBrandIcon :provider="viewed.id" size="md" />
+						<span class="min-w-0 truncate">{{ catalog.label(viewed.label) }}</span>
+					</span>
 					<p v-if="viewed.note" class="ai-picker-note">{{ catalog.note(viewed) }}</p>
 				</div>
 
@@ -503,6 +480,7 @@ async function runTest() {
 					</p>
 					<template v-if="managing">
 						<label v-for="model in visibleModels" :key="model.id" class="ai-picker-model">
+							<AiBrandIcon :provider="viewed.id" :model="model.id" :label="model.label" />
 							<span class="min-w-0 grow">
 								<span class="ai-picker-model-name">{{ catalog.label(model.label) }}</span>
 								<span class="ai-picker-model-id">{{ model.id }}</span>
@@ -561,7 +539,10 @@ async function runTest() {
 							type="button"
 							class="ai-picker-pixi"
 							:data-tone="pixi.tone"
-							:class="{ 'ai-picker-pixi--on': isCurrent(viewed, pixi.id) }"
+							:class="{
+								'ai-picker-pixi--on': isCurrent(viewed, pixi.id),
+								'ai-picker-pixi--locked': !isPixiModelOpen(pixi.id),
+							}"
 							:aria-pressed="isCurrent(viewed, pixi.id)"
 							@click="selectModel(viewed, pixi.id)"
 						>
@@ -574,7 +555,13 @@ async function runTest() {
 								<span class="ai-picker-model-name">{{ pixi.family }}</span>
 								<span class="ai-picker-pixi-desc">{{ pixi.description }}</span>
 							</span>
-							<span v-if="isCurrent(viewed, pixi.id)" class="ai-picker-pixi-state">
+							<span
+								v-if="!isPixiModelOpen(pixi.id)"
+								class="ai-picker-pixi-state ai-picker-pixi-state--locked"
+							>
+								{{ formatMessage(messages.pixiLocked) }}
+							</span>
+							<span v-else-if="isCurrent(viewed, pixi.id)" class="ai-picker-pixi-state">
 								{{ formatMessage(messages.picked) }}
 							</span>
 						</button>
@@ -591,6 +578,7 @@ async function runTest() {
 							:class="{ 'ai-picker-model--on': isCurrent(viewed, model.id) }"
 							@click="selectModel(viewed, model.id)"
 						>
+							<AiBrandIcon :provider="viewed.id" :model="model.id" :label="model.label" />
 							<span class="min-w-0 grow">
 								<span class="ai-picker-model-name">{{ catalog.label(model.label) }}</span>
 								<span class="ai-picker-model-id">{{ model.id }}</span>
@@ -655,90 +643,11 @@ async function runTest() {
 </template>
 
 <style scoped>
-.ai-picker-modes {
-	padding: 0.5rem 0.75rem 0.25rem;
-	border-bottom: 1px solid var(--color-button-bg);
-}
-
-.ai-picker-modes-row {
-	display: flex;
-	gap: 0.4rem;
-	margin-top: 0.35rem;
-	flex-wrap: wrap;
-}
-
-.ai-picker-mode {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-	border: 1px solid var(--color-button-bg);
-	background: var(--color-button-bg);
-	border-radius: 2rem;
-	padding: 0.3rem 0.7rem;
-	cursor: pointer;
-	font-size: 0.8rem;
-	color: var(--color-text);
-	transition:
-		transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
-		background-color 0.18s ease,
-		border-color 0.18s ease,
-		color 0.18s ease;
-	animation: ai-mode-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.ai-picker-mode:hover {
-	transform: translateY(-2px) scale(1.03);
-}
-
-.ai-picker-mode:active {
-	transform: scale(0.97);
-}
-
 @keyframes ai-mode-pop {
 	from {
 		opacity: 0;
 		transform: scale(0.85);
 	}
-}
-
-.ai-picker-mode-tier {
-	font-weight: 800;
-	font-size: 0.72rem;
-	letter-spacing: 0.03em;
-}
-
-.ai-picker-mode-label {
-	font-weight: 600;
-}
-
-.ai-picker-mode--on {
-	border-color: var(--color-brand);
-	background: color-mix(in srgb, var(--color-brand) 14%, transparent);
-	color: var(--color-contrast);
-}
-
-.ai-picker-mode[data-tone='flash'] .ai-picker-mode-tier {
-	color: #34d399;
-}
-
-.ai-picker-mode[data-tone='lite'] .ai-picker-mode-tier {
-	color: #60a5fa;
-}
-
-.ai-picker-mode[data-tone='pro'] .ai-picker-mode-tier {
-	color: #a78bfa;
-}
-
-.ai-picker-mode[data-tone='ultra'] .ai-picker-mode-tier {
-	color: #fbbf24;
-}
-
-.ai-picker-mode--custom {
-	border-style: dashed;
-}
-
-.ai-picker-mode--custom .ai-picker-mode-tier {
-	color: var(--color-text-inactive);
 }
 
 .ai-picker {
@@ -893,6 +802,10 @@ async function runTest() {
 }
 
 .ai-picker-detail-title {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
 	font-size: 0.9375rem;
 	font-weight: 700;
 	color: var(--color-contrast);
@@ -1231,6 +1144,21 @@ async function runTest() {
 	text-overflow: ellipsis;
 }
 
+.ai-picker-caption--brand {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.ai-picker-pixi--locked {
+	opacity: 0.62;
+}
+
+.ai-picker-pixi-state--locked {
+	color: var(--color-secondary);
+	font-weight: 600;
+}
+
 .ai-picker-pixi-state {
 	flex-shrink: 0;
 	font-size: 0.6875rem;
@@ -1245,16 +1173,5 @@ async function runTest() {
 	color: var(--color-red);
 	white-space: nowrap;
 	text-overflow: ellipsis;
-}
-@media (prefers-reduced-motion: reduce) {
-	.ai-picker-mode {
-		animation: none;
-		transition: none;
-	}
-
-	.ai-picker-mode:hover,
-	.ai-picker-mode:active {
-		transform: none;
-	}
 }
 </style>

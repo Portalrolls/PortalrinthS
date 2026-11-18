@@ -92,6 +92,8 @@
 			</div>
 		</section>
 
+		<VoiceSettings />
+
 		<section class="flex flex-col gap-4 border-0 border-t border-solid border-divider pt-6">
 			<div class="flex flex-wrap items-start justify-between gap-4">
 				<div class="min-w-0">
@@ -162,7 +164,11 @@
 				<p class="m-0 text-xs leading-relaxed text-secondary">
 					{{ formatMessage(messages.onlineHint) }}
 				</p>
-				<p v-if="urlMessage" class="m-0 text-xs font-semibold" :class="urlOk ? 'text-green' : 'text-red'">
+				<p
+					v-if="urlMessage"
+					class="m-0 text-xs font-semibold"
+					:class="urlOk ? 'text-green' : 'text-red'"
+				>
 					{{ urlMessage }}
 				</p>
 			</div>
@@ -257,28 +263,22 @@
  * that order and switches the sorting to "Arranged", which only arranging
  * picks.
  */
+import { MusicIcon, PauseIcon, PlayIcon, PlusIcon, SpinnerIcon, TrashIcon } from '@modrinth/assets'
 import {
-	MusicIcon,
-	PauseIcon,
-	PlayIcon,
-	PlusIcon,
-	SpinnerIcon,
-	TrashIcon,
-} from '@modrinth/assets'
-import {
-	Input,
 	Button,
 	Combobox,
 	type ComboboxOption,
 	defineMessages,
 	IconButton,
 	injectNotificationManager,
+	Input,
 	Slider,
 	Toggle,
 	useVIntl,
 } from '@modrinth/ui'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
+import VoiceSettings from '@/features/settings/display/VoiceSettings.vue'
 import {
 	addMusicFiles,
 	addMusicFromUrl,
@@ -302,13 +302,6 @@ const { handleError } = injectNotificationManager()
 
 const messages = defineMessages({
 	musicTitle: { id: 'app.settings.sound.music', defaultMessage: 'Music' },
-	effectsTitle: { id: 'app.settings.sound.effects', defaultMessage: 'Launcher sounds' },
-	effectsDescription: {
-		id: 'app.settings.sound.effects-description',
-		defaultMessage:
-			'A tick on a press, and a chime when a mod, a skin or Java has finished installing.',
-	},
-	effectsVolume: { id: 'app.settings.sound.effects-volume', defaultMessage: 'Effects volume' },
 	effectsTitle: { id: 'app.settings.sound.effects', defaultMessage: 'Launcher sounds' },
 	effectsDescription: {
 		id: 'app.settings.sound.effects-description',
@@ -354,7 +347,10 @@ const messages = defineMessages({
 		defaultMessage:
 			'Paste a direct link to a track (for example, https://…/track.mp3) and it downloads straight into the playlist. Portalus can do the same: ask it to “download a track by the link …”.',
 	},
-	urlOk: { id: 'app.settings.sound.online.url-ok', defaultMessage: 'Track downloaded into the playlist' },
+	urlOk: {
+		id: 'app.settings.sound.online.url-ok',
+		defaultMessage: 'Track downloaded into the playlist',
+	},
 	urlFail: { id: 'app.settings.sound.online.url-fail', defaultMessage: 'Could not add' },
 	sortTitle: { id: 'app.settings.sound.sort', defaultMessage: 'Order' },
 	sortAdded: { id: 'app.settings.sound.sort-added', defaultMessage: 'By date added' },

@@ -37,6 +37,7 @@ import {
 	TerminalSquareIcon,
 	TextQuoteIcon,
 	TrashIcon,
+	UserCogIcon,
 	XIcon,
 } from '@modrinth/assets'
 import { Avatar, Button, IconButton, Input, useVIntl } from '@modrinth/ui'
@@ -46,6 +47,7 @@ import { useRouter } from 'vue-router'
 import AiActivity from '@/components/ui/ai/AiActivity.vue'
 import AiComposerMenu from '@/components/ui/ai/AiComposerMenu.vue'
 import AiModelPicker from '@/components/ui/ai/AiModelPicker.vue'
+import AiPersonaPanel from '@/components/ui/ai/AiPersonaPanel.vue'
 import AiRichText from '@/components/ui/ai/AiRichText.vue'
 import AiSteps from '@/components/ui/ai/AiSteps.vue'
 import AiTaskCard from '@/components/ui/ai/AiTaskCard.vue'
@@ -58,6 +60,7 @@ import { COLORS, SHAPES } from '@/components/ui/ai/bloub/skins'
 import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import {
 	agentBusy,
+	agentDisplayName,
 	agentPhase,
 	agentQueue,
 	agentStreaming,
@@ -1380,7 +1383,17 @@ function instanceIcon(iconPath: string | undefined): string | null {
 const pageRoot = ref<HTMLElement | null>(null)
 const sideOpen = ref(true)
 const aboutOpen = ref(true)
-const aboutTab = ref<'activity' | 'looks'>('activity')
+const aboutTab = ref<'activity' | 'looks' | 'persona'>('activity')
+const agentName = computed(() => agentDisplayName(aiSettings.value))
+
+function openPersona() {
+	if (aboutOpen.value && aboutTab.value === 'persona') {
+		aboutTab.value = 'activity'
+		return
+	}
+	aboutTab.value = 'persona'
+	aboutOpen.value = true
+}
 const bloubShape = ref(localStorage.getItem('portalrinth-ai-bloub-shape') || 'cercle')
 const bloubColor = ref(localStorage.getItem('portalrinth-ai-bloub-color') || 'bleu')
 
@@ -1423,7 +1436,17 @@ async function syncFaces() {
 	if (pageRoot.value) syncBloubFaces(pageRoot.value)
 }
 
-watch([sideOpen, aboutOpen, aboutTab, bloubColor, sessionsList], syncFaces)
+watch(
+	[
+		sideOpen,
+		aboutOpen,
+		aboutTab,
+		bloubColor,
+		sessionsList,
+		() => visibleHistory.value.length === 0,
+	],
+	syncFaces,
+)
 
 onMounted(async () => {
 	scrollToBottom(true)
@@ -1527,9 +1550,21 @@ defineExpose({ send })
 						:data-color="bloubColor"
 						:data-mode="faceMode"
 					/>
-					<span class="uag-pill-name">{{ formatMessage(messages.aiName) }}</span>
+					<span class="uag-pill-name">{{ agentName }}</span>
 				</div>
-				<span v-if="sending" class="uag-pill-status">{{ phaseLabel }}</span>
+				<Transition name="uag-status">
+					<span v-if="sending" class="uag-pill-status">{{ phaseLabel }}</span>
+				</Transition>
+				<button
+					v-tooltip="'Личность агента'"
+					type="button"
+					class="uag-top-btn"
+					:class="{ 'uag-top-btn--on': aboutOpen && aboutTab === 'persona' }"
+					aria-label="Личность агента"
+					@click="openPersona"
+				>
+					<UserCogIcon class="size-4" />
+				</button>
 			</header>
 			<div
 				ref="scrollBox"
@@ -1540,7 +1575,14 @@ defineExpose({ send })
 					v-if="visibleHistory.length === 0"
 					class="flex h-full flex-col items-center justify-center gap-2 text-center"
 				>
-					<p class="m-0 text-2xl font-bold text-primary">{{ formatMessage(messages.aiName) }}</p>
+					<span
+						class="uag-empty-face"
+						data-bloub
+						:data-shape="bloubShape"
+						:data-color="bloubColor"
+						:data-mode="faceMode"
+					/>
+					<p class="m-0 text-2xl font-bold text-primary">{{ agentName }}</p>
 					<p class="m-0 text-lg font-semibold text-primary">
 						{{ formatMessage(messages.emptyTitle) }}
 					</p>
@@ -2486,7 +2528,16 @@ defineExpose({ send })
 					>
 						Внешность
 					</button>
+					<button
+						class="uag-about-tab"
+						:class="{ 'uag-about-tab--active': aboutTab === 'persona' }"
+						type="button"
+						@click="aboutTab = 'persona'"
+					>
+						Личность
+					</button>
 				</div>
+				<AiPersonaPanel v-if="aboutTab === 'persona'" />
 				<div v-if="aboutTab === 'activity'" class="uag-about-steps">
 					<p v-if="activitySteps.length === 0" class="uag-side-note">
 						Пока тихо — ни одного шага в этом разговоре.
@@ -2506,7 +2557,7 @@ defineExpose({ send })
 						</span>
 					</div>
 				</div>
-				<div v-else class="uag-looks">
+				<div v-else-if="aboutTab === 'looks'" class="uag-looks">
 					<p class="uag-looks-title">Форма</p>
 					<div class="uag-looks-shapes">
 						<button
@@ -4001,6 +4052,53 @@ defineExpose({ send })
 	color: var(--color-contrast);
 	font-weight: 700;
 	font-size: 0.85rem;
+}
+
+.uag-top-btn {
+	display: grid;
+	place-items: center;
+	margin-left: auto;
+	width: 2rem;
+	height: 2rem;
+	border: 1px solid var(--surface-5);
+	border-radius: 999px;
+	background: var(--color-button-bg);
+	color: var(--color-secondary);
+	cursor: pointer;
+	transition:
+		color 0.2s ease,
+		border-color 0.2s ease,
+		transform 0.2s ease;
+}
+
+.uag-top-btn:hover,
+.uag-top-btn--on {
+	border-color: var(--color-brand);
+	color: var(--color-contrast);
+}
+
+.uag-top-btn:active {
+	transform: scale(0.94);
+}
+
+.uag-empty-face {
+	display: block;
+	width: 6.5rem;
+	height: 6.5rem;
+	margin-bottom: 0.25rem;
+}
+
+.uag-status-enter-active,
+.uag-status-leave-active {
+	transition:
+		opacity 0.22s ease,
+		transform 0.22s ease;
+}
+
+.uag-status-enter-from,
+.uag-status-leave-to {
+	opacity: 0;
+	transform: translateX(-4px);
 }
 
 .uag-pill-status {

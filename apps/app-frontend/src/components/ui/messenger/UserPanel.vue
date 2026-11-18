@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { CheckIcon, CopyIcon, LogOutIcon, RefreshCwIcon, UserIcon } from '@modrinth/assets'
+import {
+	CheckIcon,
+	CopyIcon,
+	EditIcon,
+	LogOutIcon,
+	RefreshCwIcon,
+	UserIcon,
+} from '@modrinth/assets'
 import { computed, ref } from 'vue'
 
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import type { PresenceStatus } from './model'
+import { profileEditor } from './profile-card'
 import { connect, me, myId, setPresence, showToast, signOut, state } from './store'
 import { vTip } from './tooltip'
 import { type Anchor, askConfirm, openProfile } from './ui-bus'
@@ -50,6 +58,11 @@ async function pick(status: PresenceStatus): Promise<void> {
 function profile(): void {
 	menu.value = null
 	if (me.value) openProfile(me.value.id, me.value.username)
+}
+
+function editProfile(): void {
+	menu.value = null
+	profileEditor.open = true
 }
 
 async function copyId(): Promise<void> {
@@ -122,6 +135,9 @@ async function logout(): Promise<void> {
 			<div class="msgr-menu-sep" />
 			<button type="button" class="msgr-menu-item" @click="profile">
 				<UserIcon /> {{ t('app.messenger.myProfile', 'Мой профиль') }}
+			</button>
+			<button type="button" class="msgr-menu-item" @click="editProfile">
+				<EditIcon /> {{ t('app.messenger.profile.edit', 'Редактировать профиль') }}
 			</button>
 			<button type="button" class="msgr-menu-item" @click="copyId">
 				<CopyIcon /> {{ t('app.messenger.copyUserId', 'Копировать ID пользователя') }}

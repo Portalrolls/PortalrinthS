@@ -50,7 +50,7 @@ defineExpose({ show })
 		<Transition name="msgr-lightbox">
 			<div v-if="current" class="msgr-lightbox" @click.self="close">
 				<div class="msgr-lightbox__bar">
-					<span>{{ current.name }}</span>
+					<span class="msgr-lightbox__spacer" />
 					<button
 						v-tip:bottom="t('app.messenger.file.download', 'Скачать')"
 						type="button"
@@ -71,7 +71,7 @@ defineExpose({ show })
 				</div>
 				<img
 					:src="current.url"
-					:alt="current.name"
+					alt=""
 					class="msgr-lightbox__img"
 					:class="{ 'is-zoomed': zoomed }"
 					@click="zoomed = !zoomed"

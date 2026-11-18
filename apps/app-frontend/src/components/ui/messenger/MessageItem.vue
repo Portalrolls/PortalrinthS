@@ -9,7 +9,9 @@ import {
 	PinIcon,
 	ReplyIcon,
 	ReportIcon,
+	SaveIcon,
 	SendIcon,
+	ShareIcon,
 	SmileIcon,
 	TrashIcon,
 	UserIcon,
@@ -24,11 +26,14 @@ import MessageAttachment from './MessageAttachment.vue'
 import MessageText from './MessageText.vue'
 import { formatDate, formatTime, type Msg } from './model'
 import { isOnlyEmoji } from './rich-text'
+import { isPlayerSticker, saveStickerFromUrl, stickerById, stickerIdOf } from './stickers'
+import StickerView from './StickerView.vue'
 import {
 	activeServer,
 	canManage,
 	deleteMessage,
 	displayName,
+	hideMessageForMe,
 	memberOf,
 	myId,
 	pinMessage,
@@ -38,7 +43,15 @@ import {
 	state,
 } from './store'
 import { vTip } from './tooltip'
-import { type Anchor, askConfirm, askPrompt, openForward, openPopover, openProfile } from './ui-bus'
+import {
+	type Anchor,
+	askChoice,
+	askPrompt,
+	openForward,
+	openLightbox,
+	openPopover,
+	openProfile,
+} from './ui-bus'
 import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps<{
@@ -67,6 +80,22 @@ const mine = computed(() => props.msg.senderId === myId.value)
 const system = computed(() => props.msg.kind === 'system')
 const author = computed(() => displayName(props.msg.senderId, props.msg.senderName) || '?')
 const bigEmoji = computed(() => !props.msg.attachment && isOnlyEmoji(props.msg.body))
+const serverSticker = computed(() => {
+	const id = stickerIdOf(props.msg.body)
+	return id === null ? null : stickerById(id)
+})
+const playerSticker = computed(() =>
+	isPlayerSticker(props.msg.body) && props.msg.attachment?.kind !== 'file'
+		? props.msg.attachment
+		: null,
+)
+const isSticker = computed(() => Boolean(serverSticker.value || playerSticker.value))
+
+/** Пересланное сообщение приходит текстом «↪ автор: текст» — разбираем его обратно. */
+const forwarded = computed(() => {
+	const match = /^↪ ([^:\n]{1,64}): ?([\s\S]*)$/.exec(props.msg.body)
+	return match ? { author: match[1], text: match[2] } : null
+})
 const canDelete = computed(() => mine.value || canManage.value)
 const canPin = computed(() => !activeServer.value || canManage.value || mine.value)
 const liked = computed(() =>
@@ -194,13 +223,46 @@ async function togglePin(): Promise<void> {
 
 async function remove(): Promise<void> {
 	closeAll()
-	const ok = await askConfirm({
+	const choices = [
+		{
+			id: 'me',
+			label: t('app.messenger.delete.forMe', 'Удалить у меня'),
+			danger: !canDelete.value,
+		},
+	]
+	if (canDelete.value) {
+		choices.push({
+			id: 'all',
+			label: t('app.messenger.delete.forAll', 'Удалить у всех'),
+			danger: true,
+		})
+	}
+	const choice = await askChoice({
 		title: t('app.messenger.delete.title', 'Удалить сообщение'),
-		text: t('app.messenger.delete.text', 'Вы точно хотите удалить это сообщение? Отменить нельзя.'),
-		confirm: t('app.messenger.delete.confirm', 'Удалить'),
-		danger: true,
+		text: canDelete.value
+			? t(
+					'app.messenger.delete.textBoth',
+					'«У меня» — сообщение пропадёт только в этом лаунчере. «У всех» — его больше никто не увидит.',
+				)
+			: t('app.messenger.delete.textMe', 'Сообщение пропадёт только у вас, собеседник его увидит.'),
+		choices,
 	})
-	if (ok) await deleteMessage(props.msg)
+	if (choice === 'me') hideMessageForMe(props.msg)
+	else if (choice === 'all') await deleteMessage(props.msg)
+}
+
+async function saveSticker(): Promise<void> {
+	closeAll()
+	const url = playerSticker.value?.url
+	if (!url) return
+	const result = await saveStickerFromUrl(url)
+	showToast(
+		result === 'ok'
+			? t('app.messenger.stickers.saved', 'Стикер добавлен в «Мои стикеры»')
+			: result === 'full'
+				? t('app.messenger.stickers.full', 'Своих стикеров уже 60 — удалите лишние')
+				: t('app.messenger.stickers.saveFailed', 'Не удалось сохранить стикер'),
+	)
 }
 
 async function report(): Promise<void> {
@@ -260,6 +322,7 @@ function mention(name: string, el: HTMLElement): void {
 			'is-editing': editing,
 			'is-highlight': highlight,
 			'is-menu': menuAnchor || pickerAnchor,
+			'is-pending': msg.pending,
 			'is-mention': msg.body
 				.toLowerCase()
 				.includes(`@${String(state.session?.user?.username || '~').toLowerCase()}`),
@@ -327,6 +390,25 @@ function mention(name: string, el: HTMLElement): void {
 						</button>
 					</div>
 				</div>
+				<div v-else-if="serverSticker" class="msgr-msg__sticker">
+					<StickerView :url="serverSticker.url" :kind="serverSticker.kind" :size="160" />
+				</div>
+				<button
+					v-else-if="playerSticker"
+					type="button"
+					class="msgr-msg__sticker"
+					@click="openLightbox(playerSticker.url, playerSticker.name)"
+				>
+					<img :src="playerSticker.url" alt="" draggable="false" />
+				</button>
+				<div v-else-if="forwarded" class="msgr-msg__forward">
+					<span class="msgr-msg__forward-head">
+						<ShareIcon />
+						{{ t('app.messenger.forward.from', 'Переслано от') }}
+						<b>{{ forwarded.author }}</b>
+					</span>
+					<MessageText v-if="forwarded.text" :text="forwarded.text" @mention="mention" />
+				</div>
 				<div v-else-if="msg.body" class="msgr-msg__body" :class="{ 'is-emoji': bigEmoji }">
 					<MessageText :text="msg.body" @mention="mention" />
 					<span
@@ -338,7 +420,7 @@ function mention(name: string, el: HTMLElement): void {
 					</span>
 				</div>
 
-				<MessageAttachment v-if="msg.attachment" :attachment="msg.attachment" />
+				<MessageAttachment v-if="msg.attachment && !isSticker" :attachment="msg.attachment" />
 
 				<div v-if="msg.reactions.length" class="msgr-msg__reactions">
 					<button
@@ -365,7 +447,7 @@ function mention(name: string, el: HTMLElement): void {
 			</div>
 		</div>
 
-		<div v-if="!editing" class="msgr-msg__toolbar" @pointerdown.stop>
+		<div v-if="!editing && !msg.pending" class="msgr-msg__toolbar" @pointerdown.stop>
 			<button
 				v-tip="t('app.messenger.react.heart', 'Нравится')"
 				type="button"
@@ -385,7 +467,7 @@ function mention(name: string, el: HTMLElement): void {
 				<ReplyIcon />
 			</button>
 			<button
-				v-if="mine && msg.attachment?.kind !== 'voice'"
+				v-if="mine && msg.attachment?.kind !== 'voice' && !isSticker"
 				v-tip="t('app.messenger.edit.action', 'Изменить')"
 				type="button"
 				@click.stop="startEdit"
@@ -446,7 +528,7 @@ function mention(name: string, el: HTMLElement): void {
 				<SmileIcon /> {{ t('app.messenger.react.add', 'Добавить реакцию') }}
 			</button>
 			<div class="msgr-menu-sep" />
-			<button v-if="mine" type="button" class="msgr-menu-item" @click="startEdit">
+			<button v-if="mine && !isSticker" type="button" class="msgr-menu-item" @click="startEdit">
 				<EditIcon /> {{ t('app.messenger.edit.action', 'Изменить') }}
 			</button>
 			<button type="button" class="msgr-menu-item" @click="startReply">
@@ -463,9 +545,12 @@ function mention(name: string, el: HTMLElement): void {
 						: t('app.messenger.pin.pin', 'Закрепить')
 				}}
 			</button>
+			<button v-if="playerSticker" type="button" class="msgr-menu-item" @click="saveSticker">
+				<SaveIcon /> {{ t('app.messenger.stickers.save', 'Сохранить стикер') }}
+			</button>
 			<div class="msgr-menu-sep" />
 			<button
-				v-if="msg.body"
+				v-if="msg.body && !isSticker"
 				type="button"
 				class="msgr-menu-item"
 				@click="copy(msg.body, t('app.messenger.copied.text', 'Текст скопирован'))"
@@ -489,20 +574,79 @@ function mention(name: string, el: HTMLElement): void {
 			<button type="button" class="msgr-menu-item" @click="showAuthor">
 				<UserIcon /> {{ t('app.messenger.viewProfile', 'Посмотреть профиль') }}
 			</button>
-			<template v-if="!mine || canDelete">
-				<div class="msgr-menu-sep" />
-				<button v-if="!mine" type="button" class="msgr-menu-item is-danger" @click="report">
-					<ReportIcon /> {{ t('app.messenger.report.action', 'Пожаловаться') }}
-				</button>
-				<button v-if="canDelete" type="button" class="msgr-menu-item is-danger" @click="remove">
-					<TrashIcon /> {{ t('app.messenger.delete.action', 'Удалить сообщение') }}
-				</button>
-			</template>
+			<div class="msgr-menu-sep" />
+			<button v-if="!mine" type="button" class="msgr-menu-item is-danger" @click="report">
+				<ReportIcon /> {{ t('app.messenger.report.action', 'Пожаловаться') }}
+			</button>
+			<button type="button" class="msgr-menu-item is-danger" @click="remove">
+				<TrashIcon /> {{ t('app.messenger.delete.action', 'Удалить сообщение') }}
+			</button>
 		</FloatingMenu>
 	</div>
 </template>
 
 <style scoped>
+.msgr-msg.is-pending .msgr-msg__content {
+	opacity: 0.55;
+}
+
+.msgr-msg__sticker {
+	display: inline-grid;
+	width: 10rem;
+	height: 10rem;
+	place-items: center;
+	padding: 0;
+	margin-top: 0.15rem;
+	border: 0;
+	background: none;
+	cursor: pointer;
+}
+
+.msgr-msg__sticker img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	transition: transform 0.18s ease;
+}
+
+.msgr-msg__sticker:hover img {
+	transform: scale(1.04);
+}
+
+.msgr-msg__forward {
+	display: flex;
+	max-width: 42rem;
+	flex-direction: column;
+	gap: 0.2rem;
+	padding: 0.35rem 0.7rem;
+	margin-top: 0.1rem;
+	border-left: 3px solid color-mix(in srgb, var(--color-brand) 70%, transparent);
+	border-radius: 0 8px 8px 0;
+	background: rgba(255, 255, 255, 0.035);
+	overflow-wrap: anywhere;
+}
+
+.msgr-msg__forward-head {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	color: var(--color-secondary);
+	font-size: 0.76rem;
+}
+
+.msgr-msg__forward-head svg {
+	width: 0.85rem;
+	height: 0.85rem;
+	flex-shrink: 0;
+}
+
+.msgr-msg__forward-head b {
+	overflow: hidden;
+	color: var(--color-contrast);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .msgr-msg {
 	position: relative;
 	padding: 0.15rem 1rem 0.15rem 0;

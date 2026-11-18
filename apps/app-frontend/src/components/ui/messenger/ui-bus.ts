@@ -14,6 +14,7 @@ export type PromptOptions = {
 	danger?: boolean
 	input?: boolean
 	multiline?: boolean
+	choices?: { id: string; label: string; danger?: boolean }[]
 }
 
 type Handlers = {
@@ -61,6 +62,15 @@ export async function askPrompt(opts: PromptOptions): Promise<string | null> {
 
 export async function askConfirm(opts: Omit<PromptOptions, 'input'>): Promise<boolean> {
 	return (await askPrompt({ ...opts, input: false })) !== null
+}
+
+/** Окно с несколькими вариантами: вернёт id выбранного или null при отмене. */
+export async function askChoice(
+	opts: Omit<PromptOptions, 'input' | 'choices'> & {
+		choices: NonNullable<PromptOptions['choices']>
+	},
+): Promise<string | null> {
+	return askPrompt({ ...opts, input: false })
 }
 
 export function openForward(msg: Msg): void {

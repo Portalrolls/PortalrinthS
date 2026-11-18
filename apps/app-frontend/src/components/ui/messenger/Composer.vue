@@ -2,15 +2,23 @@
 import {
 	FileIcon,
 	ImageIcon,
+	PackageIcon,
 	PlusIcon,
+	SearchIcon,
 	SendIcon,
 	SmileIcon,
+	StickyNotePlusIcon,
 	TrashIcon,
 	XIcon,
 } from '@modrinth/assets'
+import { convertFileSrc } from '@tauri-apps/api/core'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
-import EmojiPicker from './EmojiPicker.vue'
+import { list as listInstances } from '@/helpers/instance'
+import type { GameInstance } from '@/helpers/types'
+
+import { packBuild } from './builds'
+import { openMic } from './devices'
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import MicIcon from './MicIcon.vue'
@@ -23,6 +31,8 @@ import {
 	type Peer,
 	readFileBase64,
 } from './model'
+import StickerPicker from './StickerPicker.vue'
+import { type OwnSticker, ownStickerFile, PLAYER_STICKER_MARK } from './stickers'
 import {
 	activeConversation,
 	activeKey,
@@ -61,6 +71,11 @@ const preparing = ref(false)
 const sending = ref(false)
 const plusAnchor = ref<Anchor | null>(null)
 const emojiAnchor = ref<Anchor | null>(null)
+const pickerTab = ref<'emoji' | 'stickers'>('emoji')
+const buildAnchor = ref<Anchor | null>(null)
+const builds = ref<GameInstance[]>([])
+const buildQuery = ref('')
+const buildBusy = ref('')
 const mentionQuery = ref<string | null>(null)
 const mentionIndex = ref(0)
 
@@ -278,9 +293,79 @@ function togglePlus(event: MouseEvent): void {
 	plusAnchor.value = plusAnchor.value ? null : anchorOf(event)
 }
 
-function toggleEmoji(event: MouseEvent): void {
+function togglePicker(event: MouseEvent, tab: 'emoji' | 'stickers'): void {
 	plusAnchor.value = null
-	emojiAnchor.value = emojiAnchor.value ? null : anchorOf(event)
+	if (emojiAnchor.value && pickerTab.value === tab) {
+		emojiAnchor.value = null
+		return
+	}
+	pickerTab.value = tab
+	emojiAnchor.value = anchorOf(event)
+}
+
+async function sendSticker(
+	body: string,
+	attachment: PendingAttachment | null = null,
+): Promise<void> {
+	emojiAnchor.value = null
+	if (props.disabled || sending.value) return
+	sending.value = true
+	const ok = await sendMessage({ body, replyToId: props.replyTo?.id, attachment })
+	sending.value = false
+	if (ok) emit('sent')
+}
+
+function pickServerSticker(id: number): void {
+	void sendSticker(`[[sticker:${id}]]`)
+}
+
+function pickOwnSticker(sticker: OwnSticker): void {
+	void sendSticker(PLAYER_STICKER_MARK, ownStickerFile(sticker))
+}
+
+const shownBuilds = computed(() => {
+	const q = buildQuery.value.trim().toLowerCase()
+	return q ? builds.value.filter((item) => item.name.toLowerCase().includes(q)) : builds.value
+})
+
+async function openBuilds(): Promise<void> {
+	const anchor = plusAnchor.value
+	plusAnchor.value = null
+	buildQuery.value = ''
+	builds.value = await listInstances().catch(() => [])
+	builds.value.sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+	buildAnchor.value = anchor
+}
+
+function buildIcon(item: GameInstance): string {
+	return item.icon_path ? convertFileSrc(item.icon_path) : ''
+}
+
+async function shareBuild(item: GameInstance): Promise<void> {
+	if (buildBusy.value) return
+	buildBusy.value = item.id
+	preparing.value = true
+	try {
+		const result = await packBuild(item)
+		if (typeof result === 'string') {
+			showToast(
+				result === 'too_large'
+					? t(
+							'app.messenger.build.tooLarge',
+							'Сборка весит больше 12 МБ — отправить её не получится',
+						)
+					: t('app.messenger.build.failed', 'Не удалось упаковать сборку'),
+			)
+			return
+		}
+		buildAnchor.value = null
+		clearAttachment()
+		pending.value = result
+		focus()
+	} finally {
+		buildBusy.value = ''
+		preparing.value = false
+	}
 }
 
 function insertEmoji(emoji: string): void {
@@ -308,7 +393,7 @@ async function startRecording(): Promise<void> {
 		return
 	}
 	try {
-		recordStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+		recordStream = await openMic()
 	} catch {
 		showToast(t('app.messenger.call.micDenied', 'Нет доступа к микрофону'))
 		return
@@ -466,17 +551,6 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 				@blur="mentionQuery = null"
 			/>
 			<button
-				v-if="!recording"
-				type="button"
-				class="msgr-composer__icon"
-				:class="{ 'is-on': emojiAnchor }"
-				:aria-label="t('app.messenger.emoji', 'Эмодзи')"
-				:disabled="disabled"
-				@click.stop="toggleEmoji"
-			>
-				<SmileIcon />
-			</button>
-			<button
 				type="button"
 				class="msgr-composer__icon"
 				:class="{ 'is-recording': recording }"
@@ -490,6 +564,28 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 			>
 				<SendIcon v-if="recording" />
 				<MicIcon v-else />
+			</button>
+			<button
+				v-if="!recording"
+				type="button"
+				class="msgr-composer__icon"
+				:class="{ 'is-on': emojiAnchor && pickerTab === 'stickers' }"
+				:title="t('app.messenger.stickers.title', 'Стикеры')"
+				:disabled="disabled"
+				@click.stop="togglePicker($event, 'stickers')"
+			>
+				<StickyNotePlusIcon />
+			</button>
+			<button
+				v-if="!recording"
+				type="button"
+				class="msgr-composer__icon"
+				:class="{ 'is-on': emojiAnchor && pickerTab === 'emoji' }"
+				:aria-label="t('app.messenger.emoji', 'Эмодзи')"
+				:disabled="disabled"
+				@click.stop="togglePicker($event, 'emoji')"
+			>
+				<SmileIcon />
 			</button>
 			<button
 				v-if="!recording"
@@ -518,17 +614,193 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 			<button type="button" class="msgr-menu-item" @click="choose('image')">
 				<ImageIcon /> {{ t('app.messenger.plus.image', 'Изображение или GIF') }}
 			</button>
+			<button type="button" class="msgr-menu-item" @click="openBuilds">
+				<PackageIcon /> {{ t('app.messenger.plus.build', 'Отправить сборку') }}
+			</button>
 			<button type="button" class="msgr-menu-item" @click="startRecording">
 				<MicIcon /> {{ t('app.messenger.voice.record', 'Записать голосовое') }}
 			</button>
 		</FloatingMenu>
+		<FloatingMenu
+			:anchor="buildAnchor"
+			placement="top-start"
+			:width="300"
+			@close="buildAnchor = buildBusy ? buildAnchor : null"
+		>
+			<div class="msgr-builds">
+				<label class="msgr-builds__search">
+					<SearchIcon />
+					<input
+						v-model="buildQuery"
+						type="search"
+						:placeholder="t('app.messenger.build.search', 'Найти сборку')"
+						autocomplete="off"
+					/>
+				</label>
+				<div class="msgr-builds__list">
+					<button
+						v-for="item in shownBuilds"
+						:key="item.id"
+						type="button"
+						class="msgr-builds__item"
+						:disabled="Boolean(buildBusy)"
+						@click="shareBuild(item)"
+					>
+						<span class="msgr-builds__icon">
+							<img v-if="buildIcon(item)" :src="buildIcon(item)" alt="" />
+							<PackageIcon v-else />
+						</span>
+						<span class="msgr-builds__meta">
+							<b>{{ item.name }}</b>
+							<span>{{ item.loader }} {{ item.game_version }}</span>
+						</span>
+						<span v-if="buildBusy === item.id" class="msgr-spinner msgr-builds__spin" />
+					</button>
+					<p v-if="!shownBuilds.length" class="msgr-builds__empty">
+						{{ t('app.messenger.build.empty', 'Сборок не найдено') }}
+					</p>
+				</div>
+			</div>
+		</FloatingMenu>
 		<FloatingMenu :anchor="emojiAnchor" placement="top-end" @close="emojiAnchor = null">
-			<EmojiPicker @pick="insertEmoji" />
+			<StickerPicker
+				:key="pickerTab"
+				:tab="pickerTab"
+				@emoji="insertEmoji"
+				@sticker="pickServerSticker"
+				@own="pickOwnSticker"
+			/>
 		</FloatingMenu>
 	</div>
 </template>
 
 <style scoped>
+.msgr-builds {
+	display: flex;
+	max-height: 22rem;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.msgr-builds__search {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0 0.6rem;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.28);
+	color: var(--color-secondary);
+}
+
+.msgr-builds__search svg {
+	width: 0.95rem;
+	height: 0.95rem;
+}
+
+.msgr-builds__search input {
+	min-width: 0;
+	flex: 1;
+	height: 2rem;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	color: var(--color-contrast);
+	font: inherit;
+	font-size: 0.85rem;
+	outline: none;
+}
+
+.msgr-builds__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	overflow-y: auto;
+	scrollbar-width: thin;
+}
+
+.msgr-builds__item {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.4rem 0.45rem;
+	border: 0;
+	border-radius: 8px;
+	background: transparent;
+	color: var(--color-contrast);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.msgr-builds__item:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.07);
+}
+
+.msgr-builds__item:disabled {
+	cursor: default;
+	opacity: 0.7;
+}
+
+.msgr-builds__icon {
+	display: grid;
+	width: 2.2rem;
+	height: 2.2rem;
+	flex-shrink: 0;
+	place-items: center;
+	overflow: hidden;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.3);
+	color: var(--color-secondary);
+}
+
+.msgr-builds__icon img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.msgr-builds__icon svg {
+	width: 1.1rem;
+	height: 1.1rem;
+}
+
+.msgr-builds__meta {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+}
+
+.msgr-builds__meta b {
+	overflow: hidden;
+	font-size: 0.86rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-builds__meta span {
+	overflow: hidden;
+	color: var(--color-secondary);
+	font-size: 0.74rem;
+	text-overflow: ellipsis;
+	text-transform: capitalize;
+	white-space: nowrap;
+}
+
+.msgr-builds__spin {
+	width: 1rem;
+	height: 1rem;
+}
+
+.msgr-builds__empty {
+	margin: 0;
+	padding: 0.8rem;
+	color: var(--color-secondary);
+	font-size: 0.82rem;
+	text-align: center;
+}
+
 .msgr-composer {
 	position: relative;
 	padding: 0 1rem 1.1rem;

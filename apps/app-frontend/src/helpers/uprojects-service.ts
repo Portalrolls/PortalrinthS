@@ -130,11 +130,37 @@ function accountKeyOf(account: ServiceAccount): string {
 	return `${account.provider}:${String(account.uuid).replace(/-/g, '').toLowerCase()}`
 }
 
+/**
+ * Через какой вход сейчас ходим. Если основной не отвечает (в РФ его бывает
+ * душат), пробуем европейский и запоминаем, какой ответил.
+ */
+const MESSENGER_API_EU = `${UPROJECTS_BASE_EU}/api/messenger`
+let preferredApi = MESSENGER_API
+
+/** Запрос к сервису не висит дольше этого — иначе экраны навсегда застревают на «Загружаем…». */
+const REQUEST_TIMEOUT = 20000
+
 async function serviceFetch(
 	path: string,
 	opts: { method?: string; body?: unknown; token?: string; base?: string } = {},
 ): Promise<{ ok: boolean; status: number; data: LooseRecord }> {
-	const base = opts.base || MESSENGER_API
+	if (opts.base) return serviceFetchOnce(path, opts, opts.base)
+	const first = await serviceFetchOnce(path, opts, preferredApi)
+	if (first.status !== 0) return first
+	// Запрос, который успел уйти и завис на ответе, второй раз не шлём: сообщение задвоилось бы.
+	const writes = Boolean(opts.method && opts.method.toUpperCase() !== 'GET')
+	if (writes && first.data.error === 'timeout') return first
+	const other = preferredApi === MESSENGER_API ? MESSENGER_API_EU : MESSENGER_API
+	const second = await serviceFetchOnce(path, opts, other)
+	if (second.status !== 0) preferredApi = other
+	return second.status !== 0 ? second : first
+}
+
+async function serviceFetchOnce(
+	path: string,
+	opts: { method?: string; body?: unknown; token?: string },
+	base: string,
+): Promise<{ ok: boolean; status: number; data: LooseRecord }> {
 	const headers: Record<string, string> = {
 		'User-Agent': 'Undefined-Client',
 		Accept: 'application/json',
@@ -145,12 +171,15 @@ async function serviceFetch(
 		headers['Content-Type'] = 'application/json'
 		bodyText = JSON.stringify(opts.body)
 	}
+	const controller = new AbortController()
+	const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
 	try {
 		const response = await proxiedFetch(`${base}${path}`, {
 			method: opts.method || 'GET',
 			headers,
 			body: bodyText,
 			connectTimeout: 12000,
+			signal: controller.signal,
 		})
 		const data = (await response.json().catch(() => ({}))) as LooseRecord
 		return { ok: response.ok, status: response.status, data }
@@ -158,8 +187,16 @@ async function serviceFetch(
 		return {
 			ok: false,
 			status: 0,
-			data: { error: error instanceof Error ? error.message : 'network' },
+			data: {
+				error: controller.signal.aborted
+					? 'timeout'
+					: error instanceof Error
+						? error.message
+						: 'network',
+			},
 		}
+	} finally {
+		clearTimeout(timer)
 	}
 }
 
@@ -329,7 +366,7 @@ export async function serviceRequest(
 
 /** Адрес SSE-потока живых событий мессенджера. */
 export function serviceStreamUrl(token: string): string {
-	return `${MESSENGER_API}/stream?token=${encodeURIComponent(token)}`
+	return `${preferredApi}/stream?token=${encodeURIComponent(token)}`
 }
 
 /** Ссылка на файл из сервиса: относительные пути растут от базового адреса. */
@@ -363,11 +400,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Скины качаем не больше чем по четыре сразу: у сервера сотни участников, и
+ * Скины качаем не больше чем по десять сразу: у сервера сотни участников, и
  * если запросить все головы разом, сеть лаунчера захлёбывается — Modrinth и
  * загрузка файлов сборок встают в очередь за ними.
  */
-const SKIN_SLOTS = 4
+const SKIN_SLOTS = 10
+/** Скин весит пару килобайт: если за это время не пришёл — запрос завис, слот освобождаем. */
+const SKIN_TIMEOUT = 9000
 let skinBusy = 0
 const skinWaiting: (() => void)[] = []
 
@@ -386,8 +425,19 @@ async function withSkinSlot<T>(task: () => Promise<T>): Promise<T> {
 async function cropSkinHead(src: string, size = 64): Promise<string> {
 	try {
 		const probe = await withSkinSlot(async () => {
-			const response = await proxiedFetch(src, { connectTimeout: 8000 })
-			return { ok: response.ok, blob: response.ok ? await response.blob() : null }
+			const controller = new AbortController()
+			const timer = setTimeout(() => controller.abort(), SKIN_TIMEOUT)
+			try {
+				const response = await proxiedFetch(src, {
+					connectTimeout: 6000,
+					signal: controller.signal,
+				})
+				return { ok: response.ok, blob: response.ok ? await response.blob() : null }
+			} catch {
+				return { ok: false, blob: null }
+			} finally {
+				clearTimeout(timer)
+			}
 		})
 		if (!probe.ok || !probe.blob) return ''
 		const blob = probe.blob
@@ -440,6 +490,81 @@ function serviceHead(key: string, size: number): string {
 		return `https://mc-heads.net/avatar/${encodeURIComponent(key)}/${size}`
 	}
 	return STEVE_HEAD
+}
+
+/**
+ * Лист скина для 3D-превью профиля. Качаем через прокси в blob: three.js
+ * грузит текстуру с CORS, а из РФ часть сервисов скинов напрямую не
+ * открывается. Перебираем источники по очереди, пока не найдём настоящий
+ * лист 64×64/64×32.
+ */
+const skinTextureCache = new Map<string, Promise<string>>()
+
+async function fetchSkinSheet(src: string): Promise<string> {
+	const probe = await withSkinSlot(async () => {
+		const controller = new AbortController()
+		const timer = setTimeout(() => controller.abort(), SKIN_TIMEOUT)
+		try {
+			const response = await proxiedFetch(src, { connectTimeout: 6000, signal: controller.signal })
+			return response.ok ? await response.blob() : null
+		} catch {
+			return null
+		} finally {
+			clearTimeout(timer)
+		}
+	})
+	if (!probe) return ''
+	const objectUrl = URL.createObjectURL(probe)
+	try {
+		const image = await loadImage(objectUrl)
+		const width = image.naturalWidth || image.width
+		const height = image.naturalHeight || image.height
+		if (width < 64 || width % 64 !== 0) throw new Error('not_a_skin')
+		const rows = height / (width / 64)
+		if (Math.abs(rows - 64) > 0.5 && Math.abs(rows - 32) > 0.5) throw new Error('not_a_skin')
+		return objectUrl
+	} catch {
+		URL.revokeObjectURL(objectUrl)
+		return ''
+	}
+}
+
+export function loadSkinTexture(user: {
+	skinUrl?: string | null
+	uuid?: string | null
+	username?: string | null
+	provider?: string | null
+}): Promise<string> {
+	const uuid = String(user.uuid || '')
+		.replace(/-/g, '')
+		.toLowerCase()
+	const name = String(user.username || '').trim()
+	const own = resolveServiceMedia(user.skinUrl)
+	const key = `${own}|${uuid}|${name}`
+	const cached = skinTextureCache.get(key)
+	if (cached) return cached
+	const sources: string[] = []
+	if (own) sources.push(own)
+	if (user.provider === 'ely' && name) {
+		sources.push(`https://skinsystem.ely.by/skins/${encodeURIComponent(name)}.png`)
+	}
+	if (uuid.length >= 32) {
+		sources.push(`https://mc-heads.net/skin/${uuid}`, `https://crafatar.com/skins/${uuid}`)
+	} else if (name) {
+		sources.push(`https://mc-heads.net/skin/${encodeURIComponent(name)}`)
+	}
+	const job = (async () => {
+		for (const src of sources) {
+			const url = await fetchSkinSheet(src)
+			if (url) return url
+		}
+		return ''
+	})()
+	skinTextureCache.set(key, job)
+	job.then((url) => {
+		if (!url) skinTextureCache.delete(key)
+	})
+	return job
 }
 
 export async function resolveAvatar(

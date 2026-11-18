@@ -15,6 +15,7 @@ import { useMessengerT } from './i18n'
 import { downloadAttachment, mediaBlobUrl } from './media'
 import MicIcon from './MicIcon.vue'
 import { type Attachment, formatDuration, formatSize } from './model'
+import ServiceImage from './ServiceImage.vue'
 import { showToast } from './store'
 import { openLightbox } from './ui-bus'
 
@@ -122,13 +123,11 @@ onBeforeUnmount(() => audio.value?.pause())
 			class="msgr-att__image"
 			@click="openLightbox(attachment.url, attachment.name)"
 		>
-			<img
+			<ServiceImage
 				:src="attachment.url"
-				alt=""
-				draggable="false"
-				:loading="attachment.kind === 'gif' ? 'eager' : 'lazy'"
-				decoding="async"
-				@error="imageFailed = true"
+				:mime="attachment.mime"
+				:lazy="attachment.kind !== 'gif'"
+				@failed="imageFailed = true"
 			/>
 			<span v-if="attachment.kind === 'gif'" class="msgr-att__badge">GIF</span>
 		</button>

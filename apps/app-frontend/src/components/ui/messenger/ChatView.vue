@@ -4,6 +4,7 @@ import {
 	HashIcon,
 	PinIcon,
 	SearchIcon,
+	SendIcon,
 	UploadIcon,
 	UserIcon,
 	UserPlusIcon,
@@ -33,6 +34,7 @@ import {
 	loadOlder,
 	loadPins,
 	myId,
+	openServer,
 	presenceFor,
 	relationOf,
 	requestFriend,
@@ -91,6 +93,21 @@ const callPhase = computed(() => {
 })
 
 const peerStatus = computed(() => (peer.value ? presenceFor(peer.value.id) : 'offline'))
+
+const peerProvider = computed(() => {
+	const provider = peer.value?.provider
+	if (peer.value?.bot || provider === 'bot') return 'Undefined ID'
+	return provider === 'ely' ? 'Ely.by' : 'Microsoft'
+})
+
+/** Серверы, где мы оба — из уже загруженных составов, без лишних запросов. */
+const sharedServers = computed(() => {
+	const id = peer.value?.id
+	if (!id) return []
+	return state.conversations.filter(
+		(item) => !item.dm && item.members.some((member) => member.id === id),
+	)
+})
 
 const statusLabel = computed(() => {
 	switch (peerStatus.value) {
@@ -459,19 +476,94 @@ function onDrop(event: DragEvent): void {
 					</div>
 					<div v-if="thread && !thread.hasMore && !thread.loading" class="msgr-chat__intro">
 						<template v-if="conv.dm && peer">
-							<UserAvatar :user-id="peer.id" :name="peer.username" :size="80" />
-							<h2>{{ title }}</h2>
-							<p>
-								{{
-									t(
-										'app.messenger.intro.dm',
-										'Это начало вашей истории личных сообщений с {name}.',
-										{
-											name: title,
-										},
-									)
-								}}
-							</p>
+							<div class="msgr-chat__intro-card">
+								<button
+									type="button"
+									class="msgr-chat__intro-avatar"
+									@click="openProfile(peer.id, peer.username)"
+								>
+									<UserAvatar
+										:user-id="peer.id"
+										:name="peer.username"
+										:size="88"
+										status
+										ring="#1a1b1e"
+									/>
+								</button>
+								<div class="msgr-chat__intro-text">
+									<h2>{{ title }}</h2>
+									<span class="msgr-chat__intro-meta">
+										<span class="msgr-chat__intro-chip">{{ peerProvider }}</span>
+										<span class="msgr-chat__intro-status" :class="`is-${peerStatus}`">
+											<i />
+											{{ statusLabel }}
+										</span>
+									</span>
+									<p>
+										{{
+											t(
+												'app.messenger.intro.dm',
+												'Это начало вашей истории личных сообщений с {name}.',
+												{
+													name: title,
+												},
+											)
+										}}
+									</p>
+								</div>
+							</div>
+							<div class="msgr-chat__intro-actions">
+								<button type="button" class="is-accent" @click="composer?.focus()">
+									<SendIcon />
+									{{ t('app.messenger.intro.sayHi', 'Поздороваться') }}
+								</button>
+								<button type="button" @click="openProfile(peer.id, peer.username)">
+									<UserIcon />
+									{{ t('app.messenger.intro.profile', 'Профиль') }}
+								</button>
+								<button
+									v-if="!peer.bot"
+									type="button"
+									:disabled="callPhase !== 'idle'"
+									@click="callPeer"
+								>
+									<PhoneIcon />
+									{{ t('app.messenger.call.short', 'Позвонить') }}
+								</button>
+								<button
+									v-if="!peer.bot && relationOf(peer.id) === 'none'"
+									type="button"
+									@click="addFriend"
+								>
+									<UserPlusIcon />
+									{{ t('app.messenger.friends.add', 'Добавить в друзья') }}
+								</button>
+								<span v-else-if="relationOf(peer.id) === 'outgoing'" class="msgr-chat__intro-note">
+									{{ t('app.messenger.intro.requestSent', 'Заявка в друзья отправлена') }}
+								</span>
+							</div>
+							<div v-if="sharedServers.length" class="msgr-chat__intro-shared">
+								<small>
+									{{
+										t('app.messenger.intro.shared', 'Общие серверы · {n}', {
+											n: String(sharedServers.length),
+										})
+									}}
+								</small>
+								<div>
+									<button
+										v-for="server in sharedServers.slice(0, 6)"
+										:key="server.id"
+										v-tip="server.title"
+										type="button"
+										class="msgr-chat__intro-server"
+										@click="openServer(server.id)"
+									>
+										<img v-if="server.avatarUrl" :src="server.avatarUrl" alt="" />
+										<span v-else>{{ server.title.slice(0, 2).toUpperCase() }}</span>
+									</button>
+								</div>
+							</div>
 						</template>
 						<template v-else>
 							<span class="msgr-chat__intro-hash"><HashIcon /></span>
@@ -845,6 +937,233 @@ function onDrop(event: DragEvent): void {
 .msgr-chat__intro {
 	padding: 1rem 1rem 0.5rem;
 	animation: msgr-fade-up 0.3s ease-out;
+}
+
+.msgr-chat__intro-card {
+	display: flex;
+	align-items: center;
+	gap: 1.1rem;
+}
+
+.msgr-chat__intro-avatar {
+	position: relative;
+	flex-shrink: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	cursor: pointer;
+	padding: 0;
+	transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1.2);
+}
+
+.msgr-chat__intro-avatar::after {
+	position: absolute;
+	inset: -6px;
+	border: 2px solid color-mix(in srgb, var(--color-brand) 55%, transparent);
+	border-radius: 50%;
+	opacity: 0;
+	transform: scale(0.9);
+	transition:
+		opacity 0.25s ease,
+		transform 0.25s ease;
+	content: '';
+}
+
+.msgr-chat__intro-avatar:hover {
+	transform: translateY(-2px) scale(1.03);
+}
+
+.msgr-chat__intro-avatar:hover::after {
+	opacity: 1;
+	transform: scale(1);
+}
+
+.msgr-chat__intro-text {
+	min-width: 0;
+}
+
+.msgr-chat__intro .msgr-chat__intro-text h2 {
+	margin-top: 0;
+}
+
+.msgr-chat__intro-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.4rem;
+	font-size: 0.8rem;
+}
+
+.msgr-chat__intro-chip {
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.08);
+	color: var(--color-contrast);
+	font-size: 0.7rem;
+	font-weight: 700;
+	padding: 0.1rem 0.45rem;
+}
+
+.msgr-chat__intro-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	color: var(--color-secondary);
+}
+
+.msgr-chat__intro-status i {
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	background: #80848e;
+}
+
+.msgr-chat__intro-status.is-online i {
+	background: #23a55a;
+	box-shadow: 0 0 0 0 rgba(35, 165, 90, 0.6);
+	animation: msgr-intro-ping 2.2s ease-out infinite;
+}
+
+.msgr-chat__intro-status.is-busy i {
+	background: #f0b232;
+}
+
+.msgr-chat__intro-status.is-dnd i {
+	background: #f23f43;
+}
+
+.msgr-chat__intro-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
+
+.msgr-chat__intro-actions button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 9px;
+	background: #2b2d31;
+	color: var(--color-contrast);
+	cursor: pointer;
+	font: inherit;
+	font-size: 0.82rem;
+	font-weight: 600;
+	padding: 0.45rem 0.8rem;
+	animation: msgr-fade-up 0.35s ease-out both;
+	transition:
+		background 0.15s ease,
+		transform 0.15s ease,
+		border-color 0.15s ease;
+}
+
+.msgr-chat__intro-actions button:nth-child(2) {
+	animation-delay: 40ms;
+}
+
+.msgr-chat__intro-actions button:nth-child(3) {
+	animation-delay: 80ms;
+}
+
+.msgr-chat__intro-actions button:nth-child(4) {
+	animation-delay: 120ms;
+}
+
+.msgr-chat__intro-actions button:hover:not(:disabled) {
+	background: #35373c;
+	transform: translateY(-1px);
+}
+
+.msgr-chat__intro-actions button:active:not(:disabled) {
+	transform: translateY(0) scale(0.98);
+}
+
+.msgr-chat__intro-actions button:disabled {
+	cursor: default;
+	opacity: 0.5;
+}
+
+.msgr-chat__intro-actions button.is-accent {
+	border-color: transparent;
+	background: var(--color-brand);
+	color: var(--color-accent-contrast, #fff);
+}
+
+.msgr-chat__intro-actions button.is-accent:hover {
+	background: color-mix(in srgb, var(--color-brand) 85%, #fff);
+}
+
+.msgr-chat__intro-actions svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+.msgr-chat__intro-note {
+	color: var(--color-secondary);
+	font-size: 0.8rem;
+}
+
+.msgr-chat__intro-shared {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin-top: 1rem;
+}
+
+.msgr-chat__intro-shared small {
+	color: var(--color-secondary);
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.msgr-chat__intro-shared div {
+	display: flex;
+	gap: 0.4rem;
+}
+
+.msgr-chat__intro-server {
+	display: grid;
+	width: 2.4rem;
+	height: 2.4rem;
+	place-items: center;
+	overflow: hidden;
+	border: none;
+	border-radius: 14px;
+	background: #2b2d31;
+	color: var(--color-contrast);
+	cursor: pointer;
+	font-size: 0.75rem;
+	font-weight: 700;
+	padding: 0;
+	transition:
+		border-radius 0.2s ease,
+		transform 0.2s ease;
+}
+
+.msgr-chat__intro-server:hover {
+	border-radius: 10px;
+	transform: translateY(-1px);
+}
+
+.msgr-chat__intro-server img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+@keyframes msgr-intro-ping {
+	0% {
+		box-shadow: 0 0 0 0 rgba(35, 165, 90, 0.55);
+	}
+	70%,
+	100% {
+		box-shadow: 0 0 0 6px rgba(35, 165, 90, 0);
+	}
 }
 
 .msgr-chat__intro h2 {
@@ -1261,6 +1580,8 @@ function onDrop(event: DragEvent): void {
 	.msgr-chat__skeleton-avatar,
 	.msgr-chat__skeleton-lines span,
 	.msgr-chat__intro,
+	.msgr-chat__intro-actions button,
+	.msgr-chat__intro-status i,
 	.msgr-chat__drop-card {
 		animation: none;
 	}

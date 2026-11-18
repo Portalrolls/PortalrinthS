@@ -5,6 +5,7 @@ import { onBeforeUnmount, ref, watch } from 'vue'
 
 import { useMessengerT } from './i18n'
 import { downloadAttachment } from './media'
+import ServiceImage from './ServiceImage.vue'
 import { showToast } from './store'
 import { vTip } from './tooltip'
 
@@ -69,11 +70,10 @@ defineExpose({ show })
 						<XIcon />
 					</button>
 				</div>
-				<img
+				<ServiceImage
 					:src="current.url"
-					alt=""
-					class="msgr-lightbox__img"
-					:class="{ 'is-zoomed': zoomed }"
+					:lazy="false"
+					:img-class="['msgr-lightbox__img', { 'is-zoomed': zoomed }]"
 					@click="zoomed = !zoomed"
 				/>
 			</div>

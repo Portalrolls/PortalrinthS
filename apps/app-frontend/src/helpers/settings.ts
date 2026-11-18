@@ -186,9 +186,22 @@ export async function get() {
 	return (await invoke('plugin:settings|settings_get')) as AppSettings
 }
 
+/**
+ * Прокси, сохранённый своим блоком в настройках. Остальные вкладки пишут
+ * настройки целиком из копии, снятой при открытии, — без этого они
+ * откатывали бы только что введённый прокси.
+ */
+let pinnedProxy: string | null | undefined
+
 // Set full settings object
 export async function set(settings: AppSettings) {
-	return await invoke('plugin:settings|settings_set', { settings })
+	const next = pinnedProxy === undefined ? settings : { ...settings, proxy_url: pinnedProxy }
+	return await invoke('plugin:settings|settings_set', { settings: next })
+}
+
+export async function setProxySetting(url: string | null) {
+	pinnedProxy = url?.trim() || null
+	await set(await get())
 }
 
 export async function cancel_directory_change(): Promise<void> {

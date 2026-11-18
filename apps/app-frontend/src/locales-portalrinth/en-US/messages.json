@@ -5060,5 +5060,68 @@
 	},
 	"app.ai.picker.pixi.locked": {
 		"message": "Locked — an open one answers"
+	},
+	"app.resource-settings.proxy.check": {
+		"message": "Check"
+	},
+	"app.resource-settings.proxy.save": {
+		"message": "Save"
+	},
+	"app.resource-settings.proxy.clear": {
+		"message": "Connect directly"
+	},
+	"app.resource-settings.proxy.invalid": {
+		"message": "The address must start with http://, https://, socks5:// or socks5h://"
+	},
+	"app.resource-settings.proxy.ok": {
+		"message": "{target}: {ms} ms"
+	},
+	"app.resource-settings.proxy.failed": {
+		"message": "{target}: no answer"
+	},
+	"app.resource-settings.proxy.restart": {
+		"message": "Messenger and news already use the new proxy. Modrinth and downloads pick it up after a restart."
+	},
+	"app.resource-settings.proxy.restartNow": {
+		"message": "Restart"
+	},
+	"app.messenger.call.short": {
+		"message": "Call"
+	},
+	"app.messenger.friends.message": {
+		"message": "Message"
+	},
+	"app.messenger.friends.recent": {
+		"message": "Recently online"
+	},
+	"app.messenger.friends.seenMin": {
+		"message": "{n} min ago"
+	},
+	"app.messenger.friends.seenHour": {
+		"message": "{n} h ago"
+	},
+	"app.messenger.friends.seenDay": {
+		"message": "{n} d ago"
+	},
+	"app.messenger.intro.sayHi": {
+		"message": "Say hi"
+	},
+	"app.messenger.intro.profile": {
+		"message": "Profile"
+	},
+	"app.messenger.intro.requestSent": {
+		"message": "Friend request sent"
+	},
+	"app.messenger.intro.shared": {
+		"message": "Shared servers · {n}"
+	},
+	"app.messenger.profile.noSkin": {
+		"message": "Skin not found"
+	},
+	"app.messenger.profile.slow": {
+		"message": "The service is slow — showing what we already know"
+	},
+	"app.messenger.profile.partial": {
+		"message": "The full profile did not load"
 	}
 }

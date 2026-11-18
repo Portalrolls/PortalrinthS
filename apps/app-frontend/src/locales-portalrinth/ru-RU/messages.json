@@ -7667,12 +7667,75 @@
 		"message": "Прослушать"
 	},
 	"app.appearance-settings.loop-animation.title": {
-		"message": "Loop Animation"
+		"message": "Анимация «Петля»"
 	},
 	"app.appearance-settings.loop-animation.description": {
 		"message": "Кнопка или ссылка под курсором чуть увеличивается, а соседние на той же панели или баре отходят назад."
 	},
 	"app.ai.picker.pixi.locked": {
 		"message": "Закрыта — ответит открытая"
+	},
+	"app.resource-settings.proxy.check": {
+		"message": "Проверить"
+	},
+	"app.resource-settings.proxy.save": {
+		"message": "Сохранить"
+	},
+	"app.resource-settings.proxy.clear": {
+		"message": "Подключаться напрямую"
+	},
+	"app.resource-settings.proxy.invalid": {
+		"message": "Адрес должен начинаться с http://, https://, socks5:// или socks5h://"
+	},
+	"app.resource-settings.proxy.ok": {
+		"message": "{target}: {ms} мс"
+	},
+	"app.resource-settings.proxy.failed": {
+		"message": "{target}: нет ответа"
+	},
+	"app.resource-settings.proxy.restart": {
+		"message": "Мессенджер и новости уже идут через новый прокси. Modrinth и загрузки подхватят его после перезапуска."
+	},
+	"app.resource-settings.proxy.restartNow": {
+		"message": "Перезапустить"
+	},
+	"app.messenger.call.short": {
+		"message": "Позвонить"
+	},
+	"app.messenger.friends.message": {
+		"message": "Написать"
+	},
+	"app.messenger.friends.recent": {
+		"message": "Недавно были в сети"
+	},
+	"app.messenger.friends.seenMin": {
+		"message": "{n} мин назад"
+	},
+	"app.messenger.friends.seenHour": {
+		"message": "{n} ч назад"
+	},
+	"app.messenger.friends.seenDay": {
+		"message": "{n} дн назад"
+	},
+	"app.messenger.intro.sayHi": {
+		"message": "Поздороваться"
+	},
+	"app.messenger.intro.profile": {
+		"message": "Профиль"
+	},
+	"app.messenger.intro.requestSent": {
+		"message": "Заявка в друзья отправлена"
+	},
+	"app.messenger.intro.shared": {
+		"message": "Общие серверы · {n}"
+	},
+	"app.messenger.profile.noSkin": {
+		"message": "Скин не найден"
+	},
+	"app.messenger.profile.slow": {
+		"message": "Сервис отвечает медленно — пока показываем то, что знаем"
+	},
+	"app.messenger.profile.partial": {
+		"message": "Полный профиль не загрузился"
 	}
 }

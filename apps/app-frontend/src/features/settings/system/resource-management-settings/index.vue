@@ -8,6 +8,7 @@ import { get, set } from '@/helpers/settings.ts'
 import { setSkinRenderService, useSkinRenderService } from '@/helpers/skin-render-service'
 
 import ContentStorageSettings from './content-storage.vue'
+import ProxySettings from './proxy-settings.vue'
 
 const { formatMessage } = useVIntl()
 const settings = ref(await get())
@@ -59,18 +60,15 @@ const messages = defineMessages({
 	},
 	skinServicesVzge: {
 		id: 'app.settings.resource-management.skin-services.vzge',
-		defaultMessage:
-			'vzge.me — быстрый 3D-рендер с CDN, принимает любой хеш (по умолчанию)',
+		defaultMessage: 'vzge.me — быстрый 3D-рендер с CDN, принимает любой хеш (по умолчанию)',
 	},
 	skinServicesSkinrender: {
 		id: 'app.settings.resource-management.skin-services.skinrender',
-		defaultMessage:
-			'SkinRender.dev — свой 3D-движок, принимает любой хеш',
+		defaultMessage: 'SkinRender.dev — свой 3D-движок, принимает любой хеш',
 	},
 	skinServicesNmsr: {
 		id: 'app.settings.resource-management.skin-services.nmsr',
-		defaultMessage:
-			'NMSR — эталонный рендер, принимает любой хеш',
+		defaultMessage: 'NMSR — эталонный рендер, принимает любой хеш',
 	},
 	skinServicesLaby: {
 		id: 'app.settings.resource-management.skin-services.laby',
@@ -168,6 +166,8 @@ async function findLauncherDir() {
 			</p>
 		</div>
 
+		<ProxySettings />
+
 		<div class="flex flex-col gap-2.5">
 			<h2 class="m-0 text-lg font-semibold text-contrast mt-4">
 				{{ formatMessage(messages.maximumConcurrentDownloadsTitle) }}
@@ -200,10 +200,10 @@ async function findLauncherDir() {
 			</p>
 		</div>
 
-			<div class="flex flex-col gap-2.5">
-				<h2 class="mt-0 m-0 text-lg font-semibold text-contrast">
-					{{ formatMessage(messages.skinServicesTitle) }}
-				</h2>
+		<div class="flex flex-col gap-2.5">
+			<h2 class="mt-0 m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.skinServicesTitle) }}
+			</h2>
 			<p class="m-0 leading-tight text-secondary">
 				{{ formatMessage(messages.skinServicesDescription) }}
 			</p>
@@ -227,13 +227,9 @@ async function findLauncherDir() {
 							{{ formatMessage(option.description) }}
 						</span>
 					</span>
-					<CheckIcon
-						v-if="skinService === option.id"
-						class="size-5 shrink-0 text-contrast"
-					/>
+					<CheckIcon v-if="skinService === option.id" class="size-5 shrink-0 text-contrast" />
 				</button>
 			</div>
 		</div>
-
 	</div>
 </template>

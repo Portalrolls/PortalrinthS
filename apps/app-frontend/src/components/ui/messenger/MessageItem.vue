@@ -422,7 +422,12 @@ function mention(name: string, el: HTMLElement): void {
 
 				<MessageAttachment v-if="msg.attachment && !isSticker" :attachment="msg.attachment" />
 
-				<div v-if="msg.reactions.length" class="msgr-msg__reactions">
+				<TransitionGroup
+					v-if="msg.reactions.length"
+					tag="div"
+					name="msgr-reaction"
+					class="msgr-msg__reactions"
+				>
 					<button
 						v-for="reaction in msg.reactions"
 						:key="reaction.emoji"
@@ -433,9 +438,10 @@ function mention(name: string, el: HTMLElement): void {
 						@click="react(reaction.emoji)"
 					>
 						<span>{{ reaction.emoji }}</span>
-						<b>{{ reaction.count }}</b>
+						<b :key="reaction.count" class="msgr-msg__reaction-count">{{ reaction.count }}</b>
 					</button>
 					<button
+						key="__add"
 						type="button"
 						class="msgr-msg__reaction msgr-msg__reaction--add"
 						:title="t('app.messenger.react.add', 'Добавить реакцию')"
@@ -443,7 +449,7 @@ function mention(name: string, el: HTMLElement): void {
 					>
 						<SmileIcon />
 					</button>
-				</div>
+				</TransitionGroup>
 			</div>
 		</div>
 
@@ -652,7 +658,7 @@ function mention(name: string, el: HTMLElement): void {
 	padding: 0.15rem 1rem 0.15rem 0;
 	margin-top: 1rem;
 	transition: background 0.12s ease;
-	animation: msgr-msg-in 0.22s ease-out;
+	animation: msgr-msg-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .msgr-msg.is-grouped {
@@ -842,10 +848,36 @@ function mention(name: string, el: HTMLElement): void {
 	font: inherit;
 	font-size: 0.85rem;
 	cursor: pointer;
-	animation: msgr-pop 0.2s ease-out;
+	animation: msgr-pop 0.34s cubic-bezier(0.3, 1.5, 0.5, 1);
 	transition:
-		background 0.12s ease,
-		border-color 0.12s ease;
+		background 0.15s ease,
+		border-color 0.15s ease,
+		transform 0.15s ease;
+}
+
+.msgr-msg__reaction:active {
+	transform: scale(0.9);
+}
+
+.msgr-msg__reaction-count {
+	display: inline-block;
+	animation: msgr-count 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.msgr-reaction-leave-active {
+	position: absolute;
+	transition:
+		opacity 0.18s ease,
+		transform 0.18s ease;
+}
+
+.msgr-reaction-leave-to {
+	opacity: 0;
+	transform: scale(0.5);
+}
+
+.msgr-reaction-move {
+	transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .msgr-msg__reaction b {
@@ -890,10 +922,11 @@ function mention(name: string, el: HTMLElement): void {
 	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 	opacity: 0;
 	pointer-events: none;
-	transform: translateY(3px);
+	transform: translateY(4px) scale(0.96);
+	transform-origin: right bottom;
 	transition:
-		opacity 0.12s ease,
-		transform 0.12s ease;
+		opacity 0.14s ease,
+		transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1.2);
 }
 
 .msgr-msg:hover .msgr-msg__toolbar,
@@ -992,7 +1025,14 @@ function mention(name: string, el: HTMLElement): void {
 @keyframes msgr-msg-in {
 	from {
 		opacity: 0;
-		transform: translateY(6px);
+		transform: translateY(8px) scale(0.99);
+	}
+}
+
+@keyframes msgr-count {
+	from {
+		opacity: 0;
+		transform: translateY(-60%);
 	}
 }
 
@@ -1005,13 +1045,15 @@ function mention(name: string, el: HTMLElement): void {
 
 @keyframes msgr-pop {
 	from {
-		transform: scale(0.6);
+		opacity: 0;
+		transform: scale(0.4);
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.msgr-msg,
 	.msgr-msg__reaction,
+	.msgr-msg__reaction-count,
 	.msgr-msg.is-highlight {
 		animation: none;
 	}

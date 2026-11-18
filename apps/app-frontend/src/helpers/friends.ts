@@ -161,10 +161,12 @@ export async function transformFriends(
 		return []
 	}
 
-	const friendStatuses = await friend_statuses()
-	const users = await get_user_many(
+	// Modrinth в РФ часто не отвечает: друзей показываем и без карточек, а не
+	// роняем весь список всплывающей ошибкой подключения.
+	const friendStatuses = await friend_statuses().catch(() => [] as UserStatus[])
+	const users = ((await get_user_many(
 		friends.map((x) => (x.id === credentials.user_id ? x.friend_id : x.id)),
-	)
+	).catch(() => [])) ?? []) as User[]
 
 	return friends.map((friend) => {
 		const user = users.find((x: User) => x.id === friend.id || x.id === friend.friend_id)

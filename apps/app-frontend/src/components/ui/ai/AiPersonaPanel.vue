@@ -286,7 +286,7 @@ const touched = computed(() => Boolean(draft.name || draft.role || draft.style |
 	box-sizing: border-box;
 	border: 1px solid var(--surface-5);
 	border-radius: 0.65rem;
-	background: var(--color-bg);
+	background: var(--color-raised-bg);
 	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.8rem;

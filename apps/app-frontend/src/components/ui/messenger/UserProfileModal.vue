@@ -15,7 +15,12 @@ import {
 import { SkinPreviewRenderer } from '@modrinth/ui'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
-import { type LooseRecord, resolveServiceMedia, serviceRequest } from '@/helpers/uprojects-service'
+import {
+	loadSkinTexture,
+	type LooseRecord,
+	resolveServiceMedia,
+	serviceRequest,
+} from '@/helpers/uprojects-service'
 
 import { useMessengerT } from './i18n'
 import { formatDate, isInGame, type Peer } from './model'
@@ -63,39 +68,70 @@ const skinTexture = ref('')
 const followBusy = ref(false)
 const tab = ref<'about' | 'posts'>('about')
 
+/** Профиль с сервиса может идти долго — после этого показываем то, что уже
+ * знает мессенджер, а полный профиль подставим, когда дойдёт. */
+const PROFILE_PATIENCE = 9000
+
+const slow = ref(false)
+
+async function loadProfile(user: ProfileTarget): Promise<void> {
+	loading.value = true
+	failed.value = false
+	slow.value = false
+	const id = encodeURIComponent(String(user.id))
+	const request = Promise.allSettled([
+		serviceRequest(`/users/${id}/profile`),
+		serviceRequest(`/social/users/${id}/stats`),
+	])
+	let timer: ReturnType<typeof setTimeout> | undefined
+	const patience = new Promise<'slow'>((resolve) => {
+		timer = setTimeout(() => resolve('slow'), PROFILE_PATIENCE)
+	})
+	const first = await Promise.race([request, patience])
+	if (first === 'slow') {
+		if (target.value !== user) return
+		loading.value = false
+		slow.value = true
+	}
+	const [profileRes, statsRes] = first === 'slow' ? await request : first
+	clearTimeout(timer)
+	if (target.value !== user) return
+	loading.value = false
+	slow.value = false
+	if (profileRes.status !== 'fulfilled' || !profileRes.value.ok) {
+		failed.value = true
+		return
+	}
+	profile.value = (profileRes.value.data?.user ?? profileRes.value.data) as LooseRecord
+	rememberUser(profile.value)
+	if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
+		stats.value = (statsRes.value.data?.stats ?? null) as LooseRecord | null
+	}
+	void refreshSkin()
+}
+
 defineExpose({
 	async show(user: ProfileTarget, opts: { canWrite?: boolean; self?: boolean } = {}) {
 		target.value = user
 		isSelf.value = Boolean(opts.self)
 		canWrite.value = Boolean(opts.canWrite)
-		loading.value = true
-		failed.value = false
 		profile.value = null
 		stats.value = null
 		posts.value = null
 		skinTexture.value = ''
+		skinMissing.value = false
 		tab.value = 'about'
 		open.value = true
 		requestCard(String(user.id))
-		const id = encodeURIComponent(String(user.id))
-		const [profileRes, statsRes] = await Promise.allSettled([
-			serviceRequest(`/users/${id}/profile`),
-			serviceRequest(`/social/users/${id}/stats`),
-		])
-		if (target.value !== user) return
-		loading.value = false
-		if (profileRes.status !== 'fulfilled' || !profileRes.value.ok) {
-			failed.value = !userOf(String(user.id))
-			return
-		}
-		profile.value = (profileRes.value.data?.user ?? profileRes.value.data) as LooseRecord
-		rememberUser(profile.value)
-		if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
-			stats.value = (statsRes.value.data?.stats ?? null) as LooseRecord | null
-		}
-		loadSkinTexture()
+		// Скин не ждёт профиль: uuid и ник уже есть у мессенджера.
+		void refreshSkin()
+		await loadProfile(user)
 	},
 })
+
+function retry(): void {
+	if (target.value) void loadProfile(target.value)
+}
 
 function close(): void {
 	open.value = false
@@ -112,14 +148,27 @@ watch(open, (value) => {
 
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
-function loadSkinTexture(): void {
-	const direct = resolveServiceMedia(profile.value?.skinUrl as string | null)
-	if (direct) {
-		skinTexture.value = direct
-		return
+const skinMissing = ref(false)
+
+async function refreshSkin(): Promise<void> {
+	const user = target.value
+	if (!user) return
+	const known = userOf(String(user.id))
+	const url = await loadSkinTexture({
+		skinUrl: (profile.value?.skinUrl as string | null) ?? known?.skinUrl ?? null,
+		uuid: String(profile.value?.uuid || known?.uuid || user.uuid || ''),
+		username: String(
+			profile.value?.username || known?.username || user.username || user.name || '',
+		),
+		provider: String(profile.value?.provider || known?.provider || ''),
+	})
+	if (target.value !== user) return
+	if (url) {
+		skinTexture.value = url
+		skinMissing.value = false
+	} else if (!skinTexture.value) {
+		skinMissing.value = true
 	}
-	const uuid = String(profile.value?.uuid || target.value?.uuid || '').replace(/-/g, '')
-	if (uuid) skinTexture.value = `https://crafatar.com/skins/${uuid}`
 }
 
 const userId = computed(() => String(target.value?.id ?? ''))
@@ -235,7 +284,15 @@ type InfoRow = {
 }
 
 const rows = computed<InfoRow[]>(() => {
-	const p = profile.value
+	const p: LooseRecord | null =
+		profile.value ??
+		(peer.value
+			? {
+					provider: peer.value.provider,
+					uuid: peer.value.uuid,
+					lastSeenAt: peer.value.lastSeenAt,
+				}
+			: null)
 	if (!p) return []
 	const noData = t('app.messenger.profile.noData', 'Нет данных')
 	const out: InfoRow[] = [
@@ -429,7 +486,13 @@ function edit(): void {
 								:initial-rotation="Math.PI / 8"
 								class="upm__canvas"
 							/>
-							<UserIcon v-else class="upm__skin-stub" />
+							<div v-else-if="skinMissing" class="upm__skin-none">
+								<UserIcon class="upm__skin-stub" />
+								<span>{{ t('app.messenger.profile.noSkin', 'Скин не найден') }}</span>
+							</div>
+							<div v-else class="upm__skin-wait" aria-hidden="true">
+								<span class="upm__skin-figure" />
+							</div>
 						</aside>
 
 						<div class="upm__main">
@@ -523,13 +586,30 @@ function edit(): void {
 									<span class="msgr-spinner" />
 									{{ t('app.messenger.profile.loading', 'Загружаем профиль…') }}
 								</div>
-								<div v-else-if="failed" class="upm__state">
+								<div v-else-if="failed && !rows.length" class="upm__state">
 									<UserIcon />
 									{{
 										t('app.messenger.profile.failed', 'Профиль не загрузился — попробуйте ещё раз')
 									}}
+									<button type="button" class="upm__btn" @click="retry">
+										{{ t('app.messenger.retry', 'Повторить') }}
+									</button>
 								</div>
 								<template v-else-if="tab === 'about'">
+									<div v-if="slow || failed" class="upm__notice">
+										<span v-if="slow" class="msgr-spinner" />
+										{{
+											slow
+												? t(
+														'app.messenger.profile.slow',
+														'Сервис отвечает медленно — пока показываем то, что знаем',
+													)
+												: t('app.messenger.profile.partial', 'Полный профиль не загрузился')
+										}}
+										<button v-if="failed" type="button" @click="retry">
+											{{ t('app.messenger.retry', 'Повторить') }}
+										</button>
+									</div>
 									<div v-if="activity" class="upm__activity">
 										<span class="upm__activity-icon"><GameIcon /></span>
 										<div>
@@ -709,6 +789,49 @@ function edit(): void {
 	width: 3rem;
 	height: 3rem;
 	color: var(--color-secondary);
+}
+
+.upm__skin-none {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	color: var(--color-secondary);
+	font-size: 0.8rem;
+}
+
+/* Силуэт игрока, пока лист скина в пути. */
+.upm__skin-wait {
+	display: grid;
+	width: 100%;
+	height: 100%;
+	place-items: center;
+}
+
+.upm__skin-figure {
+	position: relative;
+	display: block;
+	width: 64px;
+	height: 190px;
+	border-radius: 6px;
+	background: linear-gradient(
+		100deg,
+		rgba(255, 255, 255, 0.05) 30%,
+		rgba(255, 255, 255, 0.14) 50%,
+		rgba(255, 255, 255, 0.05) 70%
+	);
+	background-size: 220% 100%;
+	mask:
+		linear-gradient(#000 0 0) top / 40px 40px no-repeat,
+		linear-gradient(#000 0 0) 50% 44px / 64px 72px no-repeat,
+		linear-gradient(#000 0 0) 50% 118px / 32px 72px no-repeat;
+	animation: upm-shimmer 1.4s linear infinite;
+}
+
+@keyframes upm-shimmer {
+	to {
+		background-position: -220% 0;
+	}
 }
 
 .upm__main {
@@ -974,6 +1097,41 @@ function edit(): void {
 .upm__state svg {
 	width: 1.3rem;
 	height: 1.3rem;
+}
+
+.upm__state .upm__btn {
+	margin-left: 0.4rem;
+}
+
+.upm__notice {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.6rem;
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.04);
+	color: var(--color-secondary);
+	font-size: 0.78rem;
+	padding: 0.5rem 0.7rem;
+	animation: upm-notice 0.3s ease both;
+}
+
+.upm__notice button {
+	margin-left: auto;
+	border: none;
+	background: transparent;
+	color: var(--upm-accent);
+	cursor: pointer;
+	font: inherit;
+	font-weight: 700;
+}
+
+@keyframes upm-notice {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
 }
 
 .upm__activity {

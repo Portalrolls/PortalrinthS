@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import { mediaBlobUrl } from './media'
+import ServiceImage from './ServiceImage.vue'
 import { loadStickerJson, type StickerKind } from './stickers'
 
 const props = withDefaults(defineProps<{ url: string; kind: StickerKind; size?: number }>(), {
@@ -12,6 +14,24 @@ type Player = { destroy: () => void; play: () => void; pause: () => void }
 const host = ref<HTMLElement | null>(null)
 const visible = ref(false)
 const failed = ref(false)
+
+/** Видео-стикер с чужого домена вебвью не играет (CSP) — отдаём его как blob. */
+const videoSrc = ref('')
+
+async function loadVideo(): Promise<void> {
+	if (props.kind !== 'video' || videoSrc.value) return
+	const url = props.url
+	if (/^(blob:|data:)/.test(url)) {
+		videoSrc.value = url
+		return
+	}
+	try {
+		const blob = await mediaBlobUrl(url, 'video/webm')
+		if (url === props.url) videoSrc.value = blob
+	} catch {
+		if (url === props.url) failed.value = true
+	}
+}
 
 let player: Player | null = null
 let observer: IntersectionObserver | null = null
@@ -57,8 +77,10 @@ onMounted(() => {
 	observer = new IntersectionObserver(
 		(entries) => {
 			visible.value = entries.some((entry) => entry.isIntersecting)
-			if (visible.value) void mountLottie()
-			else release()
+			if (visible.value) {
+				void mountLottie()
+				void loadVideo()
+			} else release()
 		},
 		{ rootMargin: '120px' },
 	)
@@ -70,8 +92,12 @@ watch(
 	() => props.url,
 	() => {
 		failed.value = false
+		videoSrc.value = ''
 		release()
-		if (visible.value) void mountLottie()
+		if (visible.value) {
+			void mountLottie()
+			void loadVideo()
+		}
 	},
 )
 
@@ -89,17 +115,10 @@ onBeforeUnmount(() => {
 		:class="{ 'is-failed': failed }"
 		:style="{ width: `${size}px`, height: `${size}px` }"
 	>
-		<img
-			v-if="kind === 'image' && visible"
-			:src="url"
-			alt=""
-			draggable="false"
-			loading="lazy"
-			decoding="async"
-		/>
+		<ServiceImage v-if="kind === 'image' && visible" :src="url" @failed="failed = true" />
 		<video
-			v-else-if="kind === 'video' && visible"
-			:src="url"
+			v-else-if="kind === 'video' && visible && videoSrc"
+			:src="videoSrc"
 			muted
 			playsinline
 			loop

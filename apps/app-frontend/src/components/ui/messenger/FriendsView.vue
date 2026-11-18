@@ -97,6 +97,25 @@ const rows = computed<Row[]>(() => {
 		)
 })
 
+/** Пустой «В сети»: кто из друзей заходил недавно — им можно сразу написать. */
+const recentFriends = computed(() => {
+	void state.presenceClock
+	if (state.friendsTab !== 'online' || rows.value.length) return []
+	return state.friends
+		.map((peer) => userOf(peer.id) ?? peer)
+		.filter((peer) => peer.lastSeenAt > 0)
+		.sort((a, b) => b.lastSeenAt - a.lastSeenAt)
+		.slice(0, 5)
+})
+
+function seenAgo(at: number): string {
+	const minutes = Math.max(1, Math.round((Date.now() - at) / 60000))
+	if (minutes < 60) return t('app.messenger.friends.seenMin', '{n} мин назад', { n: minutes })
+	const hours = Math.round(minutes / 60)
+	if (hours < 24) return t('app.messenger.friends.seenHour', '{n} ч назад', { n: hours })
+	return t('app.messenger.friends.seenDay', '{n} дн назад', { n: Math.round(hours / 24) })
+}
+
 const sectionTitle = computed(() => {
 	const count = rows.value.length
 	switch (state.friendsTab) {
@@ -421,6 +440,35 @@ async function block(peer: Peer): Promise<void> {
 					>
 						{{ t('app.messenger.friends.add', 'Добавить в друзья') }}
 					</button>
+					<div v-if="recentFriends.length" class="msgr-friends__recent">
+						<small>{{ t('app.messenger.friends.recent', 'Недавно были в сети') }}</small>
+						<div
+							v-for="(peer, index) in recentFriends"
+							:key="peer.id"
+							class="msgr-friends__recent-row"
+							:style="{ animationDelay: `${index * 45}ms` }"
+						>
+							<button
+								type="button"
+								class="msgr-friends__recent-who"
+								@click="openProfile(peer.id, peer.username)"
+							>
+								<UserAvatar :user-id="peer.id" :name="peer.username" :size="32" />
+								<span>
+									<b>{{ displayName(peer.id, peer.username) }}</b>
+									<em>{{ seenAgo(peer.lastSeenAt) }}</em>
+								</span>
+							</button>
+							<button
+								v-tip="t('app.messenger.friends.message', 'Написать')"
+								type="button"
+								class="msgr-friends__recent-act"
+								@click="writeTo(peer)"
+							>
+								<MessageIcon />
+							</button>
+						</div>
+					</div>
 				</div>
 			</div>
 		</Transition>
@@ -765,6 +813,105 @@ async function block(peer: Peer): Promise<void> {
 	margin: 0;
 }
 
+.msgr-friends__recent {
+	display: flex;
+	width: min(24rem, 100%);
+	flex-direction: column;
+	gap: 0.3rem;
+	margin-top: 1.2rem;
+	text-align: left;
+}
+
+.msgr-friends__recent small {
+	padding: 0 0.4rem 0.2rem;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.msgr-friends__recent-row {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	border-radius: 10px;
+	background: #2b2d31;
+	padding: 0.35rem 0.4rem;
+	animation: msgr-recent-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	transition: background 0.15s ease;
+}
+
+.msgr-friends__recent-row:hover {
+	background: #313338;
+}
+
+.msgr-friends__recent-who {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	align-items: center;
+	gap: 0.6rem;
+	border: none;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	padding: 0;
+	text-align: left;
+}
+
+.msgr-friends__recent-who span {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.msgr-friends__recent-who b {
+	overflow: hidden;
+	color: var(--color-contrast);
+	font-size: 0.85rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-friends__recent-who em {
+	font-size: 0.72rem;
+	font-style: normal;
+}
+
+.msgr-friends__recent-act {
+	display: grid;
+	width: 2rem;
+	height: 2rem;
+	place-items: center;
+	border: none;
+	border-radius: 50%;
+	background: #1e1f22;
+	color: var(--color-secondary);
+	cursor: pointer;
+	transition:
+		color 0.15s ease,
+		transform 0.15s ease;
+}
+
+.msgr-friends__recent-act:hover {
+	color: var(--color-contrast);
+	transform: scale(1.06);
+}
+
+.msgr-friends__recent-act svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+@keyframes msgr-recent-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+}
+
 .msgr-swap-enter-active,
 .msgr-swap-leave-active {
 	transition:
@@ -785,6 +932,10 @@ async function block(peer: Peer): Promise<void> {
 	.msgr-swap-enter-active,
 	.msgr-swap-leave-active {
 		transition: none;
+	}
+
+	.msgr-friends__recent-row {
+		animation: none;
 	}
 }
 </style>

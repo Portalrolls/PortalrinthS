@@ -44,6 +44,8 @@ import { Avatar, Button, IconButton, Input, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { CORE_PALETTES, CORE_STYLES, corePalette, coreStyle } from '@/components/ui/ai/agent-look'
+import AgentCore, { type CoreMode } from '@/components/ui/ai/AgentCore.vue'
 import AiActivity from '@/components/ui/ai/AiActivity.vue'
 import AiComposerMenu from '@/components/ui/ai/AiComposerMenu.vue'
 import AiModelPicker from '@/components/ui/ai/AiModelPicker.vue'
@@ -51,12 +53,6 @@ import AiPersonaPanel from '@/components/ui/ai/AiPersonaPanel.vue'
 import AiRichText from '@/components/ui/ai/AiRichText.vue'
 import AiSteps from '@/components/ui/ai/AiSteps.vue'
 import AiTaskCard from '@/components/ui/ai/AiTaskCard.vue'
-import {
-	releaseBloubFaces,
-	setBloubGaze,
-	syncBloubFaces,
-} from '@/components/ui/ai/bloub/face-adapter'
-import { COLORS, SHAPES } from '@/components/ui/ai/bloub/skins'
 import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import {
 	agentBusy,
@@ -576,16 +572,6 @@ async function deleteChat(meta: SessionMeta) {
 		return
 	}
 	await refreshSessionLists()
-}
-
-/**
- * One word of the chat and an ellipsis: a list of conversations reads at a
- * glance while the date-and-count label carries the rest.
- */
-function shortPreview(meta: SessionMeta): string {
-	const first = (meta.preview || '').split(/\s+/)[0]?.trim() ?? ''
-	if (!first) return meta.id
-	return first.length > 16 ? `${first.slice(0, 16)}…` : `${first}…`
 }
 
 function sessionLabel(meta: SessionMeta): string {
@@ -1373,14 +1359,11 @@ function instanceIcon(iconPath: string | undefined): string | null {
 	return getInstanceIconUrl(iconPath ?? null)
 }
 
-// ---- UAgent-style shell: sidebar, about panel, the live bloub face --------
-// The chat now looks like UAgent's own room: a session rail on the left, a
-// "who am I talking to" panel with the animated blob face on the right, and
-// a header pill that repeats the face in miniature. The face is the Bloub
-// engine (MIT, jeremy-prt/bloub) - it breathes, follows the pointer and
-// swaps to thinking/alert poses while the agent works.
+// ---- Оболочка агента: история слева, сам агент справа --------------------
+// Вместо блоба — «ядро» (AgentCore): кольца крутятся быстрее, пока агент
+// думает, внутри появляется голос, когда он отвечает, и расходятся волны,
+// когда ждёт ответа игрока.
 
-const pageRoot = ref<HTMLElement | null>(null)
 const sideOpen = ref(true)
 const aboutOpen = ref(true)
 const aboutTab = ref<'activity' | 'looks' | 'persona'>('activity')
@@ -1394,15 +1377,9 @@ function openPersona() {
 	aboutTab.value = 'persona'
 	aboutOpen.value = true
 }
-const bloubShape = ref(localStorage.getItem('portalrinth-ai-bloub-shape') || 'cercle')
-const bloubColor = ref(localStorage.getItem('portalrinth-ai-bloub-color') || 'bleu')
 
-watch(bloubShape, (shape) => localStorage.setItem('portalrinth-ai-bloub-shape', shape))
-watch(bloubColor, (color) => localStorage.setItem('portalrinth-ai-bloub-color', color))
-
-/** The face mirrors the run: thinking while the agent works, notify when it
- * asks the player something, alert after an error, idle otherwise. */
-const faceMode = computed(() => {
+/** Ядро повторяет ход работы: думает, говорит, ждёт ответа или ругается. */
+const faceMode = computed<CoreMode>(() => {
 	if (sending.value)
 		return streaming.value || agentPhase.value === 'speaking' ? 'speaking' : 'thinking'
 	if (lastQuestion.value) return 'notify'
@@ -1410,8 +1387,22 @@ const faceMode = computed(() => {
 	return 'idle'
 })
 
-/** The about panel's activity tab: the live steps while a run is in flight,
- * the last reply's steps otherwise. */
+const statusLine = computed(() => {
+	switch (faceMode.value) {
+		case 'thinking':
+		case 'speaking':
+			return phaseLabel.value
+		case 'notify':
+			return 'Ждёт вашего ответа'
+		case 'alert':
+			return 'Что-то пошло не так'
+		default:
+			return 'На связи'
+	}
+})
+
+/** Панель «Активность»: живые шаги во время работы, иначе — шаги
+ * последнего ответа. */
 const activitySteps = computed(() => {
 	if (sending.value && agentTurn.value.steps.length) return agentTurn.value.steps
 	for (let i = visibleHistory.value.length - 1; i >= 0; i--) {
@@ -1421,37 +1412,62 @@ const activitySteps = computed(() => {
 	return []
 })
 
-function trackGaze(event: MouseEvent) {
-	setBloubGaze(event.clientX, event.clientY)
+const chatStats = computed(() => {
+	let tools = 0
+	for (const message of visibleHistory.value as AiMessage[]) {
+		for (const step of message.steps ?? []) if (step.kind === 'tool') tools++
+	}
+	return { messages: visibleHistory.value.length, tools }
+})
+
+const greeting = computed(() => {
+	const hour = new Date().getHours()
+	if (hour < 5) return 'Доброй ночи'
+	if (hour < 12) return 'Доброе утро'
+	if (hour < 18) return 'Добрый день'
+	return 'Добрый вечер'
+})
+
+const suggestionCards = computed(() => [
+	{ icon: PackageIcon, title: 'Сборка', text: suggestions.value[0] },
+	{ icon: SearchIcon, title: 'Поиск модов', text: suggestions.value[1] },
+	{ icon: TerminalSquareIcon, title: 'Разбор вылета', text: suggestions.value[2] },
+	{ icon: PaletteIcon, title: 'Скины', text: suggestions.value[3] },
+])
+
+const sessionQuery = ref('')
+
+function sessionTitle(meta: SessionMeta): string {
+	const text = (meta.preview || '').replace(/\s+/g, ' ').trim()
+	if (!text) return 'Без названия'
+	return text.length > 44 ? `${text.slice(0, 44).trimEnd()}…` : text
 }
 
-function clearGaze() {
-	setBloubGaze(null, null)
-}
-
-/** Faces are plain [data-bloub] nodes; re-scan whenever conditional panels
- * (sidebar, pickers, tabs) mount or unmount. */
-async function syncFaces() {
-	await nextTick()
-	if (pageRoot.value) syncBloubFaces(pageRoot.value)
-}
-
-watch(
-	[
-		sideOpen,
-		aboutOpen,
-		aboutTab,
-		bloubColor,
-		sessionsList,
-		() => visibleHistory.value.length === 0,
-	],
-	syncFaces,
-)
+/** Чаты по дням, как в мессенджерах: «Сегодня», «Вчера», «На неделе», «Раньше». */
+const sessionGroups = computed(() => {
+	const query = sessionQuery.value.trim().toLowerCase()
+	const startOfDay = new Date()
+	startOfDay.setHours(0, 0, 0, 0)
+	const today = startOfDay.getTime()
+	const day = 86_400_000
+	const groups: { label: string; items: SessionMeta[] }[] = [
+		{ label: 'Сегодня', items: [] },
+		{ label: 'Вчера', items: [] },
+		{ label: 'На неделе', items: [] },
+		{ label: 'Раньше', items: [] },
+	]
+	for (const meta of sessionsList.value) {
+		if (query && !(meta.preview || '').toLowerCase().includes(query)) continue
+		const at = meta.updated || 0
+		const slot = at >= today ? 0 : at >= today - day ? 1 : at >= today - 7 * day ? 2 : 3
+		groups[slot].items.push(meta)
+	}
+	return groups.filter((group) => group.items.length)
+})
 
 onMounted(async () => {
 	scrollToBottom(true)
 	void refreshSessionLists()
-	void syncFaces()
 	// The chat itself lives in localStorage; the sessions folder is the
 	// long-term memory. If the local copy is gone, the last session restores.
 	if (aiHistory.value.length === 0) {
@@ -1482,50 +1498,58 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
 	stopTyping()
-	if (pageRoot.value) releaseBloubFaces(pageRoot.value)
 })
 
 defineExpose({ send })
 </script>
 
 <template>
-	<div
-		ref="pageRoot"
-		class="ai-page uag-shell flex h-full min-h-0"
-		@mousemove="trackGaze"
-		@mouseleave="clearGaze"
-	>
+	<div class="ai-page uag-shell flex h-full min-h-0">
 		<aside class="uag-side" :class="{ 'uag-side--closed': !sideOpen }" aria-label="История чатов">
 			<div class="uag-side-head">
 				<button class="uag-new" type="button" @click="startFreshChat">
 					<PlusIcon class="size-4 shrink-0" />
 					<span class="uag-new-label">{{ formatMessage(messages.historyNewChat) }}</span>
+					<kbd class="uag-new-kbd">{{ chatStats.messages ? 'чистый лист' : 'вы здесь' }}</kbd>
 				</button>
+				<label v-if="sessionsList.length > 4" class="uag-side-search">
+					<SearchIcon class="size-3.5 shrink-0" />
+					<input v-model="sessionQuery" type="search" placeholder="Найти чат" />
+				</label>
 			</div>
 			<div class="uag-side-list">
-				<p v-if="historyLoading" class="uag-side-note">…</p>
-				<p v-else-if="sessionsList.length === 0" class="uag-side-note">
-					{{ formatMessage(messages.historyEmpty) }}
-				</p>
-				<div
-					v-for="meta in sessionsList"
-					:key="meta.id"
-					class="uag-side-item"
-					:class="{ 'uag-side-item--active': currentSessionId === meta.id }"
-				>
-					<button class="uag-side-btn" type="button" @click="() => openSession(meta)">
-						<span class="uag-side-label">{{ sessionLabel(meta) }}</span>
-						<span class="uag-side-preview">{{ shortPreview(meta) }}</span>
-					</button>
-					<button
-						class="uag-side-del"
-						type="button"
-						:aria-label="formatMessage(messages.chatDelete)"
-						@click="() => deleteChat(meta)"
-					>
-						<TrashIcon class="size-3.5" />
-					</button>
+				<template v-if="historyLoading">
+					<span v-for="n in 4" :key="n" class="uag-side-skeleton" />
+				</template>
+				<div v-else-if="sessionsList.length === 0" class="uag-side-empty">
+					<MessagesSquareIcon class="size-5" />
+					<span>{{ formatMessage(messages.historyEmpty) }}</span>
 				</div>
+				<p v-else-if="sessionGroups.length === 0" class="uag-side-note">Ничего не нашлось</p>
+				<section v-for="group in sessionGroups" :key="group.label" class="uag-side-group">
+					<p class="uag-side-group-title">{{ group.label }}</p>
+					<TransitionGroup name="uag-list" tag="div" class="uag-side-group-list">
+						<div
+							v-for="meta in group.items"
+							:key="meta.id"
+							class="uag-side-item"
+							:class="{ 'uag-side-item--active': currentSessionId === meta.id }"
+						>
+							<button class="uag-side-btn" type="button" @click="() => openSession(meta)">
+								<span class="uag-side-label">{{ sessionTitle(meta) }}</span>
+								<span class="uag-side-preview">{{ sessionLabel(meta) }}</span>
+							</button>
+							<button
+								class="uag-side-del"
+								type="button"
+								:aria-label="formatMessage(messages.chatDelete)"
+								@click="() => deleteChat(meta)"
+							>
+								<TrashIcon class="size-3.5" />
+							</button>
+						</div>
+					</TransitionGroup>
+				</section>
 			</div>
 			<button
 				class="uag-rail"
@@ -1542,19 +1566,28 @@ defineExpose({ send })
 
 		<section class="uag-chat flex h-full min-w-0 grow flex-col">
 			<header class="uag-top">
-				<div class="uag-pill">
-					<span
-						class="uag-pill-face"
-						data-bloub
-						:data-shape="bloubShape"
-						:data-color="bloubColor"
-						:data-mode="faceMode"
-					/>
-					<span class="uag-pill-name">{{ agentName }}</span>
+				<div class="uag-ident" :class="`uag-ident--${faceMode}`">
+					<AgentCore :size="34" :mode="faceMode" />
+					<div class="uag-ident-text">
+						<span class="uag-pill-name">{{ agentName }}</span>
+						<Transition name="uag-status" mode="out-in">
+							<span :key="statusLine" class="uag-pill-status">
+								<i class="uag-status-dot" />
+								{{ statusLine }}
+							</span>
+						</Transition>
+					</div>
 				</div>
-				<Transition name="uag-status">
-					<span v-if="sending" class="uag-pill-status">{{ phaseLabel }}</span>
-				</Transition>
+				<span class="uag-top-model">{{ modelChipLabel }}</span>
+				<button
+					v-tooltip="formatMessage(messages.historyNewChat)"
+					type="button"
+					class="uag-top-btn"
+					:aria-label="formatMessage(messages.historyNewChat)"
+					@click="startFreshChat"
+				>
+					<PlusIcon class="size-4" />
+				</button>
 				<button
 					v-tooltip="'Личность агента'"
 					type="button"
@@ -1571,33 +1604,26 @@ defineExpose({ send })
 				class="ai-scroll min-h-0 grow overflow-y-auto px-6 py-4"
 				@scroll.passive="onChatScroll"
 			>
-				<div
-					v-if="visibleHistory.length === 0"
-					class="flex h-full flex-col items-center justify-center gap-2 text-center"
-				>
-					<span
-						class="uag-empty-face"
-						data-bloub
-						:data-shape="bloubShape"
-						:data-color="bloubColor"
-						:data-mode="faceMode"
-					/>
-					<p class="m-0 text-2xl font-bold text-primary">{{ agentName }}</p>
-					<p class="m-0 text-lg font-semibold text-primary">
-						{{ formatMessage(messages.emptyTitle) }}
-					</p>
-					<p class="m-0 max-w-xl text-sm text-secondary">
-						{{ formatMessage(messages.emptyHint) }}
-					</p>
-					<div class="mt-2 flex max-w-xl flex-wrap justify-center gap-2">
-						<Button
-							v-for="suggestion in suggestions"
-							:key="suggestion"
-							size="sm"
-							@click="() => send(suggestion)"
+				<div v-if="visibleHistory.length === 0" class="uag-hero">
+					<div class="uag-hero-core">
+						<AgentCore :size="132" :mode="faceMode" />
+					</div>
+					<p class="uag-hero-kicker">{{ greeting }} · {{ agentName }}</p>
+					<h2 class="uag-hero-title">{{ formatMessage(messages.emptyTitle) }}</h2>
+					<p class="uag-hero-hint">{{ formatMessage(messages.emptyHint) }}</p>
+					<div class="uag-cards">
+						<button
+							v-for="(card, cardIndex) in suggestionCards"
+							:key="card.title"
+							type="button"
+							class="uag-card"
+							:style="{ animationDelay: `${120 + cardIndex * 70}ms` }"
+							@click="() => send(card.text)"
 						>
-							{{ suggestion }}
-						</Button>
+							<span class="uag-card-icon"><component :is="card.icon" class="size-4" /></span>
+							<span class="uag-card-title">{{ card.title }}</span>
+							<span class="uag-card-text">{{ card.text }}</span>
+						</button>
 					</div>
 				</div>
 
@@ -2503,96 +2529,97 @@ defineExpose({ send })
 				/>
 			</button>
 			<div class="uag-about-inner">
-				<div
-					class="uag-about-face"
-					data-bloub
-					data-follow="1"
-					:data-shape="bloubShape"
-					:data-color="bloubColor"
-					:data-mode="faceMode"
-				/>
-				<div class="uag-about-tabs" role="tablist">
-					<button
-						class="uag-about-tab"
-						:class="{ 'uag-about-tab--active': aboutTab === 'activity' }"
-						type="button"
-						@click="aboutTab = 'activity'"
-					>
-						Активность
-					</button>
-					<button
-						class="uag-about-tab"
-						:class="{ 'uag-about-tab--active': aboutTab === 'looks' }"
-						type="button"
-						@click="aboutTab = 'looks'"
-					>
-						Внешность
-					</button>
-					<button
-						class="uag-about-tab"
-						:class="{ 'uag-about-tab--active': aboutTab === 'persona' }"
-						type="button"
-						@click="aboutTab = 'persona'"
-					>
-						Личность
-					</button>
-				</div>
-				<AiPersonaPanel v-if="aboutTab === 'persona'" />
-				<div v-if="aboutTab === 'activity'" class="uag-about-steps">
-					<p v-if="activitySteps.length === 0" class="uag-side-note">
-						Пока тихо — ни одного шага в этом разговоре.
-					</p>
-					<div
-						v-for="(step, stepIndex) in activitySteps.slice(-14)"
-						:key="`${stepIndex}-${step.id}`"
-						class="uag-act-row"
-						:class="{
-							'uag-act-row--error': step.status === 'error',
-							'uag-act-row--running': step.status === 'running',
-						}"
-					>
-						<span class="uag-act-dot" />
-						<span class="uag-act-text">
-							{{ step.kind === 'tool' ? step.tool || 'действие' : step.text || 'мысль' }}
+				<div class="uag-agent-card">
+					<AgentCore :size="104" :mode="faceMode" />
+					<p class="uag-agent-name">{{ agentName }}</p>
+					<p class="uag-agent-status">{{ statusLine }}</p>
+					<div class="uag-agent-stats">
+						<span>
+							<b>{{ chatStats.messages }}</b>
+							сообщ.
+						</span>
+						<span>
+							<b>{{ chatStats.tools }}</b>
+							действий
+						</span>
+						<span>
+							<b>{{ sessionsList.length }}</b>
+							чатов
 						</span>
 					</div>
 				</div>
-				<div v-else-if="aboutTab === 'looks'" class="uag-looks">
-					<p class="uag-looks-title">Форма</p>
-					<div class="uag-looks-shapes">
-						<button
-							v-for="shape in SHAPES"
-							:key="shape.id"
-							class="uag-shape-btn"
-							:class="{ 'uag-shape-btn--active': bloubShape === shape.id }"
-							type="button"
-							:aria-label="shape.id"
-							@click="bloubShape = shape.id"
-						>
-							<span
-								class="uag-mini"
-								data-bloub
-								data-still="1"
-								:data-shape="shape.id"
-								:data-color="bloubColor"
-								data-mode="idle"
-							/>
-						</button>
-					</div>
-					<p class="uag-looks-title">Цвет</p>
-					<div class="uag-looks-colors">
-						<button
-							v-for="color in COLORS"
-							:key="color.id"
-							class="uag-color-btn"
-							:class="{ 'uag-color-btn--active': bloubColor === color.id }"
-							type="button"
-							:style="{ background: color.hex }"
-							:aria-label="color.id"
-							@click="bloubColor = color.id"
-						/>
-					</div>
+				<div class="uag-about-tabs" role="tablist">
+					<button
+						v-for="tab in [
+							{ id: 'activity', label: 'Активность' },
+							{ id: 'looks', label: 'Облик' },
+							{ id: 'persona', label: 'Личность' },
+						] as const"
+						:key="tab.id"
+						class="uag-about-tab"
+						:class="{ 'uag-about-tab--active': aboutTab === tab.id }"
+						type="button"
+						role="tab"
+						:aria-selected="aboutTab === tab.id"
+						@click="aboutTab = tab.id"
+					>
+						{{ tab.label }}
+					</button>
 				</div>
+				<Transition name="uag-tab" mode="out-in">
+					<AiPersonaPanel v-if="aboutTab === 'persona'" key="persona" />
+					<div v-else-if="aboutTab === 'activity'" key="activity" class="uag-about-steps">
+						<div v-if="activitySteps.length === 0" class="uag-side-empty">
+							<SparklesIcon class="size-5" />
+							<span>Пока тихо. Здесь появятся шаги агента: поиск, файлы, установка модов.</span>
+						</div>
+						<div
+							v-for="(step, stepIndex) in activitySteps.slice(-14)"
+							:key="`${stepIndex}-${step.id}`"
+							class="uag-act-row"
+							:class="{
+								'uag-act-row--error': step.status === 'error',
+								'uag-act-row--running': step.status === 'running',
+							}"
+						>
+							<span class="uag-act-dot" />
+							<span class="uag-act-text">
+								{{ step.kind === 'tool' ? step.tool || 'действие' : step.text || 'мысль' }}
+							</span>
+						</div>
+					</div>
+					<div v-else key="looks" class="uag-looks">
+						<p class="uag-looks-title">Стиль ядра</p>
+						<div class="uag-looks-shapes">
+							<button
+								v-for="style in CORE_STYLES"
+								:key="style.id"
+								v-tooltip="style.hint"
+								class="uag-shape-btn"
+								:class="{ 'uag-shape-btn--active': coreStyle === style.id }"
+								type="button"
+								@click="coreStyle = style.id"
+							>
+								<AgentCore :size="44" :variant="style.id" :still="coreStyle !== style.id" />
+								<span>{{ style.label }}</span>
+							</button>
+						</div>
+						<p class="uag-looks-title">Палитра</p>
+						<div class="uag-looks-colors">
+							<button
+								v-for="palette in CORE_PALETTES"
+								:key="palette.id"
+								v-tooltip="palette.label"
+								class="uag-color-btn"
+								:class="{ 'uag-color-btn--active': corePalette === palette.id }"
+								type="button"
+								:style="{ background: `linear-gradient(135deg, ${palette.b}, ${palette.a})` }"
+								:aria-label="palette.label"
+								@click="corePalette = palette.id"
+							/>
+						</div>
+					</div>
+				</Transition>
 			</div>
 		</aside>
 	</div>
@@ -3841,10 +3868,12 @@ defineExpose({ send })
 	color: #e5c07b;
 }
 
-/* ---- UAgent-style shell (ported feel from UAgent v2, adapted tokens) ---- */
+/* ---- Оболочка агента ----
+   Прозрачные зоны: фон страницы и боковые панели (блюр поверх обоев).
+   Плотные: карточки, пузыри, поле ввода, вкладки — то, что читают и жмут. */
 
 .uag-shell {
-	background: color-mix(in srgb, var(--color-bg) 58%, transparent);
+	background: color-mix(in srgb, var(--color-bg) 55%, transparent);
 	backdrop-filter: blur(18px) saturate(1.15);
 	-webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
@@ -3854,7 +3883,7 @@ defineExpose({ send })
 	scrollbar-gutter: stable;
 }
 
-/* Left rail with the saved chats. */
+/* История чатов. */
 .uag-side {
 	position: relative;
 	display: flex;
@@ -3863,12 +3892,10 @@ defineExpose({ send })
 	flex-shrink: 0;
 	overflow: hidden;
 	border-right: 1px solid var(--surface-5);
-	background: color-mix(in srgb, var(--color-raised-bg) 62%, transparent);
+	background: color-mix(in srgb, var(--color-raised-bg) 48%, transparent);
 	transition:
 		width 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-		opacity 0.24s ease,
-		transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-		padding 0.32s ease;
+		background 0.24s ease;
 }
 
 .uag-side--closed {
@@ -3878,34 +3905,80 @@ defineExpose({ send })
 }
 
 .uag-side-head {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
 	padding: 1rem 0.75rem 0.5rem;
 }
 
 .uag-new {
+	position: relative;
 	display: flex;
 	width: 100%;
 	align-items: center;
 	gap: 0.5rem;
-	border-radius: 0.75rem;
-	background: var(--color-button-bg);
-	border: 1px solid var(--surface-5);
+	overflow: hidden;
+	border: 1px solid color-mix(in srgb, var(--color-brand) 45%, var(--surface-5));
+	border-radius: 0.8rem;
+	background: linear-gradient(
+		135deg,
+		color-mix(in srgb, var(--color-brand) 26%, var(--color-raised-bg)),
+		var(--color-raised-bg) 70%
+	);
 	color: var(--color-contrast);
 	cursor: pointer;
-	font-weight: 600;
-	padding: 0.55rem 0.75rem;
+	font-weight: 700;
+	padding: 0.6rem 0.75rem;
 	transition:
 		transform 0.2s ease,
-		background 0.2s ease,
-		border-color 0.2s ease;
+		box-shadow 0.2s ease;
 }
 
 .uag-new:hover {
 	transform: translateY(-1px);
-	border-color: var(--color-brand);
+	box-shadow: 0 6px 18px color-mix(in srgb, var(--color-brand) 22%, transparent);
 }
 
 .uag-new:active {
-	transform: translateY(0);
+	transform: translateY(0) scale(0.99);
+}
+
+.uag-new-kbd {
+	margin-left: auto;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--color-contrast) 8%, transparent);
+	color: var(--color-secondary);
+	font-family: inherit;
+	font-size: 0.65rem;
+	font-weight: 600;
+	padding: 0.1rem 0.45rem;
+}
+
+.uag-side-search {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	border: 1px solid var(--surface-5);
+	border-radius: 0.6rem;
+	background: var(--color-raised-bg);
+	color: var(--color-secondary);
+	padding: 0 0.55rem;
+}
+
+.uag-side-search:focus-within {
+	border-color: var(--color-brand);
+}
+
+.uag-side-search input {
+	min-width: 0;
+	flex: 1;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	color: var(--color-contrast);
+	font-size: 0.78rem;
+	outline: none;
+	padding: 0.4rem 0;
 }
 
 .uag-side--closed .uag-new,
@@ -3919,9 +3992,25 @@ defineExpose({ send })
 	min-height: 0;
 	flex: 1;
 	flex-direction: column;
-	gap: 0.15rem;
+	gap: 0.6rem;
 	overflow-y: auto;
 	padding: 0.25rem 0.75rem 1rem;
+}
+
+.uag-side-group-title {
+	margin: 0 0 0.2rem;
+	padding: 0 0.35rem;
+	color: var(--color-secondary);
+	font-size: 0.66rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.uag-side-group-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
 }
 
 .uag-side-note {
@@ -3931,20 +4020,53 @@ defineExpose({ send })
 	padding: 0.5rem 0.25rem;
 }
 
+.uag-side-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	border: 1px dashed var(--surface-5);
+	border-radius: 0.8rem;
+	color: var(--color-secondary);
+	font-size: 0.78rem;
+	line-height: 1.35;
+	padding: 1.1rem 0.9rem;
+	text-align: center;
+}
+
+.uag-side-skeleton {
+	display: block;
+	height: 2.4rem;
+	border-radius: 0.6rem;
+	background: linear-gradient(
+		90deg,
+		var(--color-button-bg) 0%,
+		color-mix(in srgb, var(--color-button-bg) 40%, var(--color-raised-bg)) 50%,
+		var(--color-button-bg) 100%
+	);
+	background-size: 200% 100%;
+	animation: uag-shimmer 1.3s linear infinite;
+}
+
 .uag-side-item {
+	position: relative;
 	display: flex;
 	align-items: stretch;
 	border-radius: 0.6rem;
-	transition: background 0.2s ease;
+	transition:
+		background 0.2s ease,
+		transform 0.2s ease;
 }
 
 .uag-side-item:hover {
-	background: var(--color-button-bg);
+	background: color-mix(in srgb, var(--color-button-bg) 80%, transparent);
 }
 
 .uag-side-item--active {
-	background: var(--color-button-bg);
-	box-shadow: inset 2px 0 0 var(--color-brand);
+	background: var(--color-raised-bg);
+	box-shadow:
+		inset 0 0 0 1px var(--surface-5),
+		inset 3px 0 0 var(--color-brand);
 }
 
 .uag-side-btn {
@@ -3952,16 +4074,18 @@ defineExpose({ send })
 	min-width: 0;
 	flex: 1;
 	flex-direction: column;
+	gap: 0.1rem;
 	background: transparent;
 	border: none;
 	cursor: pointer;
-	padding: 0.4rem 0.5rem;
+	padding: 0.45rem 0.6rem;
 	text-align: left;
 }
 
 .uag-side-label {
-	color: var(--color-primary);
-	font-size: 0.75rem;
+	color: var(--color-contrast);
+	font-size: 0.8rem;
+	font-weight: 600;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -3969,7 +4093,7 @@ defineExpose({ send })
 
 .uag-side-preview {
 	color: var(--color-secondary);
-	font-size: 0.7rem;
+	font-size: 0.68rem;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -3998,6 +4122,19 @@ defineExpose({ send })
 	color: var(--color-red);
 }
 
+.uag-list-enter-active,
+.uag-list-leave-active {
+	transition:
+		opacity 0.25s ease,
+		transform 0.25s ease;
+}
+
+.uag-list-enter-from,
+.uag-list-leave-to {
+	opacity: 0;
+	transform: translateX(-8px);
+}
+
 .uag-rail {
 	background: transparent;
 	border: none;
@@ -4019,7 +4156,7 @@ defineExpose({ send })
 	color: var(--color-contrast);
 }
 
-/* Chat column with the header pill. */
+/* Шапка чата: кто на связи и в каком он состоянии. */
 .uag-chat {
 	min-width: 0;
 }
@@ -4027,42 +4164,113 @@ defineExpose({ send })
 .uag-top {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
+	gap: 0.6rem;
 	flex-shrink: 0;
-	padding: 0.85rem 1.5rem 0.35rem;
+	padding: 0.85rem 1.5rem 0.5rem;
 }
 
-.uag-pill {
+.uag-ident {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.55rem;
-	border-radius: 999px;
-	background: var(--color-button-bg);
+	gap: 0.6rem;
 	border: 1px solid var(--surface-5);
-	padding: 0.3rem 0.85rem 0.3rem 0.4rem;
+	border-radius: 999px;
+	background: var(--color-raised-bg);
+	padding: 0.25rem 1rem 0.25rem 0.3rem;
+	transition: border-color 0.3s ease;
 }
 
-.uag-pill-face {
-	display: block;
-	height: 1.7rem;
-	width: 1.7rem;
+.uag-ident--thinking,
+.uag-ident--speaking {
+	border-color: color-mix(in srgb, var(--color-brand) 55%, var(--surface-5));
+}
+
+.uag-ident--alert {
+	border-color: color-mix(in srgb, var(--color-red) 55%, var(--surface-5));
+}
+
+.uag-ident-text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.15;
 }
 
 .uag-pill-name {
 	color: var(--color-contrast);
 	font-weight: 700;
-	font-size: 0.85rem;
+	font-size: 0.88rem;
+}
+
+.uag-pill-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	color: var(--color-secondary);
+	font-size: 0.7rem;
+}
+
+.uag-status-dot {
+	width: 0.4rem;
+	height: 0.4rem;
+	border-radius: 999px;
+	background: var(--color-green);
+}
+
+.uag-ident--thinking .uag-status-dot,
+.uag-ident--speaking .uag-status-dot {
+	background: var(--color-brand);
+	animation: uag-pulse 1.2s ease-in-out infinite;
+}
+
+.uag-ident--notify .uag-status-dot {
+	background: var(--color-orange);
+	animation: uag-pulse 1.6s ease-in-out infinite;
+}
+
+.uag-ident--alert .uag-status-dot {
+	background: var(--color-red);
+}
+
+.uag-status-enter-active,
+.uag-status-leave-active {
+	transition:
+		opacity 0.18s ease,
+		transform 0.18s ease;
+}
+
+.uag-status-enter-from {
+	opacity: 0;
+	transform: translateY(4px);
+}
+
+.uag-status-leave-to {
+	opacity: 0;
+	transform: translateY(-4px);
+}
+
+.uag-top-model {
+	margin-left: auto;
+	max-width: 14rem;
+	overflow: hidden;
+	border: 1px solid var(--surface-5);
+	border-radius: 999px;
+	background: var(--color-raised-bg);
+	color: var(--color-secondary);
+	font-size: 0.7rem;
+	font-weight: 600;
+	padding: 0.25rem 0.65rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .uag-top-btn {
 	display: grid;
 	place-items: center;
-	margin-left: auto;
 	width: 2rem;
 	height: 2rem;
 	border: 1px solid var(--surface-5);
 	border-radius: 999px;
-	background: var(--color-button-bg);
+	background: var(--color-raised-bg);
 	color: var(--color-secondary);
 	cursor: pointer;
 	transition:
@@ -4081,33 +4289,132 @@ defineExpose({ send })
 	transform: scale(0.94);
 }
 
-.uag-empty-face {
-	display: block;
-	width: 6.5rem;
-	height: 6.5rem;
-	margin-bottom: 0.25rem;
+/* Пустой чат: ядро, приветствие и карточки-подсказки. */
+.uag-hero {
+	display: flex;
+	min-height: 100%;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+	padding: 1rem 0 2rem;
+	text-align: center;
 }
 
-.uag-status-enter-active,
-.uag-status-leave-active {
+.uag-hero-core {
+	position: relative;
+	display: grid;
+	place-items: center;
+	margin-bottom: 0.6rem;
+	animation: uag-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.uag-hero-core::before {
+	position: absolute;
+	inset: -1.5rem;
+	z-index: -1;
+	border-radius: 999px;
+	background: radial-gradient(
+		closest-side,
+		color-mix(in srgb, var(--color-brand) 16%, transparent),
+		transparent
+	);
+	content: '';
+}
+
+.uag-hero-kicker {
+	margin: 0;
+	color: var(--color-brand);
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	animation: uag-rise 0.6s 0.05s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.uag-hero-title {
+	margin: 0;
+	color: var(--color-contrast);
+	font-size: 1.75rem;
+	font-weight: 800;
+	animation: uag-rise 0.6s 0.08s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.uag-hero-hint {
+	max-width: 34rem;
+	margin: 0;
+	color: var(--color-secondary);
+	font-size: 0.85rem;
+	animation: uag-rise 0.6s 0.11s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.uag-cards {
+	display: grid;
+	width: 100%;
+	max-width: 40rem;
+	gap: 0.6rem;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	margin-top: 1.1rem;
+}
+
+.uag-card {
+	display: grid;
+	grid-template-areas:
+		'icon title'
+		'icon text';
+	grid-template-columns: auto 1fr;
+	align-items: start;
+	column-gap: 0.7rem;
+	border: 1px solid var(--surface-5);
+	border-radius: 0.9rem;
+	background: var(--color-raised-bg);
+	color: inherit;
+	cursor: pointer;
+	padding: 0.8rem 0.9rem;
+	text-align: left;
+	animation: uag-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 	transition:
-		opacity 0.22s ease,
-		transform 0.22s ease;
+		transform 0.2s ease,
+		border-color 0.2s ease,
+		box-shadow 0.2s ease;
 }
 
-.uag-status-enter-from,
-.uag-status-leave-to {
-	opacity: 0;
-	transform: translateX(-4px);
+.uag-card:hover {
+	border-color: color-mix(in srgb, var(--color-brand) 60%, var(--surface-5));
+	box-shadow: 0 8px 22px rgb(0 0 0 / 18%);
+	transform: translateY(-2px);
 }
 
-.uag-pill-status {
-	animation: uag-fade-in 0.3s ease both;
+.uag-card:active {
+	transform: translateY(0) scale(0.99);
+}
+
+.uag-card-icon {
+	display: grid;
+	grid-area: icon;
+	width: 2rem;
+	height: 2rem;
+	place-items: center;
+	border-radius: 0.6rem;
+	background: color-mix(in srgb, var(--color-brand) 16%, transparent);
+	color: var(--color-brand);
+}
+
+.uag-card-title {
+	grid-area: title;
+	color: var(--color-contrast);
+	font-size: 0.82rem;
+	font-weight: 700;
+}
+
+.uag-card-text {
+	grid-area: text;
 	color: var(--color-secondary);
 	font-size: 0.75rem;
+	line-height: 1.35;
 }
 
-/* Right panel: the agent itself. */
+/* Правая панель — сам агент. */
 .uag-about {
 	position: relative;
 	display: flex;
@@ -4116,16 +4423,10 @@ defineExpose({ send })
 	flex-direction: column;
 	overflow: hidden;
 	border-left: 1px solid var(--surface-5);
-	background: color-mix(in srgb, var(--color-raised-bg) 62%, transparent);
+	background: color-mix(in srgb, var(--color-raised-bg) 48%, transparent);
 	transition:
 		width 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-		opacity 0.24s ease,
-		transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-		padding 0.32s ease;
-}
-
-.uag-about--open {
-	width: 19rem;
+		background 0.24s ease;
 }
 
 .uag-about:not(.uag-about--open) {
@@ -4138,20 +4439,18 @@ defineExpose({ send })
 	left: 0.45rem;
 	top: 0.75rem;
 	z-index: 2;
-	background: var(--color-button-bg);
-	border: 1px solid var(--surface-5);
-	border-radius: 0.6rem;
-	color: var(--color-secondary);
-	cursor: pointer;
 	display: flex;
 	align-items: center;
-	height: 1.6rem;
-	width: 1.6rem;
 	justify-content: center;
+	width: 1.6rem;
+	height: 1.6rem;
+	border: 1px solid var(--surface-5);
+	border-radius: 0.6rem;
+	background: var(--color-raised-bg);
+	color: var(--color-secondary);
+	cursor: pointer;
 	padding: 0;
-	transition:
-		color 0.2s ease,
-		background 0.2s ease;
+	transition: color 0.2s ease;
 }
 
 .uag-about-toggle:hover {
@@ -4160,9 +4459,9 @@ defineExpose({ send })
 
 .uag-about--open .uag-about-toggle {
 	left: auto;
-	right: 0.5rem;
-	width: 2rem;
-	height: 2rem;
+	right: 0.6rem;
+	width: 1.8rem;
+	height: 1.8rem;
 }
 
 .uag-about-inner {
@@ -4170,69 +4469,158 @@ defineExpose({ send })
 	min-height: 0;
 	flex: 1;
 	flex-direction: column;
-	gap: 0.9rem;
+	gap: 0.85rem;
 	overflow-y: auto;
-	padding: 2.6rem 1.25rem 1.25rem;
+	padding: 0.75rem 1rem 1.25rem;
 }
 
 .uag-about:not(.uag-about--open) .uag-about-inner {
 	display: none;
 }
 
-.uag-about-face {
-	flex-shrink: 0;
-	height: 10.5rem;
+.uag-agent-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.2rem;
+	overflow: hidden;
+	border: 1px solid var(--surface-5);
+	border-radius: 1rem;
+	background:
+		radial-gradient(
+			120% 70% at 50% 0%,
+			color-mix(in srgb, var(--color-brand) 18%, transparent),
+			transparent 70%
+		),
+		var(--color-raised-bg);
+	padding: 1.1rem 0.9rem 0.9rem;
+	animation: uag-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.uag-agent-name {
+	margin: 0.4rem 0 0;
+	color: var(--color-contrast);
+	font-size: 1rem;
+	font-weight: 800;
+}
+
+.uag-agent-status {
+	margin: 0;
+	color: var(--color-secondary);
+	font-size: 0.72rem;
+}
+
+.uag-agent-stats {
+	display: grid;
 	width: 100%;
+	gap: 0.35rem;
+	grid-template-columns: repeat(3, 1fr);
+	margin-top: 0.7rem;
+}
+
+.uag-agent-stats span {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	border-radius: 0.6rem;
+	background: var(--color-button-bg);
+	color: var(--color-secondary);
+	font-size: 0.62rem;
+	padding: 0.35rem 0.2rem;
+}
+
+.uag-agent-stats b {
+	color: var(--color-contrast);
+	font-size: 0.9rem;
 }
 
 .uag-about-tabs {
+	position: relative;
 	display: flex;
-	border-radius: 0.7rem;
-	background: var(--color-button-bg);
 	border: 1px solid var(--surface-5);
+	border-radius: 0.75rem;
+	background: var(--color-raised-bg);
 	padding: 0.2rem;
 }
 
 .uag-about-tab {
-	background: transparent;
+	flex: 1;
 	border: none;
 	border-radius: 0.55rem;
+	background: transparent;
 	color: var(--color-secondary);
 	cursor: pointer;
-	flex: 1;
-	font-size: 0.78rem;
-	font-weight: 600;
-	padding: 0.4rem 0.5rem;
+	font-size: 0.76rem;
+	font-weight: 700;
+	padding: 0.42rem 0.4rem;
 	transition:
 		color 0.2s ease,
-		background 0.2s ease;
+		background 0.25s ease,
+		box-shadow 0.25s ease;
 }
 
-.uag-about-tab--active {
-	background: var(--color-brand);
+.uag-about-tab:hover {
 	color: var(--color-contrast);
 }
 
+.uag-about-tab--active {
+	background: var(--color-button-bg);
+	box-shadow: inset 0 -2px 0 var(--color-brand);
+	color: var(--color-contrast);
+}
+
+.uag-tab-enter-active,
+.uag-tab-leave-active {
+	transition:
+		opacity 0.18s ease,
+		transform 0.18s ease;
+}
+
+.uag-tab-enter-from {
+	opacity: 0;
+	transform: translateY(6px);
+}
+
+.uag-tab-leave-to {
+	opacity: 0;
+	transform: translateY(-4px);
+}
+
+/* Лента шагов с вертикальной линией. */
 .uag-about-steps {
+	position: relative;
 	display: flex;
 	flex-direction: column;
-	gap: 0.4rem;
+	gap: 0.45rem;
 }
 
 .uag-act-row {
+	position: relative;
 	display: flex;
 	align-items: baseline;
-	gap: 0.5rem;
+	gap: 0.6rem;
+	padding-left: 0.1rem;
 	animation: uag-in 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+.uag-act-row:not(:last-child)::after {
+	position: absolute;
+	top: 0.85rem;
+	bottom: -0.55rem;
+	left: 0.27rem;
+	width: 1px;
+	background: var(--surface-5);
+	content: '';
+}
+
 .uag-act-dot {
-	background: var(--color-secondary);
-	border-radius: 999px;
 	flex-shrink: 0;
-	height: 0.4rem;
-	margin-top: 0.35rem;
-	width: 0.4rem;
+	width: 0.45rem;
+	height: 0.45rem;
+	margin-top: 0.3rem;
+	border-radius: 999px;
+	background: var(--color-secondary);
 }
 
 .uag-act-row--running .uag-act-dot {
@@ -4245,12 +4633,17 @@ defineExpose({ send })
 }
 
 .uag-act-text {
+	min-width: 0;
 	color: var(--color-secondary);
 	font-size: 0.78rem;
-	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
+.uag-act-row--running .uag-act-text {
+	color: var(--color-contrast);
+}
+
+/* Облик ядра. */
 .uag-looks {
 	display: flex;
 	flex-direction: column;
@@ -4258,60 +4651,62 @@ defineExpose({ send })
 }
 
 .uag-looks-title {
-	color: var(--color-secondary);
-	font-size: 0.72rem;
-	font-weight: 700;
-	letter-spacing: 0.04em;
 	margin: 0;
 	padding: 0.25rem 0.15rem 0;
+	color: var(--color-secondary);
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
 	text-transform: uppercase;
 }
 
 .uag-looks-shapes {
 	display: grid;
 	gap: 0.4rem;
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 }
 
 .uag-shape-btn {
-	background: var(--color-button-bg);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.35rem;
 	border: 1px solid var(--surface-5);
 	border-radius: 0.8rem;
+	background: var(--color-raised-bg);
+	color: var(--color-secondary);
 	cursor: pointer;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0.35rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	padding: 0.6rem 0.3rem 0.45rem;
 	transition:
 		border-color 0.2s ease,
-		transform 0.2s ease;
+		transform 0.2s ease,
+		color 0.2s ease;
 }
 
 .uag-shape-btn:hover {
 	transform: translateY(-1px);
+	color: var(--color-contrast);
 }
 
 .uag-shape-btn--active {
 	border-color: var(--color-brand);
-}
-
-.uag-mini {
-	display: block;
-	height: 2.4rem;
-	width: 2.4rem;
+	color: var(--color-contrast);
 }
 
 .uag-looks-colors {
 	display: grid;
-	gap: 0.45rem;
+	gap: 0.5rem;
 	grid-template-columns: repeat(6, 1fr);
 }
 
 .uag-color-btn {
+	aspect-ratio: 1;
 	border: 2px solid transparent;
 	border-radius: 999px;
+	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
 	cursor: pointer;
-	aspect-ratio: 1;
 	transition:
 		transform 0.2s ease,
 		border-color 0.2s ease;
@@ -4323,14 +4718,14 @@ defineExpose({ send })
 
 .uag-color-btn--active {
 	border-color: var(--color-contrast);
+	transform: scale(1.06);
 }
 
-/* Message entrance, the UAgent way. */
+/* Появление сообщений. */
 .uag-in {
 	animation: uag-in 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-/* Bubbles keep UAgent's asymmetric corners. */
 .uag-chat .ai-bubble-user {
 	border-radius: 1rem 1rem 0.375rem 1rem;
 }
@@ -4350,12 +4745,20 @@ defineExpose({ send })
 	}
 }
 
-@keyframes uag-fade-in {
+@keyframes uag-rise {
 	from {
 		opacity: 0;
+		transform: translateY(14px);
 	}
 	to {
 		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes uag-shimmer {
+	to {
+		background-position: -200% 0;
 	}
 }
 
@@ -4371,10 +4774,28 @@ defineExpose({ send })
 	}
 }
 
+@media (max-width: 1100px) {
+	.uag-top-model {
+		display: none;
+	}
+}
+
+@media (max-width: 760px) {
+	.uag-cards {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.uag-in,
 	.uag-act-row,
-	.uag-pill-status {
+	.uag-hero-core,
+	.uag-hero-kicker,
+	.uag-hero-title,
+	.uag-hero-hint,
+	.uag-card,
+	.uag-agent-card,
+	.uag-side-skeleton {
 		animation: none;
 	}
 }

@@ -37,7 +37,6 @@ import {
 	TerminalSquareIcon,
 	TextQuoteIcon,
 	TrashIcon,
-	UserCogIcon,
 	XIcon,
 } from '@modrinth/assets'
 import { Avatar, Button, IconButton, Input, useVIntl } from '@modrinth/ui'
@@ -1369,15 +1368,6 @@ const aboutOpen = ref(true)
 const aboutTab = ref<'activity' | 'looks' | 'persona'>('activity')
 const agentName = computed(() => agentDisplayName(aiSettings.value))
 
-function openPersona() {
-	if (aboutOpen.value && aboutTab.value === 'persona') {
-		aboutTab.value = 'activity'
-		return
-	}
-	aboutTab.value = 'persona'
-	aboutOpen.value = true
-}
-
 /** Ядро повторяет ход работы: думает, говорит, ждёт ответа или ругается. */
 const faceMode = computed<CoreMode>(() => {
 	if (sending.value)
@@ -1565,40 +1555,6 @@ defineExpose({ send })
 		</aside>
 
 		<section class="uag-chat flex h-full min-w-0 grow flex-col">
-			<header class="uag-top">
-				<div class="uag-ident" :class="`uag-ident--${faceMode}`">
-					<AgentCore :size="34" :mode="faceMode" />
-					<div class="uag-ident-text">
-						<span class="uag-pill-name">{{ agentName }}</span>
-						<Transition name="uag-status" mode="out-in">
-							<span :key="statusLine" class="uag-pill-status">
-								<i class="uag-status-dot" />
-								{{ statusLine }}
-							</span>
-						</Transition>
-					</div>
-				</div>
-				<span class="uag-top-model">{{ modelChipLabel }}</span>
-				<button
-					v-tooltip="formatMessage(messages.historyNewChat)"
-					type="button"
-					class="uag-top-btn"
-					:aria-label="formatMessage(messages.historyNewChat)"
-					@click="startFreshChat"
-				>
-					<PlusIcon class="size-4" />
-				</button>
-				<button
-					v-tooltip="'Личность агента'"
-					type="button"
-					class="uag-top-btn"
-					:class="{ 'uag-top-btn--on': aboutOpen && aboutTab === 'persona' }"
-					aria-label="Личность агента"
-					@click="openPersona"
-				>
-					<UserCogIcon class="size-4" />
-				</button>
-			</header>
 			<div
 				ref="scrollBox"
 				class="ai-scroll min-h-0 grow overflow-y-auto px-6 py-4"
@@ -4156,137 +4112,8 @@ defineExpose({ send })
 	color: var(--color-contrast);
 }
 
-/* Шапка чата: кто на связи и в каком он состоянии. */
 .uag-chat {
 	min-width: 0;
-}
-
-.uag-top {
-	display: flex;
-	align-items: center;
-	gap: 0.6rem;
-	flex-shrink: 0;
-	padding: 0.85rem 1.5rem 0.5rem;
-}
-
-.uag-ident {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.6rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 999px;
-	background: var(--color-raised-bg);
-	padding: 0.25rem 1rem 0.25rem 0.3rem;
-	transition: border-color 0.3s ease;
-}
-
-.uag-ident--thinking,
-.uag-ident--speaking {
-	border-color: color-mix(in srgb, var(--color-brand) 55%, var(--surface-5));
-}
-
-.uag-ident--alert {
-	border-color: color-mix(in srgb, var(--color-red) 55%, var(--surface-5));
-}
-
-.uag-ident-text {
-	display: flex;
-	flex-direction: column;
-	line-height: 1.15;
-}
-
-.uag-pill-name {
-	color: var(--color-contrast);
-	font-weight: 700;
-	font-size: 0.88rem;
-}
-
-.uag-pill-status {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-	color: var(--color-secondary);
-	font-size: 0.7rem;
-}
-
-.uag-status-dot {
-	width: 0.4rem;
-	height: 0.4rem;
-	border-radius: 999px;
-	background: var(--color-green);
-}
-
-.uag-ident--thinking .uag-status-dot,
-.uag-ident--speaking .uag-status-dot {
-	background: var(--color-brand);
-	animation: uag-pulse 1.2s ease-in-out infinite;
-}
-
-.uag-ident--notify .uag-status-dot {
-	background: var(--color-orange);
-	animation: uag-pulse 1.6s ease-in-out infinite;
-}
-
-.uag-ident--alert .uag-status-dot {
-	background: var(--color-red);
-}
-
-.uag-status-enter-active,
-.uag-status-leave-active {
-	transition:
-		opacity 0.18s ease,
-		transform 0.18s ease;
-}
-
-.uag-status-enter-from {
-	opacity: 0;
-	transform: translateY(4px);
-}
-
-.uag-status-leave-to {
-	opacity: 0;
-	transform: translateY(-4px);
-}
-
-.uag-top-model {
-	margin-left: auto;
-	max-width: 14rem;
-	overflow: hidden;
-	border: 1px solid var(--surface-5);
-	border-radius: 999px;
-	background: var(--color-raised-bg);
-	color: var(--color-secondary);
-	font-size: 0.7rem;
-	font-weight: 600;
-	padding: 0.25rem 0.65rem;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.uag-top-btn {
-	display: grid;
-	place-items: center;
-	width: 2rem;
-	height: 2rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 999px;
-	background: var(--color-raised-bg);
-	color: var(--color-secondary);
-	cursor: pointer;
-	transition:
-		color 0.2s ease,
-		border-color 0.2s ease,
-		transform 0.2s ease;
-}
-
-.uag-top-btn:hover,
-.uag-top-btn--on {
-	border-color: var(--color-brand);
-	color: var(--color-contrast);
-}
-
-.uag-top-btn:active {
-	transform: scale(0.94);
 }
 
 /* Пустой чат: ядро, приветствие и карточки-подсказки. */
@@ -4771,12 +4598,6 @@ defineExpose({ send })
 	50% {
 		transform: scale(1.35);
 		opacity: 1;
-	}
-}
-
-@media (max-width: 1100px) {
-	.uag-top-model {
-		display: none;
 	}
 }
 

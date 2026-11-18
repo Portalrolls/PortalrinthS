@@ -294,7 +294,7 @@ const rows = computed<InfoRow[]>(() => {
 				}
 			: null)
 	if (!p) return []
-	const noData = t('app.messenger.profile.noData', 'Нет данных')
+	const noData = t('app.messenger.profile.empty', 'Пока-что ничего нет')
 	const out: InfoRow[] = [
 		{
 			key: 'lastBuild',
@@ -314,7 +314,7 @@ const rows = computed<InfoRow[]>(() => {
 			key: 'favorite',
 			icon: HeartIcon,
 			label: t('app.messenger.profile.favoriteBuild', 'Любимая сборка'),
-			value: String(p.favoriteBuild ?? '') || t('app.messenger.profile.noFavorite', 'Нет любимой'),
+			value: String(p.favoriteBuild ?? '') || noData,
 			sub: p.favoriteBuildCount
 				? t('app.messenger.profile.favoriteCount', '{n} запусков', {
 						n: String(p.favoriteBuildCount),
@@ -582,29 +582,29 @@ function edit(): void {
 							</nav>
 
 							<div class="upm__pane">
-								<div v-if="loading" class="upm__state">
+								<div v-if="loading && !rows.length && !activity" class="upm__state">
 									<span class="msgr-spinner" />
 									{{ t('app.messenger.profile.loading', 'Загружаем профиль…') }}
 								</div>
-								<div v-else-if="failed && !rows.length" class="upm__state">
+								<div v-else-if="tab === 'about' && !rows.length && !activity" class="upm__state">
 									<UserIcon />
-									{{
-										t('app.messenger.profile.failed', 'Профиль не загрузился — попробуйте ещё раз')
-									}}
-									<button type="button" class="upm__btn" @click="retry">
+									{{ t('app.messenger.profile.empty', 'Пока-что ничего нет') }}
+									<button v-if="failed" type="button" class="upm__btn" @click="retry">
 										{{ t('app.messenger.retry', 'Повторить') }}
 									</button>
 								</div>
 								<template v-else-if="tab === 'about'">
-									<div v-if="slow || failed" class="upm__notice">
-										<span v-if="slow" class="msgr-spinner" />
+									<div v-if="loading || slow || failed" class="upm__notice">
+										<span v-if="loading || slow" class="msgr-spinner" />
 										{{
-											slow
-												? t(
-														'app.messenger.profile.slow',
-														'Сервис отвечает медленно — пока показываем то, что знаем',
-													)
-												: t('app.messenger.profile.partial', 'Полный профиль не загрузился')
+											loading
+												? t('app.messenger.profile.loading', 'Загружаем профиль…')
+												: slow
+													? t(
+															'app.messenger.profile.slow',
+															'Сервис отвечает медленно — пока показываем то, что знаем',
+														)
+													: t('app.messenger.profile.partial', 'Полный профиль не загрузился')
 										}}
 										<button v-if="failed" type="button" @click="retry">
 											{{ t('app.messenger.retry', 'Повторить') }}
@@ -650,7 +650,7 @@ function edit(): void {
 										<span class="msgr-spinner" />
 									</div>
 									<div v-else-if="!posts.length" class="upm__state">
-										{{ t('app.messenger.profile.noPosts', 'Публикаций пока нет') }}
+										{{ t('app.messenger.profile.empty', 'Пока-что ничего нет') }}
 									</div>
 									<div v-else class="upm__posts">
 										<article v-for="post in posts" :key="post.id" class="upm__post">

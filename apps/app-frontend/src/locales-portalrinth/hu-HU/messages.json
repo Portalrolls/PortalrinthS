@@ -58,5 +58,8 @@
 	},
 	"app.update-popup.body.metered": {
 		"message": "A Portalrinth v{version} már elérhető! Mivel korlátozott adatforgalmú hálózaton vagy, nem töltöttük le automatikusan."
+	},
+	"app.messenger.profile.empty": {
+		"message": "Itt még nincs semmi"
 	}
 }

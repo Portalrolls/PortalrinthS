@@ -6076,14 +6076,8 @@
 	"app.messenger.profile.lastServer": {
 		"message": "Последний сервер"
 	},
-	"app.messenger.profile.noData": {
-		"message": "Нет данных"
-	},
 	"app.messenger.profile.favoriteBuild": {
 		"message": "Любимая сборка"
-	},
-	"app.messenger.profile.noFavorite": {
-		"message": "Нет любимой"
 	},
 	"app.messenger.profile.favoriteCount": {
 		"message": "{n} запусков"
@@ -7719,5 +7713,8 @@
 	},
 	"app.server-hosting.files.adding": {
 		"message": "Добавление файлов ({completed}/{total})"
+	},
+	"app.messenger.profile.empty": {
+		"message": "Пока-что ничего нет"
 	}
 }

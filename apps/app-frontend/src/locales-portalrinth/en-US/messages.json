@@ -3559,14 +3559,8 @@
 	"app.messenger.profile.lastServer": {
 		"message": "Last server"
 	},
-	"app.messenger.profile.noData": {
-		"message": "No data"
-	},
 	"app.messenger.profile.favoriteBuild": {
 		"message": "Favorite modpack"
-	},
-	"app.messenger.profile.noFavorite": {
-		"message": "No favorite"
 	},
 	"app.messenger.profile.favoriteCount": {
 		"message": "{n} launches"
@@ -5129,5 +5123,8 @@
 	},
 	"app.server-hosting.files.adding": {
 		"message": "Adding files ({completed}/{total})"
+	},
+	"app.messenger.profile.empty": {
+		"message": "Nothing here yet"
 	}
 }

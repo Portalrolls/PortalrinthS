@@ -705,6 +705,12 @@ fn main() {
                         "hosting_files",
                         "hosting_file_delete",
                         "hosting_file_import",
+                        "hosting_file_items",
+                        "hosting_file_read",
+                        "hosting_file_write",
+                        "hosting_file_create_dir",
+                        "hosting_file_rename",
+                        "hosting_file_save_as",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

@@ -1,3 +1,4 @@
+import type { FileItem } from '@modrinth/ui'
 import { invoke } from '@tauri-apps/api/core'
 
 export type HostedStatus =
@@ -170,3 +171,19 @@ export const hosting_file_delete = (id: string, path: string) =>
 	invoke<void>(plugin('hosting_file_delete'), { id, path })
 export const hosting_file_import = (id: string, path: string, paths: string[]) =>
 	invoke<void>(plugin('hosting_file_import'), { id, path, paths })
+export const hosting_file_items = (id: string, path: string) =>
+	invoke<FileItem[]>(plugin('hosting_file_items'), { id, path })
+export const hosting_file_read = (id: string, path: string) =>
+	invoke<number[]>(plugin('hosting_file_read'), { id, path })
+export const hosting_file_write = (
+	id: string,
+	path: string,
+	bytes: Uint8Array,
+	createOnly = false,
+) => invoke<void>(plugin('hosting_file_write'), { id, path, bytes: Array.from(bytes), createOnly })
+export const hosting_file_create_dir = (id: string, path: string) =>
+	invoke<void>(plugin('hosting_file_create_dir'), { id, path })
+export const hosting_file_rename = (id: string, source: string, destination: string) =>
+	invoke<void>(plugin('hosting_file_rename'), { id, source, destination })
+export const hosting_file_save_as = (id: string, path: string) =>
+	invoke<void>(plugin('hosting_file_save_as'), { id, path })

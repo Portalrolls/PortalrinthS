@@ -4260,30 +4260,6 @@
 	"app.server-hosting.eula.read": {
 		"message": "Прочитать соглашение"
 	},
-	"app.server-hosting.files.confirm-remove": {
-		"message": "Удалить навсегда"
-	},
-	"app.server-hosting.files.empty": {
-		"message": "Эта папка пуста"
-	},
-	"app.server-hosting.files.open-folder": {
-		"message": "Открыть папку"
-	},
-	"app.server-hosting.files.refresh": {
-		"message": "Обновить"
-	},
-	"app.server-hosting.files.remove": {
-		"message": "Удалить"
-	},
-	"app.server-hosting.files.root": {
-		"message": "Сервер"
-	},
-	"app.server-hosting.files.up": {
-		"message": "На уровень выше"
-	},
-	"app.server-hosting.files.upload": {
-		"message": "Загрузить файлы"
-	},
 	"app.server-hosting.gamemode.adventure": {
 		"message": "Приключение"
 	},
@@ -7737,5 +7713,11 @@
 	},
 	"app.messenger.profile.partial": {
 		"message": "Полный профиль не загрузился"
+	},
+	"app.server-hosting.files.save-as": {
+		"message": "Сохранить как…"
+	},
+	"app.server-hosting.files.adding": {
+		"message": "Добавление файлов ({completed}/{total})"
 	}
 }

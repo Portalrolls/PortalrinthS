@@ -6,8 +6,10 @@ use std::path::PathBuf;
 
 use crate::api::Result;
 use theseus::hosted_servers::{
-    self, HostedFile, HostedPlugin, HostedServer, HostedServerView,
+    self, HostedFile, HostedFileItem, HostedPlugin, HostedServer,
+    HostedServerView,
 };
+use tauri_plugin_dialog::DialogExt;
 
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("portalrinth-hosting")
@@ -33,6 +35,12 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             hosting_files,
             hosting_file_delete,
             hosting_file_import,
+            hosting_file_items,
+            hosting_file_read,
+            hosting_file_write,
+            hosting_file_create_dir,
+            hosting_file_rename,
+            hosting_file_save_as,
         ])
         .build()
 }
@@ -164,4 +172,64 @@ pub async fn hosting_file_import(
     paths: Vec<PathBuf>,
 ) -> Result<()> {
     Ok(hosted_servers::file_import(&id, &path, paths).await?)
+}
+
+#[tauri::command]
+pub async fn hosting_file_items(
+    id: String,
+    path: String,
+) -> Result<Vec<HostedFileItem>> {
+    Ok(hosted_servers::file_items(&id, &path).await?)
+}
+
+#[tauri::command]
+pub async fn hosting_file_read(id: String, path: String) -> Result<Vec<u8>> {
+    Ok(hosted_servers::file_read(&id, &path).await?)
+}
+
+#[tauri::command]
+pub async fn hosting_file_write(
+    id: String,
+    path: String,
+    bytes: Vec<u8>,
+    create_only: bool,
+) -> Result<()> {
+    Ok(hosted_servers::file_write(&id, &path, &bytes, create_only).await?)
+}
+
+#[tauri::command]
+pub async fn hosting_file_create_dir(id: String, path: String) -> Result<()> {
+    Ok(hosted_servers::file_create_dir(&id, &path).await?)
+}
+
+#[tauri::command]
+pub async fn hosting_file_rename(
+    id: String,
+    source: String,
+    destination: String,
+) -> Result<()> {
+    Ok(hosted_servers::file_rename(&id, &source, &destination).await?)
+}
+
+#[tauri::command]
+pub async fn hosting_file_save_as<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    id: String,
+    path: String,
+) -> Result<()> {
+    let name = std::path::Path::new(&path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    app.dialog().file().set_file_name(&name).save_file(|picked| {
+        let _ = tx.send(picked);
+    });
+    if let Some(picked) = rx.await.unwrap_or(None) {
+        let destination = PathBuf::try_from(picked)
+            .map_err(|_| anyhow::anyhow!("invalid save path"))?;
+        hosted_servers::file_export(&id, &path, &destination).await?;
+    }
+    Ok(())
 }

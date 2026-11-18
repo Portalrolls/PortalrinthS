@@ -1,508 +1,225 @@
 <script setup lang="ts">
+import type { EditingFile, FileItem, UploadState } from '@modrinth/ui'
 import {
-	BanIcon,
-	BoxIcon,
-	CheckIcon,
-	ChevronRightIcon,
-	CoffeeIcon,
-	DatabaseIcon,
-	FileArchiveIcon,
-	FileCodeIcon,
-	FileCogIcon,
-	FileIcon,
-	FileImageIcon,
-	FileTextIcon,
-	FolderCogIcon,
-	FolderIcon,
-	FolderOpenIcon,
-	FolderUpIcon,
-	GlobeIcon,
-	HistoryIcon,
-	LibraryIcon,
-	PlugIcon,
-	RefreshCwIcon,
-	ServerIcon,
-	ShieldCheckIcon,
-	TrashIcon,
-	UploadIcon,
-	UsersIcon,
-} from '@modrinth/assets'
-import { Button, defineMessages, injectNotificationManager, useVIntl } from '@modrinth/ui'
-import { useQuery } from '@tanstack/vue-query'
-import { open } from '@tauri-apps/plugin-dialog'
-import { type Component, computed, ref, watch } from 'vue'
+	commonMessages,
+	defineMessages,
+	FilePageLayout,
+	injectNotificationManager,
+	provideFileManager,
+	useVIntl,
+} from '@modrinth/ui'
+import { computed, ref, watch } from 'vue'
 
 import {
-	type HostedFile,
 	type HostedServerView,
+	hosting_file_create_dir,
 	hosting_file_delete,
-	hosting_file_import,
-	hosting_files,
+	hosting_file_items,
+	hosting_file_read,
+	hosting_file_rename,
+	hosting_file_save_as,
+	hosting_file_write,
 } from '@/helpers/hosting'
-import { openPath } from '@/helpers/utils.js'
-
-import { formatSize } from './content-kind'
+import { highlightInFolder } from '@/helpers/utils'
 
 const props = defineProps<{ server: HostedServerView }>()
 
 const { formatMessage } = useVIntl()
-const { handleError } = injectNotificationManager()
+const { addNotification } = injectNotificationManager()
 const messages = defineMessages({
-	root: { id: 'app.server-hosting.files.root', defaultMessage: 'Server' },
-	up: { id: 'app.server-hosting.files.up', defaultMessage: 'Up a level' },
-	refresh: { id: 'app.server-hosting.files.refresh', defaultMessage: 'Refresh' },
-	upload: { id: 'app.server-hosting.files.upload', defaultMessage: 'Upload files' },
-	openFolder: { id: 'app.server-hosting.files.open-folder', defaultMessage: 'Open folder' },
-	remove: { id: 'app.server-hosting.files.remove', defaultMessage: 'Delete' },
-	confirmRemove: {
-		id: 'app.server-hosting.files.confirm-remove',
-		defaultMessage: 'Delete for good',
+	saveAs: { id: 'app.server-hosting.files.save-as', defaultMessage: 'Save as…' },
+	addingFiles: {
+		id: 'app.server-hosting.files.adding',
+		defaultMessage: 'Adding files ({completed}/{total})',
 	},
-	empty: { id: 'app.server-hosting.files.empty', defaultMessage: 'This folder is empty' },
 })
 
-const path = ref<string[]>([])
-const relative = computed(() => path.value.join('/'))
+const serverId = computed(() => props.server.id)
+const serverDir = computed(() => props.server.dir)
+const items = ref<FileItem[]>([])
+const loading = ref(true)
+const error = ref<Error | null>(null)
+const currentPath = ref('')
+const editingFile = ref<EditingFile | null>(null)
+
+// Ответ на старую папку не должен лечь поверх новой, если кликают быстро.
+let listing = 0
+
+async function refresh() {
+	const ticket = ++listing
+	loading.value = true
+	try {
+		const found = await hosting_file_items(serverId.value, currentPath.value)
+		if (ticket !== listing) return
+		items.value = found
+		error.value = null
+	} catch (e) {
+		if (ticket !== listing) return
+		items.value = []
+		error.value =
+			e instanceof Error ? e : new Error(String((e as { message?: string })?.message ?? e))
+	} finally {
+		if (ticket === listing) loading.value = false
+	}
+}
 
 watch(
-	() => props.server.id,
+	serverId,
 	() => {
-		path.value = []
+		currentPath.value = ''
+		editingFile.value = null
+		void refresh()
 	},
+	{ immediate: true },
 )
 
-const filesQuery = useQuery({
-	queryKey: computed(() => ['server-hosting', 'files', props.server.id, relative.value] as const),
-	queryFn: () => hosting_files(props.server.id, relative.value),
-	refetchOnWindowFocus: false,
-	retry: false,
+function joined(name: string) {
+	return currentPath.value ? `${currentPath.value}/${name}` : name
+}
+
+function errorText(e: unknown) {
+	if (e instanceof Error) return e.message
+	return String((e as { message?: string })?.message ?? e ?? '')
+}
+
+function failed(title: string, e: unknown) {
+	addNotification({ title, text: errorText(e), type: 'error' })
+}
+
+function navigateTo(path: string) {
+	currentPath.value = path.replace(/^\/+/, '')
+	void refresh()
+}
+
+async function createItem(name: string, type: 'file' | 'directory') {
+	try {
+		if (type === 'directory') await hosting_file_create_dir(serverId.value, joined(name))
+		else await hosting_file_write(serverId.value, joined(name), new Uint8Array(), true)
+		await refresh()
+	} catch (e) {
+		failed(formatMessage(commonMessages.createFailedLabel), e)
+	}
+}
+
+async function renameItem(path: string, newName: string) {
+	const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : ''
+	try {
+		await hosting_file_rename(serverId.value, path, parent ? `${parent}/${newName}` : newName)
+		await refresh()
+	} catch (e) {
+		failed(formatMessage(commonMessages.renameFailedLabel), e)
+	}
+}
+
+async function moveItem(source: string, destination: string) {
+	try {
+		await hosting_file_rename(serverId.value, source, destination)
+		await refresh()
+	} catch (e) {
+		failed(formatMessage(commonMessages.moveFailedLabel), e)
+	}
+}
+
+async function deleteItem(path: string) {
+	try {
+		await hosting_file_delete(serverId.value, path)
+		await refresh()
+	} catch (e) {
+		failed(formatMessage(commonMessages.deleteFailedLabel), e)
+	}
+}
+
+async function readFile(path: string) {
+	const bytes = await hosting_file_read(serverId.value, path)
+	return new TextDecoder().decode(new Uint8Array(bytes))
+}
+
+async function readFileAsBlob(path: string) {
+	const bytes = await hosting_file_read(serverId.value, path)
+	return new Blob([new Uint8Array(bytes)])
+}
+
+async function writeFile(path: string, content: string) {
+	await hosting_file_write(serverId.value, path, new TextEncoder().encode(content))
+}
+
+async function downloadFile(path: string) {
+	try {
+		await hosting_file_save_as(serverId.value, path)
+	} catch (e) {
+		failed(formatMessage(commonMessages.downloadFailedLabel), e)
+	}
+}
+
+const uploadState = ref<UploadState>({
+	isUploading: false,
+	currentFileName: null,
+	currentFileProgress: 0,
+	uploadedBytes: 0,
+	totalBytes: 0,
+	completedFiles: 0,
+	totalFiles: 0,
 })
-const files = computed(() => filesQuery.data.value ?? [])
 
-type FileTone =
-	| 'folder'
-	| 'world'
-	| 'jar'
-	| 'config'
-	| 'text'
-	| 'image'
-	| 'archive'
-	| 'data'
-	| 'plain'
-
-const FOLDER_LOOKS: Record<string, [Component, FileTone]> = {
-	mods: [BoxIcon, 'jar'],
-	plugins: [PlugIcon, 'jar'],
-	config: [FolderCogIcon, 'config'],
-	logs: [HistoryIcon, 'text'],
-	'crash-reports': [HistoryIcon, 'text'],
-	libraries: [LibraryIcon, 'data'],
-	versions: [ServerIcon, 'data'],
-	cache: [DatabaseIcon, 'data'],
-}
-
-const FILE_LOOKS: [RegExp, Component, FileTone][] = [
-	[/^(banned-ips|banned-players)\.json$/i, BanIcon, 'config'],
-	[/^(ops|whitelist)\.json$/i, ShieldCheckIcon, 'config'],
-	[/^usercache\.json$/i, UsersIcon, 'config'],
-	[/^eula\.txt$/i, ShieldCheckIcon, 'text'],
-	[/\.jar$/i, CoffeeIcon, 'jar'],
-	[/\.(properties|ya?ml|toml|cfg|conf|ini)$/i, FileCogIcon, 'config'],
-	[/\.(json5?|mcmeta|nbt|dat|dat_old|mca)$/i, FileCodeIcon, 'data'],
-	[/\.(log|txt|md|gz)$/i, FileTextIcon, 'text'],
-	[/\.(png|jpe?g|gif|webp)$/i, FileImageIcon, 'image'],
-	[/\.(zip|tar|7z|rar|mrpack)$/i, FileArchiveIcon, 'archive'],
-]
-
-/** Значок и цвет строки: известные папки и типы файлов узнаются по имени. */
-function lookOf(file: HostedFile): { icon: Component; tone: FileTone } {
-	if (file.dir) {
-		if (/^world/i.test(file.name)) return { icon: GlobeIcon, tone: 'world' }
-		const known = FOLDER_LOOKS[file.name.toLowerCase()]
-		return known ? { icon: known[0], tone: known[1] } : { icon: FolderIcon, tone: 'folder' }
+async function uploadFiles(files: File[]) {
+	if (files.length === 0) return
+	uploadState.value = {
+		isUploading: true,
+		currentFileName: '',
+		currentFileProgress: 0,
+		uploadedBytes: 0,
+		totalBytes: files.reduce((sum, file) => sum + file.size, 0),
+		completedFiles: 0,
+		totalFiles: files.length,
 	}
-	const match = FILE_LOOKS.find(([pattern]) => pattern.test(file.name))
-	return match ? { icon: match[1], tone: match[2] } : { icon: FileIcon, tone: 'plain' }
-}
-
-function extOf(name: string): string {
-	const dot = name.lastIndexOf('.')
-	return dot > 0 && dot < name.length - 1
-		? name
-				.slice(dot + 1)
-				.toUpperCase()
-				.slice(0, 6)
-		: ''
-}
-
-const folderCount = computed(() => files.value.filter((file) => file.dir).length)
-const totalSize = computed(() =>
-	files.value.reduce((sum, file) => sum + (file.dir ? 0 : file.size || 0), 0),
-)
-const busy = ref(false)
-const confirming = ref<string | null>(null)
-
-function enter(file: HostedFile) {
-	if (!file.dir) return
-	confirming.value = null
-	path.value = [...path.value, file.name]
-}
-
-function goTo(depth: number) {
-	confirming.value = null
-	path.value = path.value.slice(0, depth)
-}
-
-async function remove(file: HostedFile) {
-	if (confirming.value !== file.name) {
-		confirming.value = file.name
-		return
-	}
-	confirming.value = null
-	busy.value = true
 	try {
-		await hosting_file_delete(props.server.id, [...path.value, file.name].join('/'))
-	} catch (error) {
-		handleError(error as Error)
+		for (const file of files) {
+			uploadState.value.currentFileName = file.name
+			const bytes = new Uint8Array(await file.arrayBuffer())
+			await hosting_file_write(serverId.value, joined(file.name), bytes)
+			uploadState.value.completedFiles++
+			uploadState.value.uploadedBytes += file.size
+			uploadState.value.currentFileProgress = 1
+		}
+	} catch (e) {
+		failed(formatMessage(commonMessages.uploadFailedLabel), e)
 	} finally {
-		busy.value = false
-		await filesQuery.refetch()
+		uploadState.value.isUploading = false
+		await refresh()
 	}
 }
 
-async function upload() {
-	const picked = await open({ multiple: true })
-	if (!picked) return
-	const paths = Array.isArray(picked) ? picked : [picked]
-	if (paths.length === 0) return
-	busy.value = true
-	try {
-		await hosting_file_import(props.server.id, relative.value, paths)
-	} catch (error) {
-		handleError(error as Error)
-	} finally {
-		busy.value = false
-		await filesQuery.refetch()
-	}
-}
-
-function openFolder() {
-	const target = relative.value ? `${props.server.dir}/${relative.value}` : props.server.dir
-	void openPath(target).catch(handleError)
-}
+provideFileManager({
+	items,
+	loading,
+	error,
+	currentPath,
+	navigateTo,
+	editingFile,
+	startEditing: (file) => {
+		editingFile.value = file
+	},
+	stopEditing: () => {
+		editingFile.value = null
+	},
+	createItem,
+	renameItem,
+	moveItem,
+	deleteItem,
+	readFile,
+	readFileAsBlob,
+	writeFile,
+	downloadFile,
+	uploadFiles,
+	uploadState,
+	refresh: () => void refresh(),
+	basePath: serverDir,
+	openInFolder: (path: string) => highlightInFolder(path),
+	downloadButtonLabel: formatMessage(messages.saveAs),
+	uploadingLabel: (completed, total) => formatMessage(messages.addingFiles, { completed, total }),
+})
 </script>
 
 <template>
-	<section class="hosting-panel flex flex-col gap-3">
-		<div class="flex flex-wrap items-center gap-2">
-			<nav class="flex min-w-0 flex-1 flex-wrap items-center gap-1 text-sm">
-				<button type="button" class="hosting-crumb" @click="goTo(0)">
-					{{ formatMessage(messages.root) }}
-				</button>
-				<template v-for="(segment, index) in path" :key="`${index}:${segment}`">
-					<ChevronRightIcon class="shrink-0 text-secondary" />
-					<button type="button" class="hosting-crumb" @click="goTo(index + 1)">
-						{{ segment }}
-					</button>
-				</template>
-			</nav>
-			<Button
-				v-tooltip="formatMessage(messages.up)"
-				type="outlined"
-				:disabled="path.length === 0"
-				:aria-label="formatMessage(messages.up)"
-				@click="goTo(path.length - 1)"
-			>
-				<FolderUpIcon />
-			</Button>
-			<Button
-				v-tooltip="formatMessage(messages.refresh)"
-				type="outlined"
-				:aria-label="formatMessage(messages.refresh)"
-				@click="filesQuery.refetch()"
-			>
-				<RefreshCwIcon :class="{ 'animate-spin': filesQuery.isFetching.value }" />
-			</Button>
-			<Button type="outlined" @click="openFolder">
-				<FolderOpenIcon />
-				{{ formatMessage(messages.openFolder) }}
-			</Button>
-			<Button type="colored" color="brand" :loading="busy" @click="upload">
-				<UploadIcon />
-				{{ formatMessage(messages.upload) }}
-			</Button>
-		</div>
-
-		<span v-if="filesQuery.isError.value" class="text-sm text-brand-red">
-			{{ filesQuery.error.value?.message }}
-		</span>
-		<span
-			v-else-if="!filesQuery.isPending.value && files.length === 0"
-			class="hosting-files-empty text-sm text-secondary"
-		>
-			{{ formatMessage(messages.empty) }}
-		</span>
-		<div v-else class="hosting-files">
-			<div class="hosting-files-head">
-				<span>
-					<FolderIcon class="size-3.5" />
-					{{ folderCount }}
-				</span>
-				<span>
-					<FileIcon class="size-3.5" />
-					{{ files.length - folderCount }}
-				</span>
-				<span class="ml-auto">{{ formatSize(totalSize) }}</span>
-			</div>
-			<TransitionGroup name="hosting-row" tag="div" class="hosting-files-list">
-				<div
-					v-for="(file, index) in files"
-					:key="`${relative}/${file.name}`"
-					class="hosting-file"
-					:class="{ 'is-dir': file.dir, 'is-confirming': confirming === file.name }"
-					:data-tone="lookOf(file).tone"
-					:style="{ '--row-delay': `${Math.min(index, 14) * 18}ms` }"
-					@click="enter(file)"
-				>
-					<span class="hosting-file-icon">
-						<component :is="lookOf(file).icon" />
-					</span>
-					<span class="min-w-0 flex-1 truncate text-contrast">{{ file.name }}</span>
-					<span v-if="!file.dir && extOf(file.name)" class="hosting-file-ext">
-						{{ extOf(file.name) }}
-					</span>
-					<span v-if="!file.dir" class="hosting-file-size">{{ formatSize(file.size) }}</span>
-					<ChevronRightIcon v-else class="hosting-file-go" />
-					<Button
-						v-tooltip="
-							formatMessage(confirming === file.name ? messages.confirmRemove : messages.remove)
-						"
-						size="sm"
-						:type="confirming === file.name ? 'colored' : 'quiet'"
-						color="red"
-						class="hosting-file-remove"
-						:disabled="busy"
-						:aria-label="
-							formatMessage(confirming === file.name ? messages.confirmRemove : messages.remove)
-						"
-						@click.stop="remove(file)"
-					>
-						<CheckIcon v-if="confirming === file.name" />
-						<TrashIcon v-else />
-					</Button>
-				</div>
-			</TransitionGroup>
-		</div>
-	</section>
+	<FilePageLayout :show-refresh-button="true" />
 </template>
-
-<style scoped lang="scss">
-.hosting-panel {
-	padding: 1rem;
-	border-radius: var(--radius-lg, 0.75rem);
-	border: 1px solid var(--surface-5);
-	background: var(--surface-4);
-	min-width: 0;
-}
-
-.hosting-crumb {
-	max-width: 12rem;
-	overflow: hidden;
-	padding: 0.125rem 0.375rem;
-	border: none;
-	border-radius: 0.375rem;
-	background: transparent;
-	color: var(--color-secondary);
-	font-weight: 600;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	cursor: pointer;
-
-	&:hover,
-	&:last-of-type {
-		color: var(--color-contrast);
-	}
-
-	&:hover {
-		background: var(--surface-5);
-	}
-}
-
-.hosting-files {
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-	border-radius: var(--radius-md, 0.5rem);
-	border: 1px solid var(--surface-5);
-	background: var(--surface-3);
-}
-
-.hosting-files-head {
-	display: flex;
-	align-items: center;
-	gap: 0.9rem;
-	padding: 0.45rem 0.875rem;
-	border-bottom: 1px solid var(--surface-5);
-	background: var(--surface-4);
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	font-weight: 600;
-
-	span {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.3rem;
-	}
-}
-
-.hosting-files-list {
-	display: flex;
-	flex-direction: column;
-}
-
-.hosting-files-empty {
-	padding: 1.5rem;
-	border-radius: var(--radius-md, 0.5rem);
-	border: 1px dashed var(--surface-5);
-	text-align: center;
-}
-
-.hosting-file {
-	--tone: var(--color-secondary);
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	min-height: 2.6rem;
-	padding: 0.3rem 0.5rem 0.3rem 0.7rem;
-	font-size: 0.875rem;
-	transition:
-		background 0.18s ease,
-		box-shadow 0.18s ease;
-
-	& + & {
-		border-top: 1px solid var(--surface-5);
-	}
-
-	&:hover {
-		background: var(--surface-4);
-		box-shadow: inset 2px 0 0 var(--tone);
-	}
-
-	&.is-dir {
-		cursor: pointer;
-	}
-
-	&[data-tone='folder'] {
-		--tone: var(--color-brand);
-	}
-	&[data-tone='world'] {
-		--tone: #3fbf7f;
-	}
-	&[data-tone='jar'] {
-		--tone: #f08c3c;
-	}
-	&[data-tone='config'] {
-		--tone: #5aa2ff;
-	}
-	&[data-tone='data'] {
-		--tone: #a78bfa;
-	}
-	&[data-tone='text'] {
-		--tone: #cbd5e1;
-	}
-	&[data-tone='image'] {
-		--tone: #f472b6;
-	}
-	&[data-tone='archive'] {
-		--tone: #eab308;
-	}
-}
-
-.hosting-file-icon {
-	display: grid;
-	place-items: center;
-	flex-shrink: 0;
-	width: 1.85rem;
-	height: 1.85rem;
-	border-radius: 0.5rem;
-	background: color-mix(in srgb, var(--tone) 16%, transparent);
-	color: var(--tone);
-	transition: transform 0.2s ease;
-
-	svg {
-		width: 1rem;
-		height: 1rem;
-	}
-}
-
-.hosting-file:hover .hosting-file-icon {
-	transform: scale(1.08);
-}
-
-.hosting-file-ext {
-	flex-shrink: 0;
-	border-radius: 0.3rem;
-	background: color-mix(in srgb, var(--tone) 14%, transparent);
-	color: var(--tone);
-	font-size: 0.625rem;
-	font-weight: 700;
-	letter-spacing: 0.03em;
-	padding: 0.1rem 0.35rem;
-}
-
-.hosting-file-size {
-	flex-shrink: 0;
-	min-width: 4rem;
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	font-variant-numeric: tabular-nums;
-	text-align: right;
-}
-
-.hosting-file-go {
-	flex-shrink: 0;
-	width: 1rem;
-	height: 1rem;
-	color: var(--color-secondary);
-	opacity: 0;
-	transform: translateX(-4px);
-	transition:
-		opacity 0.18s ease,
-		transform 0.18s ease;
-}
-
-.hosting-file:hover .hosting-file-go {
-	opacity: 1;
-	transform: none;
-}
-
-.hosting-file-remove {
-	opacity: 0.45;
-	transition: opacity 0.18s ease;
-}
-
-.hosting-file:hover .hosting-file-remove,
-.hosting-file.is-confirming .hosting-file-remove {
-	opacity: 1;
-}
-
-.hosting-row-enter-active {
-	transition:
-		opacity 0.28s ease,
-		transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-	transition-delay: var(--row-delay, 0ms);
-}
-
-.hosting-row-enter-from {
-	opacity: 0;
-	transform: translateY(6px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.hosting-row-enter-active,
-	.hosting-file-icon,
-	.hosting-file-go {
-		transition: none;
-	}
-}
-</style>

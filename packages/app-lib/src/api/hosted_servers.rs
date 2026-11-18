@@ -144,6 +144,21 @@ pub struct HostedFile {
     pub size: u64,
 }
 
+/// A row of the shared file manager: the same shape the instance Files tab
+/// gets, so the server's folder opens in the same editor.
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct HostedFileItem {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub kind: &'static str,
+    pub path: String,
+    pub modified: u64,
+    pub created: u64,
+    pub size: Option<u64>,
+    pub count: Option<usize>,
+}
+
 #[derive(Default)]
 struct Runtime {
     status: HostedStatus,
@@ -1754,6 +1769,7 @@ pub async fn files(id: &str, rel: &str) -> crate::Result<Vec<HostedFile>> {
 }
 
 pub async fn file_delete(id: &str, rel: &str) -> crate::Result<()> {
+    let rel = trimmed(rel);
     if rel.trim().is_empty() {
         return Err(input_error("the server's own folder cannot be deleted"));
     }
@@ -1764,6 +1780,130 @@ pub async fn file_delete(id: &str, rel: &str) -> crate::Result<()> {
     } else {
         tokio::fs::remove_file(&target).await?;
     }
+    Ok(())
+}
+
+fn trimmed(rel: &str) -> &str {
+    rel.trim_matches('/')
+}
+
+/// A path the editor may change: anything inside the server folder, but
+/// never the folder itself.
+async fn writable_child(id: &str, rel: &str) -> crate::Result<PathBuf> {
+    if trimmed(rel).is_empty() {
+        return Err(input_error("the server's own folder cannot be changed"));
+    }
+    safe_child(id, trimmed(rel)).await
+}
+
+fn unix_secs(time: std::io::Result<std::time::SystemTime>) -> u64 {
+    time.ok()
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |time| time.as_secs())
+}
+
+pub async fn file_items(
+    id: &str,
+    rel: &str,
+) -> crate::Result<Vec<HostedFileItem>> {
+    let rel = trimmed(rel);
+    tokio::fs::create_dir_all(server_dir(id).await?).await?;
+    let dir = safe_child(id, rel).await?;
+    let mut out = Vec::new();
+    let mut entries = tokio::fs::read_dir(&dir).await?;
+    while let Some(entry) = entries.next_entry().await? {
+        let name = entry.file_name().to_string_lossy().to_string();
+        let Ok(meta) = entry.metadata().await else {
+            continue;
+        };
+        let count = if meta.is_dir() {
+            let mut children = tokio::fs::read_dir(entry.path()).await?;
+            let mut count = 0;
+            while children.next_entry().await?.is_some() {
+                count += 1;
+            }
+            Some(count)
+        } else {
+            None
+        };
+        out.push(HostedFileItem {
+            path: if rel.is_empty() {
+                name.clone()
+            } else {
+                format!("{rel}/{name}")
+            },
+            name,
+            kind: if meta.is_dir() { "directory" } else { "file" },
+            modified: unix_secs(meta.modified()),
+            created: unix_secs(meta.created()),
+            size: meta.is_file().then(|| meta.len()),
+            count,
+        });
+    }
+    Ok(out)
+}
+
+pub async fn file_read(id: &str, rel: &str) -> crate::Result<Vec<u8>> {
+    let target = safe_child(id, trimmed(rel)).await?;
+    Ok(tokio::fs::read(&target).await?)
+}
+
+/// Written next to the file first and moved over it, so a config the server
+/// reads at that moment is either the old one or the new one, never half.
+pub async fn file_write(
+    id: &str,
+    rel: &str,
+    bytes: &[u8],
+    create_only: bool,
+) -> crate::Result<()> {
+    let target = writable_child(id, rel).await?;
+    if create_only && tokio::fs::symlink_metadata(&target).await.is_ok() {
+        return Err(input_error("a file already exists at this path"));
+    }
+    if let Some(parent) = target.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    let mut part = target.clone().into_os_string();
+    part.push(".part");
+    let part = PathBuf::from(part);
+    tokio::fs::write(&part, bytes).await?;
+    if let Err(error) = tokio::fs::rename(&part, &target).await {
+        let _ = tokio::fs::remove_file(&part).await;
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+pub async fn file_create_dir(id: &str, rel: &str) -> crate::Result<()> {
+    let target = writable_child(id, rel).await?;
+    tokio::fs::create_dir(&target).await?;
+    Ok(())
+}
+
+pub async fn file_rename(
+    id: &str,
+    source: &str,
+    destination: &str,
+) -> crate::Result<()> {
+    let from = writable_child(id, source).await?;
+    let to = writable_child(id, destination).await?;
+    if tokio::fs::symlink_metadata(&to).await.is_ok() {
+        return Err(input_error("the destination already exists"));
+    }
+    if let Some(parent) = to.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    tokio::fs::rename(&from, &to).await?;
+    Ok(())
+}
+
+pub async fn file_export(
+    id: &str,
+    rel: &str,
+    destination: &Path,
+) -> crate::Result<()> {
+    let source = safe_child(id, trimmed(rel)).await?;
+    tokio::fs::copy(&source, destination).await?;
     Ok(())
 }
 

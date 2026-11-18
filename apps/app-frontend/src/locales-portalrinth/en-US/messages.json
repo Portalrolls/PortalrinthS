@@ -5123,5 +5123,11 @@
 	},
 	"app.messenger.profile.partial": {
 		"message": "The full profile did not load"
+	},
+	"app.server-hosting.files.save-as": {
+		"message": "Save as…"
+	},
+	"app.server-hosting.files.adding": {
+		"message": "Adding files ({completed}/{total})"
 	}
 }

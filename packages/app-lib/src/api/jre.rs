@@ -505,11 +505,11 @@ async fn download_archive_parallel(
                             continue;
                         }
                     };
-                    let bytes = match response.error_for_status_ref() {
-                        Ok(response) => response.bytes().await,
-                        Err(error) => Err(error),
-                    };
-                    let bytes = match bytes {
+                    if let Err(error) = response.error_for_status_ref() {
+                        last_error = Some(error.into());
+                        continue;
+                    }
+                    let bytes = match response.bytes().await {
                         Ok(bytes) => bytes,
                         Err(error) => {
                             last_error = Some(error.into());

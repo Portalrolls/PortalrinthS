@@ -23,13 +23,13 @@ import MicOffIcon from './MicOffIcon.vue'
 import { formatDuration, isOnline } from './model'
 import PhoneIcon from './PhoneIcon.vue'
 import PhoneOffIcon from './PhoneOffIcon.vue'
-import { displayName, me, openDm, openServer, startDm, state } from './store'
+import { activeConversation, displayName, me, openDm, openServer, startDm, state } from './store'
 import { vTip } from './tooltip'
 import type { Anchor } from './ui-bus'
 import UserAvatar from './UserAvatar.vue'
 import { leaveVoice, toggleVoiceDeafen, toggleVoiceMute, voice } from './voice-channel'
 
-const props = defineProps<{ mode: 'bar' | 'incoming' }>()
+const props = defineProps<{ mode: 'bar' | 'stage' | 'incoming' }>()
 
 const t = useMessengerT()
 
@@ -53,6 +53,21 @@ const voiceServer = computed(
 )
 
 const dmActive = computed(() => call.value.phase !== 'idle' && call.value.phase !== 'incoming')
+
+/** Открыт чат с тем, с кем идёт звонок: звонок рисуется сверху чата,
+ * а нижняя плашка у профиля прячется, чтобы не было двух одинаковых. */
+const onCallPage = computed(() => {
+	if (!dmActive.value || state.section !== 'home' || state.homePage !== 'dm') return false
+	const conv = activeConversation.value
+	if (!conv?.dm) return false
+	if (conv.id === call.value.conversationId) return true
+	const peerId = conv.peer?.id
+	return Boolean(peerId) && call.value.participants.some((entry) => entry.id === peerId)
+})
+
+const showBar = computed(() =>
+	dmActive.value ? !onCallPage.value : Boolean(voice.channelId || voice.connecting),
+)
 
 const phaseLabel = computed(() => {
 	switch (call.value.phase) {
@@ -164,10 +179,7 @@ async function invite(id: string, username: string): Promise<void> {
 
 <template>
 	<Transition name="msgr-call">
-		<div
-			v-if="props.mode === 'bar' && (dmActive || voice.channelId || voice.connecting)"
-			class="msgr-callbar"
-		>
+		<div v-if="props.mode === 'bar' && showBar" class="msgr-callbar">
 			<div class="msgr-callbar__info">
 				<span
 					class="msgr-callbar__signal"
@@ -292,86 +304,164 @@ async function invite(id: string, username: string): Promise<void> {
 					<PhoneOffIcon />
 				</button>
 			</div>
-
-			<FloatingMenu
-				:anchor="peerAnchor"
-				placement="top-start"
-				:width="230"
-				@close="peerAnchor = null"
-			>
-				<div v-if="peerMenu" class="msgr-callpeer">
-					<div class="msgr-callpeer__head">
-						<UserAvatar :user-id="peerMenu.id" :name="peerMenu.name" :size="32" />
-						<b>{{ displayName(peerMenu.id, peerMenu.name) }}</b>
-					</div>
-					<label class="msgr-callpeer__volume">
-						<span>
-							{{ t('app.messenger.call.volume', 'Громкость') }}
-							<b>{{ peerVolume }}%</b>
-						</span>
-						<input
-							type="range"
-							min="0"
-							max="200"
-							step="5"
-							:value="peerVolume"
-							:disabled="peerMenu.relayed"
-							@input="onVolume"
-						/>
-					</label>
-					<p v-if="peerMenu.relayed" class="msgr-callpeer__hint">
-						{{ t('app.messenger.call.relayed', 'Голос идёт через другого участника звонка') }}
-					</p>
-					<button v-else type="button" class="msgr-menu-item is-danger" @click="kick">
-						<PhoneOffIcon /> {{ t('app.messenger.call.drop', 'Отключить от звонка') }}
-					</button>
-				</div>
-			</FloatingMenu>
-
-			<FloatingMenu
-				:anchor="inviteAnchor"
-				placement="top-start"
-				:width="260"
-				@close="inviteAnchor = null"
-			>
-				<div class="msgr-invite">
-					<label class="msgr-invite__search">
-						<SearchIcon />
-						<input
-							v-model="inviteQuery"
-							type="search"
-							:placeholder="t('app.messenger.call.inviteSearch', 'Найти друга')"
-							autocomplete="off"
-						/>
-					</label>
-					<div class="msgr-invite__list">
-						<button
-							v-for="friend in inviteList"
-							:key="friend.id"
-							type="button"
-							class="msgr-invite__item"
-							:disabled="Boolean(inviting)"
-							@click="invite(friend.id, friend.username)"
-						>
-							<UserAvatar
-								:user-id="friend.id"
-								:name="friend.username"
-								:size="28"
-								status
-								ring="#1c1d22"
-							/>
-							<span>{{ displayName(friend.id, friend.username) }}</span>
-							<span v-if="inviting === friend.id" class="msgr-spinner msgr-invite__spin" />
-							<PhoneIcon v-else class="msgr-invite__call" />
-						</button>
-						<p v-if="!inviteList.length" class="msgr-invite__empty">
-							{{ t('app.messenger.call.inviteEmpty', 'Некого добавить') }}
-						</p>
-					</div>
-				</div>
-			</FloatingMenu>
 		</div>
 	</Transition>
+	<Transition name="msgr-stage">
+		<section v-if="props.mode === 'stage' && onCallPage" class="msgr-stage">
+			<div class="msgr-stage__people">
+				<div
+					v-if="me"
+					class="msgr-stage__person"
+					:class="{ 'is-speaking': call.selfSpeaking && !call.muted }"
+				>
+					<span class="msgr-stage__avatar">
+						<UserAvatar :user-id="me.id" :name="me.username" :size="72" />
+						<MicOffIcon v-if="call.muted" class="msgr-stage__badge" />
+					</span>
+					<b>{{ t('app.messenger.call.you', 'Вы') }}</b>
+				</div>
+				<button
+					v-for="peer in call.participants"
+					:key="peer.id"
+					type="button"
+					class="msgr-stage__person"
+					:class="{
+						'is-speaking': peer.speaking,
+						'is-waiting': peer.state === 'ringing' || peer.state === 'connecting',
+					}"
+					@click="openPeer($event, peer)"
+				>
+					<span class="msgr-stage__avatar">
+						<UserAvatar :user-id="peer.id" :name="peer.name" :size="72" />
+					</span>
+					<b>{{ displayName(peer.id, peer.name) }}</b>
+				</button>
+			</div>
+			<span class="msgr-stage__phase">
+				{{ phaseLabel }}<template v-if="timer"> · {{ timer }}</template>
+			</span>
+			<div class="msgr-stage__controls">
+				<button
+					v-tip="
+						call.muted
+							? t('app.messenger.call.unmute', 'Включить микрофон')
+							: t('app.messenger.call.mute', 'Выключить микрофон')
+					"
+					type="button"
+					:class="{ 'is-off': call.muted }"
+					@click="bump(toggleCallMute)"
+				>
+					<MicOffIcon v-if="call.muted" />
+					<MicIcon v-else />
+				</button>
+				<button
+					v-tip="
+						call.deafened
+							? t('app.messenger.voice.undeafen', 'Включить звук')
+							: t('app.messenger.voice.deafen', 'Выключить звук')
+					"
+					type="button"
+					:class="{ 'is-off': call.deafened }"
+					@click="bump(toggleCallDeafen)"
+				>
+					<HeadphonesIcon :off="call.deafened" />
+				</button>
+				<button
+					v-tip="t('app.messenger.call.invite', 'Добавить друга в звонок')"
+					type="button"
+					:class="{ 'is-on': inviteAnchor }"
+					@click.stop="openInvite"
+				>
+					<UserPlusIcon />
+				</button>
+				<button
+					v-tip="t('app.messenger.call.hangup', 'Отключиться')"
+					type="button"
+					class="is-hangup"
+					@click="bump(hangupCall)"
+				>
+					<PhoneOffIcon />
+				</button>
+			</div>
+		</section>
+	</Transition>
+	<FloatingMenu
+		:anchor="peerAnchor"
+		:placement="props.mode === 'stage' ? 'bottom-start' : 'top-start'"
+		:width="230"
+		@close="peerAnchor = null"
+	>
+		<div v-if="peerMenu" class="msgr-callpeer">
+			<div class="msgr-callpeer__head">
+				<UserAvatar :user-id="peerMenu.id" :name="peerMenu.name" :size="32" />
+				<b>{{ displayName(peerMenu.id, peerMenu.name) }}</b>
+			</div>
+			<label class="msgr-callpeer__volume">
+				<span>
+					{{ t('app.messenger.call.volume', 'Громкость') }}
+					<b>{{ peerVolume }}%</b>
+				</span>
+				<input
+					type="range"
+					min="0"
+					max="200"
+					step="5"
+					:value="peerVolume"
+					:disabled="peerMenu.relayed"
+					@input="onVolume"
+				/>
+			</label>
+			<p v-if="peerMenu.relayed" class="msgr-callpeer__hint">
+				{{ t('app.messenger.call.relayed', 'Голос идёт через другого участника звонка') }}
+			</p>
+			<button v-else type="button" class="msgr-menu-item is-danger" @click="kick">
+				<PhoneOffIcon /> {{ t('app.messenger.call.drop', 'Отключить от звонка') }}
+			</button>
+		</div>
+	</FloatingMenu>
+
+	<FloatingMenu
+		:anchor="inviteAnchor"
+		:placement="props.mode === 'stage' ? 'bottom-start' : 'top-start'"
+		:width="260"
+		@close="inviteAnchor = null"
+	>
+		<div class="msgr-invite">
+			<label class="msgr-invite__search">
+				<SearchIcon />
+				<input
+					v-model="inviteQuery"
+					type="search"
+					:placeholder="t('app.messenger.call.inviteSearch', 'Найти друга')"
+					autocomplete="off"
+				/>
+			</label>
+			<div class="msgr-invite__list">
+				<button
+					v-for="friend in inviteList"
+					:key="friend.id"
+					type="button"
+					class="msgr-invite__item"
+					:disabled="Boolean(inviting)"
+					@click="invite(friend.id, friend.username)"
+				>
+					<UserAvatar
+						:user-id="friend.id"
+						:name="friend.username"
+						:size="28"
+						status
+						ring="#1c1d22"
+					/>
+					<span>{{ displayName(friend.id, friend.username) }}</span>
+					<span v-if="inviting === friend.id" class="msgr-spinner msgr-invite__spin" />
+					<PhoneIcon v-else class="msgr-invite__call" />
+				</button>
+				<p v-if="!inviteList.length" class="msgr-invite__empty">
+					{{ t('app.messenger.call.inviteEmpty', 'Некого добавить') }}
+				</p>
+			</div>
+		</div>
+	</FloatingMenu>
 	<Teleport to="body">
 		<Transition name="msgr-incoming">
 			<div v-if="props.mode === 'incoming' && incoming" class="msgr-incoming msgr-root">
@@ -760,6 +850,137 @@ async function invite(id: string, username: string): Promise<void> {
 	height: 1.05rem;
 }
 
+.msgr-stage {
+	display: flex;
+	flex-shrink: 0;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.7rem;
+	padding: 1.4rem 1rem 1.1rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	background: #0e0f12;
+}
+
+.msgr-stage__people {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 1.4rem;
+}
+
+.msgr-stage__person {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-contrast);
+	font: inherit;
+	cursor: pointer;
+}
+
+div.msgr-stage__person {
+	cursor: default;
+}
+
+.msgr-stage__person b {
+	max-width: 7rem;
+	overflow: hidden;
+	font-size: 0.82rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-stage__avatar {
+	position: relative;
+	display: grid;
+	border-radius: 50%;
+	box-shadow: 0 0 0 3px transparent;
+	transition: box-shadow 0.14s ease;
+}
+
+.msgr-stage__person.is-speaking .msgr-stage__avatar {
+	box-shadow:
+		0 0 0 3px #0e0f12,
+		0 0 0 6px #23a55a;
+}
+
+.msgr-stage__person.is-waiting .msgr-stage__avatar {
+	opacity: 0.45;
+	animation: msgr-signal 1.2s ease-in-out infinite;
+}
+
+.msgr-stage__badge {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	width: 1.3rem;
+	height: 1.3rem;
+	padding: 3px;
+	border-radius: 50%;
+	background: #0e0f12;
+	color: #f23f43;
+}
+
+.msgr-stage__phase {
+	color: #23a55a;
+	font-size: 0.8rem;
+	font-weight: 600;
+}
+
+.msgr-stage__controls {
+	display: flex;
+	gap: 0.6rem;
+}
+
+.msgr-stage__controls button {
+	display: grid;
+	width: 2.75rem;
+	height: 2.75rem;
+	place-items: center;
+	border: 0;
+	border-radius: 50%;
+	background: #26272d;
+	color: var(--color-contrast);
+	cursor: pointer;
+	transition: background 0.12s ease;
+}
+
+.msgr-stage__controls button:hover,
+.msgr-stage__controls button.is-on {
+	background: #34363d;
+}
+
+.msgr-stage__controls button.is-off {
+	color: #f23f43;
+}
+
+.msgr-stage__controls button.is-hangup {
+	background: #da373c;
+	color: white;
+}
+
+.msgr-stage__controls button.is-hangup:hover {
+	background: #b92f33;
+}
+
+.msgr-stage__controls svg {
+	width: 1.2rem;
+	height: 1.2rem;
+}
+
+.msgr-stage-enter-active,
+.msgr-stage-leave-active {
+	transition: opacity 0.2s ease;
+}
+
+.msgr-stage-enter-from,
+.msgr-stage-leave-to {
+	opacity: 0;
+}
+
 .msgr-incoming {
 	position: fixed;
 	inset: 0;
@@ -920,12 +1141,15 @@ async function invite(id: string, username: string): Promise<void> {
 	.msgr-incoming__actions .is-accept,
 	.msgr-callbar__signal i,
 	.msgr-callbar__person.is-waiting,
+	.msgr-stage__person.is-waiting .msgr-stage__avatar,
 	.msgr-incoming-enter-active .msgr-incoming__card {
 		animation: none;
 	}
 
 	.msgr-call-enter-active,
 	.msgr-call-leave-active,
+	.msgr-stage-enter-active,
+	.msgr-stage-leave-active,
 	.msgr-incoming-enter-active,
 	.msgr-incoming-leave-active {
 		transition: none;

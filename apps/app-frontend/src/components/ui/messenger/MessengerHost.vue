@@ -22,6 +22,7 @@ import {
 	myId,
 	onIncomingMessage,
 	openDm,
+	openServer,
 	resetState,
 	setActivity,
 	setFailText,
@@ -134,11 +135,10 @@ watch(
 type PushToast = {
 	id: string
 	convId: string
+	dm: boolean
 	senderId: string
 	name: string
 	text: string
-	attachments: Msg['attachment'][]
-	open: boolean
 	timer: ReturnType<typeof setTimeout> | null
 }
 
@@ -169,6 +169,8 @@ function previewText(msg: Msg): string {
 	if (msg.kind === 'voice' || msg.attachment?.kind === 'voice') {
 		return t('app.messenger.push.voice', 'Голосовое сообщение')
 	}
+	const kind = msg.attachment?.kind
+	if (kind === 'image' || kind === 'gif') return t('app.messenger.push.image', 'Изображение')
 	return msg.attachment ? t('app.messenger.push.attachment', 'Вложение') : ''
 }
 
@@ -181,19 +183,16 @@ const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
 	if (existing) {
 		existing.text = previewText(msg)
 		existing.name = title
-		existing.attachments = msg.attachment ? [msg.attachment] : []
-		existing.open = false
 		scheduleClose(existing)
 		return
 	}
 	const toast: PushToast = {
 		id: msg.id,
 		convId: conv.id,
+		dm: conv.dm,
 		senderId: msg.senderId,
 		name: title,
 		text: previewText(msg),
-		attachments: msg.attachment ? [msg.attachment] : [],
-		open: false,
 		timer: null,
 	}
 	toasts.unshift(toast)
@@ -207,7 +206,8 @@ const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
 async function openToast(toast: PushToast): Promise<void> {
 	closeToast(toast.id)
 	await router.push('/messenger')
-	await openDm(toast.convId)
+	if (toast.dm) await openDm(toast.convId)
+	else await openServer(toast.convId)
 }
 
 const toastKey = computed(() => state.toast.id)
@@ -258,33 +258,6 @@ onUnmounted(() => {
 							</button>
 						</header>
 						<p v-if="toast.text">{{ toast.text }}</p>
-						<button
-							v-if="toast.attachments.length"
-							type="button"
-							class="msgr-push__toggle"
-							@click.stop="toast.open = !toast.open"
-						>
-							{{
-								toast.open
-									? t('app.messenger.push.hideAttachments', 'Скрыть вложения')
-									: t('app.messenger.push.showAttachments', 'Показать вложения ({count})', {
-											count: toast.attachments.length,
-										})
-							}}
-						</button>
-						<Transition name="msgr-push-media">
-							<div v-if="toast.open" class="msgr-push__media">
-								<template v-for="(att, index) in toast.attachments" :key="index">
-									<img
-										v-if="att && (att.kind === 'image' || att.kind === 'gif')"
-										:src="att.url"
-										alt=""
-										draggable="false"
-									/>
-									<span v-else-if="att" class="msgr-push__file">{{ att.name }}</span>
-								</template>
-							</div>
-						</Transition>
 					</div>
 				</article>
 			</TransitionGroup>
@@ -390,7 +363,7 @@ onUnmounted(() => {
 	line-height: 1.35;
 	overflow-wrap: anywhere;
 	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 3;
+	-webkit-line-clamp: 2;
 }
 
 .msgr-push__close {
@@ -417,47 +390,6 @@ onUnmounted(() => {
 	height: 0.9rem;
 }
 
-.msgr-push__toggle {
-	align-self: flex-start;
-	padding: 0;
-	border: 0;
-	background: none;
-	color: var(--color-brand);
-	font: inherit;
-	font-size: 0.8rem;
-	font-weight: 600;
-	cursor: pointer;
-}
-
-.msgr-push__toggle:hover {
-	text-decoration: underline;
-}
-
-.msgr-push__media {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.35rem;
-	margin-top: 0.25rem;
-}
-
-.msgr-push__media img {
-	max-width: 100%;
-	max-height: 11rem;
-	border-radius: 8px;
-	object-fit: cover;
-}
-
-.msgr-push__file {
-	overflow: hidden;
-	max-width: 100%;
-	padding: 0.3rem 0.55rem;
-	border-radius: 6px;
-	background: rgba(255, 255, 255, 0.06);
-	font-size: 0.78rem;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
 .msgr-push-enter-active,
 .msgr-push-leave-active,
 .msgr-push-move {
@@ -480,16 +412,6 @@ onUnmounted(() => {
 	position: absolute;
 	right: 0;
 	left: 0;
-}
-
-.msgr-push-media-enter-active,
-.msgr-push-media-leave-active {
-	transition: opacity 0.18s ease;
-}
-
-.msgr-push-media-enter-from,
-.msgr-push-media-leave-to {
-	opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

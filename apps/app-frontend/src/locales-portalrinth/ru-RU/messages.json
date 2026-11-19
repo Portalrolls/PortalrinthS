@@ -6058,9 +6058,6 @@
 	"app.messenger.profile.loading": {
 		"message": "Загружаем профиль…"
 	},
-	"app.messenger.profile.failed": {
-		"message": "Профиль не загрузился — попробуйте ещё раз"
-	},
 	"app.messenger.profile.lastSeen": {
 		"message": "Был в сети"
 	},
@@ -7702,12 +7699,6 @@
 	"app.messenger.profile.noSkin": {
 		"message": "Скин не найден"
 	},
-	"app.messenger.profile.slow": {
-		"message": "Сервис отвечает медленно — пока показываем то, что знаем"
-	},
-	"app.messenger.profile.partial": {
-		"message": "Полный профиль не загрузился"
-	},
 	"app.server-hosting.files.save-as": {
 		"message": "Сохранить как…"
 	},
@@ -7716,5 +7707,11 @@
 	},
 	"app.messenger.profile.empty": {
 		"message": "Пока-что ничего нет"
+	},
+	"app.messenger.push.image": {
+		"message": "Изображение"
+	},
+	"app.messenger.call.you": {
+		"message": "Вы"
 	}
 }

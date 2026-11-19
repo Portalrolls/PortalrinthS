@@ -14,6 +14,7 @@ import {
 	serviceStreamUrl,
 } from '@/helpers/uprojects-service'
 
+import { REACTIONS } from './emoji'
 import { openLiveStream } from './live-stream'
 import {
 	attachmentKind,
@@ -807,6 +808,7 @@ export async function reactMessage(msg: Msg, emoji: string): Promise<void> {
 		.find((entry) => entry.id === msg.id)
 	const current = (fresh ?? msg).reactions.find((reaction) => reaction.emoji === emoji)
 	const adding = !current?.me
+	if (adding && !REACTIONS.includes(emoji)) return
 	patchEverywhere(msg.id, (entry) => ({
 		...entry,
 		reactions: flipReaction(entry.reactions, emoji, adding),
@@ -1363,7 +1365,7 @@ function scheduleReload(): void {
 	if (reloadTimer) return
 	reloadTimer = setTimeout(() => {
 		reloadTimer = null
-		void loadLists()
+		void loadLists().then(flushStrayIncoming)
 	}, 500)
 }
 
@@ -1386,6 +1388,16 @@ type IncomingListener = (msg: Msg, conv: Conversation) => void
 const incomingListeners = new Set<IncomingListener>()
 
 /** Новое чужое сообщение не в открытом сейчас чате — для всплывающих уведомлений. */
+const strayIncoming: { convId: string; msg: Msg }[] = []
+
+function flushStrayIncoming(): void {
+	for (const { convId, msg } of strayIncoming.splice(0)) {
+		const conv = state.conversations.find((entry) => entry.id === convId)
+		if (!conv || isHiddenForMe(msg.id)) continue
+		for (const listener of incomingListeners) listener(msg, conv)
+	}
+}
+
 export function onIncomingMessage(listener: IncomingListener): () => void {
 	incomingListeners.add(listener)
 	return () => incomingListeners.delete(listener)
@@ -1398,6 +1410,9 @@ function onLiveMessage(data: LooseRecord): void {
 	rememberMessage(msg)
 	const conv = state.conversations.find((entry) => entry.id === convId)
 	if (!conv) {
+		// Новый чат (первое сообщение от человека) — сначала подтянем список,
+		// а уведомление покажем, когда чат в нём появится.
+		if (msg.senderId !== myId.value) strayIncoming.push({ convId, msg })
 		scheduleReload()
 		return
 	}
@@ -1413,7 +1428,8 @@ function onLiveMessage(data: LooseRecord): void {
 	}
 	conv.lastPreview = previewOf(data.message)
 	conv.updatedAt = msg.createdAt
-	if (!mine && !active && !isHiddenForMe(msg.id)) {
+	// Открытый чат в свёрнутом или неактивном окне тоже уведомляет.
+	if (!mine && !(active && document.hasFocus()) && !isHiddenForMe(msg.id)) {
 		for (const listener of incomingListeners) listener(msg, conv)
 	}
 	if (state.typing[key]) Reflect.deleteProperty(state.typing[key], msg.senderId)

@@ -3541,9 +3541,6 @@
 	"app.messenger.profile.loading": {
 		"message": "Loading profile…"
 	},
-	"app.messenger.profile.failed": {
-		"message": "Profile failed to load — try again"
-	},
 	"app.messenger.profile.lastSeen": {
 		"message": "Last seen"
 	},
@@ -5112,12 +5109,6 @@
 	"app.messenger.profile.noSkin": {
 		"message": "Skin not found"
 	},
-	"app.messenger.profile.slow": {
-		"message": "The service is slow — showing what we already know"
-	},
-	"app.messenger.profile.partial": {
-		"message": "The full profile did not load"
-	},
 	"app.server-hosting.files.save-as": {
 		"message": "Save as…"
 	},
@@ -5126,5 +5117,11 @@
 	},
 	"app.messenger.profile.empty": {
 		"message": "Nothing here yet"
+	},
+	"app.messenger.push.image": {
+		"message": "Image"
+	},
+	"app.messenger.call.you": {
+		"message": "You"
 	}
 }

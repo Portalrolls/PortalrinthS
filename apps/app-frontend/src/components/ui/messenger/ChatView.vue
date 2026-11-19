@@ -15,6 +15,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { getCallState, startDmCall } from '@/helpers/messenger-call'
 
+import CallBar from './CallBar.vue'
 import Composer from './Composer.vue'
 import { useMessengerT } from './i18n'
 import MessageItem from './MessageItem.vue'
@@ -467,6 +468,8 @@ function onDrop(event: DragEvent): void {
 				</label>
 			</div>
 		</header>
+
+		<CallBar v-if="conv.dm" mode="stage" />
 
 		<div class="msgr-chat__body">
 			<div class="msgr-chat__main">
@@ -956,26 +959,8 @@ function onDrop(event: DragEvent): void {
 	transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1.2);
 }
 
-.msgr-chat__intro-avatar::after {
-	position: absolute;
-	inset: -6px;
-	border: 2px solid color-mix(in srgb, var(--color-brand) 55%, transparent);
-	border-radius: 50%;
-	opacity: 0;
-	transform: scale(0.9);
-	transition:
-		opacity 0.25s ease,
-		transform 0.25s ease;
-	content: '';
-}
-
 .msgr-chat__intro-avatar:hover {
 	transform: translateY(-2px) scale(1.03);
-}
-
-.msgr-chat__intro-avatar:hover::after {
-	opacity: 1;
-	transform: scale(1);
 }
 
 .msgr-chat__intro-text {

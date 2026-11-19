@@ -1,3 +1,6 @@
+/** Реакции, которые принимает сервис; на любую другую он отвечает invalid_reaction. */
+export const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉', '👀']
+
 export const QUICK_REACTIONS = ['❤️', '👍', '😂', '🔥', '😮', '😢']
 
 export const EMOJI_GROUPS: { id: string; label: string; items: string[] }[] = [

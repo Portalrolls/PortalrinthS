@@ -18,8 +18,7 @@ import {
 } from '@modrinth/assets'
 import { computed, nextTick, ref, watch } from 'vue'
 
-import { QUICK_REACTIONS } from './emoji'
-import EmojiPicker from './EmojiPicker.vue'
+import { QUICK_REACTIONS, REACTIONS } from './emoji'
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import MessageAttachment from './MessageAttachment.vue'
@@ -510,8 +509,17 @@ function mention(name: string, el: HTMLElement): void {
 			</button>
 		</div>
 
-		<FloatingMenu :anchor="pickerAnchor" placement="bottom-end" @close="pickerAnchor = null">
-			<EmojiPicker @pick="react" />
+		<FloatingMenu
+			:anchor="pickerAnchor"
+			placement="bottom-end"
+			:width="248"
+			@close="pickerAnchor = null"
+		>
+			<div class="msgr-menu-reactions msgr-menu-reactions--grid">
+				<button v-for="emoji in REACTIONS" :key="emoji" type="button" @click="react(emoji)">
+					{{ emoji }}
+				</button>
+			</div>
 		</FloatingMenu>
 
 		<FloatingMenu

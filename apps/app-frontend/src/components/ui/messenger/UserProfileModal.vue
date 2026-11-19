@@ -68,41 +68,24 @@ const skinTexture = ref('')
 const followBusy = ref(false)
 const tab = ref<'about' | 'posts'>('about')
 
-/** Профиль с сервиса может идти долго — после этого показываем то, что уже
- * знает мессенджер, а полный профиль подставим, когда дойдёт. */
-const PROFILE_PATIENCE = 9000
-
-const slow = ref(false)
-
+/** Как в Undefined Client: окно сразу рисует то, что знает мессенджер,
+ * а полный профиль тихо подставляется, когда придёт — без плашек загрузки. */
 async function loadProfile(user: ProfileTarget): Promise<void> {
 	loading.value = true
 	failed.value = false
-	slow.value = false
 	const id = encodeURIComponent(String(user.id))
-	const request = Promise.allSettled([
+	const [profileRes, statsRes] = await Promise.allSettled([
 		serviceRequest(`/users/${id}/profile`),
 		serviceRequest(`/social/users/${id}/stats`),
 	])
-	let timer: ReturnType<typeof setTimeout> | undefined
-	const patience = new Promise<'slow'>((resolve) => {
-		timer = setTimeout(() => resolve('slow'), PROFILE_PATIENCE)
-	})
-	const first = await Promise.race([request, patience])
-	if (first === 'slow') {
-		if (target.value !== user) return
-		loading.value = false
-		slow.value = true
-	}
-	const [profileRes, statsRes] = first === 'slow' ? await request : first
-	clearTimeout(timer)
 	if (target.value !== user) return
 	loading.value = false
-	slow.value = false
 	if (profileRes.status !== 'fulfilled' || !profileRes.value.ok) {
 		failed.value = true
 		return
 	}
-	profile.value = (profileRes.value.data?.user ?? profileRes.value.data) as LooseRecord
+	const data = profileRes.value.data
+	profile.value = (data?.profile ?? data?.user ?? data) as LooseRecord
 	rememberUser(profile.value)
 	if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
 		stats.value = (statsRes.value.data?.stats ?? null) as LooseRecord | null
@@ -594,22 +577,6 @@ function edit(): void {
 									</button>
 								</div>
 								<template v-else-if="tab === 'about'">
-									<div v-if="loading || slow || failed" class="upm__notice">
-										<span v-if="loading || slow" class="msgr-spinner" />
-										{{
-											loading
-												? t('app.messenger.profile.loading', 'Загружаем профиль…')
-												: slow
-													? t(
-															'app.messenger.profile.slow',
-															'Сервис отвечает медленно — пока показываем то, что знаем',
-														)
-													: t('app.messenger.profile.partial', 'Полный профиль не загрузился')
-										}}
-										<button v-if="failed" type="button" @click="retry">
-											{{ t('app.messenger.retry', 'Повторить') }}
-										</button>
-									</div>
 									<div v-if="activity" class="upm__activity">
 										<span class="upm__activity-icon"><GameIcon /></span>
 										<div>
@@ -1101,30 +1068,6 @@ function edit(): void {
 
 .upm__state .upm__btn {
 	margin-left: 0.4rem;
-}
-
-.upm__notice {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	margin-bottom: 0.6rem;
-	border: 1px solid rgba(255, 255, 255, 0.06);
-	border-radius: 10px;
-	background: rgba(255, 255, 255, 0.04);
-	color: var(--color-secondary);
-	font-size: 0.78rem;
-	padding: 0.5rem 0.7rem;
-	animation: upm-notice 0.3s ease both;
-}
-
-.upm__notice button {
-	margin-left: auto;
-	border: none;
-	background: transparent;
-	color: var(--upm-accent);
-	cursor: pointer;
-	font: inherit;
-	font-weight: 700;
 }
 
 @keyframes upm-notice {

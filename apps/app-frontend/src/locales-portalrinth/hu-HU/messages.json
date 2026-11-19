@@ -61,5 +61,11 @@
 	},
 	"app.messenger.profile.empty": {
 		"message": "Itt még nincs semmi"
+	},
+	"app.messenger.push.image": {
+		"message": "Kép"
+	},
+	"app.messenger.call.you": {
+		"message": "Te"
 	}
 }

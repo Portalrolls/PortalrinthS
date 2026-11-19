@@ -71,8 +71,36 @@ function place(): void {
 	ready.value = true
 }
 
+/** Нажатие по той же кнопке, что открыла меню: меню закрывается здесь, а
+ * следующий за ним click глотаем — иначе кнопка тут же откроет его снова. */
+function onTrigger(event: PointerEvent): boolean {
+	const anchor = props.anchor
+	if (!anchor || event.button !== 0 || !anchor.w || !anchor.h) return false
+	return (
+		event.clientX >= anchor.x &&
+		event.clientX <= anchor.x + anchor.w &&
+		event.clientY >= anchor.y &&
+		event.clientY <= anchor.y + anchor.h
+	)
+}
+
+function swallowClick(): void {
+	const stop = (event: MouseEvent) => {
+		event.stopPropagation()
+		event.preventDefault()
+		done()
+	}
+	const timer = setTimeout(done, 600)
+	function done() {
+		clearTimeout(timer)
+		window.removeEventListener('click', stop, true)
+	}
+	window.addEventListener('click', stop, true)
+}
+
 function onPointer(event: PointerEvent): void {
 	if (el.value && event.target instanceof Node && el.value.contains(event.target)) return
+	if (onTrigger(event)) swallowClick()
 	emit('close')
 }
 
@@ -254,6 +282,12 @@ defineExpose({ place })
 	transition:
 		background 0.12s ease,
 		transform 0.12s ease;
+}
+
+.msgr-menu-reactions--grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	padding: 0.2rem;
 }
 
 .msgr-menu-reactions button:hover {

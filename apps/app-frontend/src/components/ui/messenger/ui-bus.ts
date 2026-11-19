@@ -13,6 +13,8 @@ export type PromptOptions = {
 	confirm?: string
 	danger?: boolean
 	input?: boolean
+	/** Пустое поле — тоже ответ (например, сбросить имя). */
+	allowEmpty?: boolean
 	multiline?: boolean
 	choices?: { id: string; label: string; danger?: boolean }[]
 }

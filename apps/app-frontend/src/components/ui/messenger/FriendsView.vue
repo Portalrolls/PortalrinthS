@@ -2,6 +2,7 @@
 import {
 	BanIcon,
 	CheckIcon,
+	EditIcon,
 	MessageIcon,
 	MoreVerticalIcon,
 	SearchIcon,
@@ -13,9 +14,10 @@ import {
 } from '@modrinth/assets'
 import { computed, ref } from 'vue'
 
+import { promptAlias } from './aliases'
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
-import type { Peer } from './model'
+import { activityLine, type Peer } from './model'
 import PhoneIcon from './PhoneIcon.vue'
 import {
 	acceptFriend,
@@ -134,14 +136,8 @@ function statusText(row: Row): string {
 	if (row.kind === 'incoming') return t('app.messenger.friends.incoming', 'Входящий запрос дружбы')
 	if (row.kind === 'outgoing') return t('app.messenger.friends.outgoing', 'Исходящий запрос дружбы')
 	if (row.kind === 'blocked') return t('app.messenger.friends.blockedBadge', 'Заблокирован')
-	const activity = row.peer.activity
-	if (activity?.hosting || activity?.worldShare)
-		return t('app.messenger.activity.hosting', 'Открыл мир по сети')
-	if (activity?.playing) {
-		return activity.serverName
-			? t('app.messenger.activity.server', 'Играет на {name}', { name: activity.serverName })
-			: t('app.messenger.activity.playing', 'Играет в Minecraft')
-	}
+	const activity = activityLine(row.peer.activity, t)
+	if (activity) return activity
 	switch (presenceFor(row.peer.id)) {
 		case 'online':
 			return t('app.messenger.status.online', 'В сети')
@@ -178,6 +174,11 @@ async function sendRequest(peer: Peer): Promise<void> {
 function openMenu(event: MouseEvent, peer: Peer): void {
 	const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
 	menu.value = { peer, anchor: { x: rect.left, y: rect.top, w: rect.width, h: rect.height } }
+}
+
+function rename(peer: Peer): void {
+	menu.value = null
+	void promptAlias(peer.id, peer.username, t)
 }
 
 async function remove(peer: Peer): Promise<void> {
@@ -486,6 +487,9 @@ async function block(peer: Peer): Promise<void> {
 					@click="(openProfile(menu.peer.id, menu.peer.username), (menu = null))"
 				>
 					<UserIcon /> {{ t('app.messenger.viewProfile', 'Посмотреть профиль') }}
+				</button>
+				<button type="button" class="msgr-menu-item" @click="rename(menu.peer)">
+					<EditIcon /> {{ t('app.messenger.alias.action', 'Изменить имя') }}
 				</button>
 				<div class="msgr-menu-sep" />
 				<button type="button" class="msgr-menu-item is-danger" @click="remove(menu.peer)">

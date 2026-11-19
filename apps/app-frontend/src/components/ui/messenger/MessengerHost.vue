@@ -14,10 +14,12 @@ import { onServiceAccountChange, serviceRequest } from '@/helpers/uprojects-serv
 import CallBar from './CallBar.vue'
 import { playSound, voicePrefs } from './devices'
 import { useMessengerT } from './i18n'
-import type { Conversation, Msg } from './model'
+import type { Attachment, Conversation, Msg } from './model'
+import ServiceImage from './ServiceImage.vue'
 import { stickerPreviewText } from './stickers'
 import {
 	connect,
+	displayName,
 	me,
 	myId,
 	onIncomingMessage,
@@ -139,13 +141,22 @@ type PushToast = {
 	senderId: string
 	name: string
 	text: string
+	media: Attachment | null
+	expanded: boolean
 	timer: ReturnType<typeof setTimeout> | null
 }
 
+/** Сколько висит уведомление, если с ним ничего не делали. */
+const PUSH_LIFETIME = 20_000
+const PUSH_SHORT = 90
+
 const toasts = reactive<PushToast[]>([])
 
-function scheduleClose(toast: PushToast, ms = 6500): void {
+function scheduleClose(toast: PushToast, ms = PUSH_LIFETIME): void {
 	if (toast.timer) clearTimeout(toast.timer)
+	toast.timer = null
+	// Развёрнутое пользователь закрывает сам.
+	if (toast.expanded) return
 	toast.timer = setTimeout(() => closeToast(toast.id), ms)
 }
 
@@ -161,11 +172,22 @@ function holdToast(toast: PushToast): void {
 	toast.timer = null
 }
 
+function canExpand(toast: PushToast): boolean {
+	return (
+		!toast.expanded && (toast.text.length > PUSH_SHORT || /\n/.test(toast.text) || !!toast.media)
+	)
+}
+
+function expandToast(toast: PushToast): void {
+	toast.expanded = true
+	holdToast(toast)
+}
+
 function previewText(msg: Msg): string {
 	const sticker = stickerPreviewText(msg.body)
 	if (sticker) return t('app.messenger.push.sticker', 'Стикер')
-	const text = msg.body.replace(/\s+/g, ' ').trim()
-	if (text) return text.length > 220 ? `${text.slice(0, 220)}…` : text
+	const text = msg.body.trim()
+	if (text) return text.length > 2000 ? `${text.slice(0, 2000)}…` : text
 	if (msg.kind === 'voice' || msg.attachment?.kind === 'voice') {
 		return t('app.messenger.push.voice', 'Голосовое сообщение')
 	}
@@ -174,14 +196,21 @@ function previewText(msg: Msg): string {
 	return msg.attachment ? t('app.messenger.push.attachment', 'Вложение') : ''
 }
 
+function mediaOf(msg: Msg): Attachment | null {
+	const kind = msg.attachment?.kind
+	return kind === 'image' || kind === 'gif' ? msg.attachment : null
+}
+
 const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
 	if (voicePrefs.notifySound) playSound('message')
 	if (!voicePrefs.notifyToasts) return
 	const existing = toasts.find((entry) => entry.convId === conv.id)
-	const name = msg.senderName || conv.title
+	const name = displayName(msg.senderId, msg.senderName) || conv.title
 	const title = conv.dm ? name : `${name} · ${conv.title}`
 	if (existing) {
 		existing.text = previewText(msg)
+		existing.media = mediaOf(msg)
+		existing.senderId = msg.senderId
 		existing.name = title
 		scheduleClose(existing)
 		return
@@ -193,6 +222,8 @@ const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
 		senderId: msg.senderId,
 		name: title,
 		text: previewText(msg),
+		media: mediaOf(msg),
+		expanded: false,
 		timer: null,
 	}
 	toasts.unshift(toast)
@@ -200,7 +231,7 @@ const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
 		const last = toasts.pop()
 		if (last?.timer) clearTimeout(last.timer)
 	}
-	scheduleClose(toast)
+	scheduleClose(toasts[0])
 })
 
 async function openToast(toast: PushToast): Promise<void> {
@@ -239,8 +270,9 @@ onUnmounted(() => {
 					class="msgr-push"
 					role="button"
 					tabindex="0"
+					:class="{ 'is-expanded': toast.expanded }"
 					@mouseenter="holdToast(toast)"
-					@mouseleave="scheduleClose(toast, 3500)"
+					@mouseleave="scheduleClose(toast)"
 					@click="openToast(toast)"
 					@keydown.enter="openToast(toast)"
 				>
@@ -258,6 +290,21 @@ onUnmounted(() => {
 							</button>
 						</header>
 						<p v-if="toast.text">{{ toast.text }}</p>
+						<ServiceImage
+							v-if="toast.expanded && toast.media"
+							class="msgr-push__media"
+							:src="toast.media.url"
+							:mime="toast.media.mime"
+							:lazy="false"
+						/>
+						<button
+							v-if="canExpand(toast)"
+							type="button"
+							class="msgr-push__more"
+							@click.stop="expandToast(toast)"
+						>
+							{{ t('app.messenger.push.more', 'Показать ещё') }}
+						</button>
 					</div>
 				</article>
 			</TransitionGroup>
@@ -364,6 +411,38 @@ onUnmounted(() => {
 	overflow-wrap: anywhere;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
+}
+
+.msgr-push.is-expanded .msgr-push__body p {
+	display: block;
+	overflow: auto;
+	max-height: 14rem;
+	white-space: pre-wrap;
+}
+
+.msgr-push__media {
+	display: block;
+	max-width: 100%;
+	max-height: 12rem;
+	margin-top: 0.3rem;
+	border-radius: 8px;
+	background: #0e0f12;
+	object-fit: contain;
+}
+
+.msgr-push__more {
+	align-self: flex-start;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-brand);
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.msgr-push__more:hover {
+	text-decoration: underline;
 }
 
 .msgr-push__close {

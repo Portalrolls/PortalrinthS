@@ -14,6 +14,7 @@ import {
 	serviceStreamUrl,
 } from '@/helpers/uprojects-service'
 
+import { aliasOf, loadAliases } from './aliases'
 import { REACTIONS } from './emoji'
 import { openLiveStream } from './live-stream'
 import {
@@ -23,6 +24,7 @@ import {
 	type Conversation,
 	isOnline,
 	localChannels,
+	mapActivity,
 	mapChannels,
 	mapConversation,
 	mapMessage,
@@ -92,6 +94,8 @@ export const state = reactive({
 	structures: {} as Record<string, Structure>,
 	threads: {} as Record<string, ThreadState>,
 	channelUnread: {} as Record<string, number>,
+	/** Важные непрочитанные на серверах (по threadKey): упоминания, владелец, роли выше моих. */
+	important: {} as Record<string, number>,
 	typing: {} as Record<string, Record<string, { name: string; at: number }>>,
 
 	myStatus: 'online' as PresenceStatus,
@@ -179,6 +183,39 @@ export function isOwner(server: Conversation): boolean {
 
 export function threadKey(convId: string, channelId: string): string {
 	return `${convId}:${channelId}`
+}
+
+export function importantIn(convId: string, channelId = ''): number {
+	if (channelId) return state.important[threadKey(convId, channelId)] ?? 0
+	const prefix = `${convId}:`
+	let sum = 0
+	for (const [key, count] of Object.entries(state.important)) {
+		if (key.startsWith(prefix)) sum += count
+	}
+	return sum
+}
+
+function clearImportant(convId: string, channelId: string): void {
+	const key = threadKey(convId, channelId)
+	if (state.important[key]) Reflect.deleteProperty(state.important, key)
+}
+
+/**
+ * Важное в группе: меня упомянули, написал владелец или тот, у кого есть
+ * роль, которой нет у меня. Обычные участники без ролей — просто «непрочитано».
+ */
+function isImportant(conv: Conversation, msg: Msg): boolean {
+	const myName = String(state.session?.user?.username || '').toLowerCase()
+	if (myName && msg.body.toLowerCase().includes(`@${myName}`)) return true
+	if (conv.createdBy && conv.createdBy === msg.senderId) return true
+	const sender = conv.members.find((member) => member.id === msg.senderId)
+	if (!sender) return false
+	if (sender.role === 'owner') return true
+	const self = conv.members.find((member) => member.id === myId.value)
+	const myRole = self?.role || conv.myRole
+	if (sender.role === 'admin' && myRole !== 'admin' && myRole !== 'owner') return true
+	const mine = new Set(self?.roleIds ?? [])
+	return sender.roleIds.some((id) => !mine.has(id))
 }
 
 function defaultChannel(structure: Structure): Channel | undefined {
@@ -311,8 +348,10 @@ export function memberOf(server: Conversation | null, id: string): Member | null
 	return server?.members.find((member) => member.id === id) ?? null
 }
 
-/** Ник на сервере (если задан) — иначе имя игрока. */
+/** Своё имя друга, потом ник на сервере (если задан) — иначе имя игрока. */
 export function displayName(id: string, fallback = ''): string {
+	const alias = id === myId.value ? '' : aliasOf(id)
+	if (alias) return alias
 	const member = memberOf(activeServer.value, id)
 	if (member?.nickname) return member.nickname
 	return nameOf(id, fallback) || member?.username || fallback
@@ -465,6 +504,7 @@ export async function openServer(convId: string): Promise<void> {
 export async function openChannel(convId: string, channelId: string): Promise<void> {
 	state.serverChannel[convId] = channelId
 	state.channelUnread[channelId] = 0
+	clearImportant(convId, channelId)
 	await openThread()
 }
 
@@ -474,7 +514,10 @@ async function openThread(): Promise<void> {
 	if (!conv || !key) return
 	const thread = touchThread(key)
 	const unreadBefore = conv.unread
-	if (activeChannel.value) state.channelUnread[activeChannel.value.id] = 0
+	if (activeChannel.value) {
+		state.channelUnread[activeChannel.value.id] = 0
+		clearImportant(conv.id, activeChannel.value.id)
+	}
 	if (!thread.loaded || thread.detached) {
 		await fetchLatest(key, unreadBefore)
 	}
@@ -1439,6 +1482,9 @@ function onLiveMessage(data: LooseRecord): void {
 		else {
 			conv.unread += 1
 			if (channelId) state.channelUnread[channelId] = (state.channelUnread[channelId] ?? 0) + 1
+			if (!conv.dm && isImportant(conv, msg)) {
+				state.important[key] = (state.important[key] ?? 0) + 1
+			}
 		}
 	}
 	sortConversations()
@@ -1499,7 +1545,7 @@ export function handleLive(name: string, data: LooseRecord): void {
 		case 'activity':
 			if (data.userId) {
 				setPresenceOf(String(data.userId), {
-					activity: (data.activity ?? null) as Peer['activity'],
+					activity: mapActivity(data.activity),
 					lastSeenAt: Date.now(),
 				})
 			}
@@ -1660,7 +1706,7 @@ async function postActivity(): Promise<void> {
 	if (id && state.users[id]) {
 		state.users[id] = {
 			...state.users[id],
-			activity: activityPayload.playing ? (activityPayload as Peer['activity']) : null,
+			activity: activityPayload.playing ? mapActivity(activityPayload) : null,
 		}
 	}
 }
@@ -1678,6 +1724,7 @@ export function resetState(): void {
 	state.structures = {}
 	state.threads = {}
 	state.channelUnread = {}
+	state.important = {}
 	state.typing = {}
 	resetVoice()
 	state.serverChannel = {}
@@ -1712,6 +1759,7 @@ export async function connect(force = false): Promise<void> {
 		}
 		if (state.session && state.session.accountKey !== session.accountKey) resetState()
 		state.session = session
+		loadAliases(String(session.user?.id ?? ''))
 		rememberUser(session.user as LooseRecord)
 		try {
 			const saved = localStorage.getItem(presenceKey()) as PresenceStatus | null

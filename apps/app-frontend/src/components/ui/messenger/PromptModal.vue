@@ -31,7 +31,7 @@ function ask(next: PromptOptions): Promise<string | null> {
 }
 
 function submit(): void {
-	if (opts.value.input && !value.value.trim()) return
+	if (opts.value.input && !opts.value.allowEmpty && !value.value.trim()) return
 	finish(opts.value.input ? value.value.trim() : '')
 	modal.value?.hide()
 }
@@ -106,7 +106,7 @@ defineExpose({ ask })
 					type="button"
 					class="msgr-btn"
 					:class="{ 'is-danger': opts.danger }"
-					:disabled="opts.input && !value.trim()"
+					:disabled="opts.input && !opts.allowEmpty && !value.trim()"
 					@click="submit"
 				>
 					{{ opts.confirm || t('app.messenger.ok', 'Готово') }}

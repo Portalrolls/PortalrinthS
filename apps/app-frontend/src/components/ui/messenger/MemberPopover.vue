@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { BanIcon, CopyIcon, MessageIcon, UserIcon, UserPlusIcon, UserXIcon } from '@modrinth/assets'
+import {
+	BanIcon,
+	CopyIcon,
+	EditIcon,
+	MessageIcon,
+	UserIcon,
+	UserPlusIcon,
+	UserXIcon,
+} from '@modrinth/assets'
 import { computed } from 'vue'
 
+import { promptAlias } from './aliases'
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import PhoneIcon from './PhoneIcon.vue'
@@ -44,6 +53,13 @@ const canKick = computed(() => {
 	if (member.value.role === 'owner') return false
 	return isOwner(server) || member.value.role !== 'admin'
 })
+
+function rename(): void {
+	const id = popover.userId
+	const username = user.value?.username || popover.name
+	closePopover()
+	void promptAlias(id, username, t)
+}
 
 const statusLabel = computed(() => {
 	switch (presenceFor(popover.userId)) {
@@ -157,6 +173,9 @@ async function kick(): Promise<void> {
 						@click="addFriend"
 					>
 						<UserPlusIcon /> {{ t('app.messenger.friends.add', 'Добавить в друзья') }}
+					</button>
+					<button v-if="!self && !user?.bot" type="button" class="msgr-menu-item" @click="rename">
+						<EditIcon /> {{ t('app.messenger.alias.action', 'Изменить имя') }}
 					</button>
 					<button type="button" class="msgr-menu-item" @click="copyId">
 						<CopyIcon /> {{ t('app.messenger.copyUserId', 'Копировать ID пользователя') }}

@@ -3,6 +3,7 @@ import { CopyIcon, GlobeIcon, MessageIcon } from '@modrinth/assets'
 import { computed } from 'vue'
 
 import { useMessengerT } from './i18n'
+import { buildLine } from './model'
 import { displayName, showToast, state, userOf, writeTo } from './store'
 import UserAvatar from './UserAvatar.vue'
 
@@ -45,9 +46,10 @@ async function copyAddress(host: string): Promise<void> {
 						<div>
 							<b>{{ displayName(peer.id, peer.username) }}</b>
 							<small>{{
-								peer.activity?.hosting || peer.activity?.worldShare
+								buildLine(peer.activity) ||
+								(peer.activity?.hosting || peer.activity?.worldShare
 									? t('app.messenger.activity.hosting', 'Открыл мир по сети')
-									: t('app.messenger.activity.playing', 'Играет в Minecraft')
+									: t('app.messenger.activity.playing', 'Играет в Minecraft'))
 							}}</small>
 						</div>
 					</div>

@@ -35,7 +35,6 @@ import {
 	loadOlder,
 	loadPins,
 	myId,
-	openServer,
 	presenceFor,
 	relationOf,
 	requestFriend,
@@ -99,15 +98,6 @@ const peerProvider = computed(() => {
 	const provider = peer.value?.provider
 	if (peer.value?.bot || provider === 'bot') return 'Undefined ID'
 	return provider === 'ely' ? 'Ely.by' : 'Microsoft'
-})
-
-/** Серверы, где мы оба — из уже загруженных составов, без лишних запросов. */
-const sharedServers = computed(() => {
-	const id = peer.value?.id
-	if (!id) return []
-	return state.conversations.filter(
-		(item) => !item.dm && item.members.some((member) => member.id === id),
-	)
 })
 
 const statusLabel = computed(() => {
@@ -544,28 +534,6 @@ function onDrop(event: DragEvent): void {
 								<span v-else-if="relationOf(peer.id) === 'outgoing'" class="msgr-chat__intro-note">
 									{{ t('app.messenger.intro.requestSent', 'Заявка в друзья отправлена') }}
 								</span>
-							</div>
-							<div v-if="sharedServers.length" class="msgr-chat__intro-shared">
-								<small>
-									{{
-										t('app.messenger.intro.shared', 'Общие серверы · {n}', {
-											n: String(sharedServers.length),
-										})
-									}}
-								</small>
-								<div>
-									<button
-										v-for="server in sharedServers.slice(0, 6)"
-										:key="server.id"
-										v-tip="server.title"
-										type="button"
-										class="msgr-chat__intro-server"
-										@click="openServer(server.id)"
-									>
-										<img v-if="server.avatarUrl" :src="server.avatarUrl" alt="" />
-										<span v-else>{{ server.title.slice(0, 2).toUpperCase() }}</span>
-									</button>
-								</div>
 							</div>
 						</template>
 						<template v-else>
@@ -1089,56 +1057,6 @@ function onDrop(event: DragEvent): void {
 .msgr-chat__intro-note {
 	color: var(--color-secondary);
 	font-size: 0.8rem;
-}
-
-.msgr-chat__intro-shared {
-	display: flex;
-	flex-direction: column;
-	gap: 0.4rem;
-	margin-top: 1rem;
-}
-
-.msgr-chat__intro-shared small {
-	color: var(--color-secondary);
-	font-size: 0.7rem;
-	font-weight: 700;
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
-}
-
-.msgr-chat__intro-shared div {
-	display: flex;
-	gap: 0.4rem;
-}
-
-.msgr-chat__intro-server {
-	display: grid;
-	width: 2.4rem;
-	height: 2.4rem;
-	place-items: center;
-	overflow: hidden;
-	border: none;
-	border-radius: 14px;
-	background: #2b2d31;
-	color: var(--color-contrast);
-	cursor: pointer;
-	font-size: 0.75rem;
-	font-weight: 700;
-	padding: 0;
-	transition:
-		border-radius 0.2s ease,
-		transform 0.2s ease;
-}
-
-.msgr-chat__intro-server:hover {
-	border-radius: 10px;
-	transform: translateY(-1px);
-}
-
-.msgr-chat__intro-server img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
 }
 
 @keyframes msgr-intro-ping {

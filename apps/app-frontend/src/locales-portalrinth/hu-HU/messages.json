@@ -67,5 +67,20 @@
 	},
 	"app.messenger.call.you": {
 		"message": "Te"
+	},
+	"app.messenger.alias.title": {
+		"message": "Név ehhez: {name}"
+	},
+	"app.messenger.alias.text": {
+		"message": "Ezt a nevet csak te látod. Hagyd üresen, hogy újra a felhasználónév látszódjon."
+	},
+	"app.messenger.alias.save": {
+		"message": "Mentés"
+	},
+	"app.messenger.alias.action": {
+		"message": "Név módosítása"
+	},
+	"app.messenger.push.more": {
+		"message": "Továbbiak"
 	}
 }

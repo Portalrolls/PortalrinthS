@@ -193,6 +193,18 @@
 	font-weight: 700;
 }
 
+.msgr-side__dm.is-unread:not(.is-active)::before {
+	position: absolute;
+	top: 50%;
+	left: -0.5rem;
+	width: 4px;
+	height: 0.5rem;
+	border-radius: 0 4px 4px 0;
+	background: var(--color-contrast);
+	content: '';
+	transform: translateY(-50%);
+}
+
 .msgr-side__close {
 	display: none;
 	padding: 0.15rem;
@@ -379,6 +391,14 @@
 
 .msgr-side__channel.is-unread {
 	color: var(--color-contrast);
+}
+
+.msgr-side__channel.is-unread .msgr-side__channel-name {
+	font-weight: 700;
+}
+
+.msgr-side__channel.is-unread > svg {
+	opacity: 1;
 }
 
 .msgr-side__channel.is-unread::before {

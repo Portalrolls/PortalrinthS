@@ -3,7 +3,7 @@ import { GlobeIcon, PlusIcon, SearchIcon, UsersIcon, XIcon } from '@modrinth/ass
 import { computed, ref } from 'vue'
 
 import { useMessengerT } from './i18n'
-import type { Peer } from './model'
+import { activityLine, type Peer } from './model'
 import {
 	displayName,
 	dms,
@@ -66,17 +66,7 @@ async function start(peer: Peer): Promise<void> {
 }
 
 function activityOf(id: string): string {
-	const activity = userOf(id)?.activity
-	if (!activity) return ''
-	if (activity.hosting || activity.worldShare) {
-		return t('app.messenger.activity.hosting', 'Открыл мир по сети')
-	}
-	if (activity.playing) {
-		return activity.serverName
-			? t('app.messenger.activity.server', 'Играет на {name}', { name: activity.serverName })
-			: t('app.messenger.activity.playing', 'Играет в Minecraft')
-	}
-	return ''
+	return activityLine(userOf(id)?.activity, t)
 }
 </script>
 

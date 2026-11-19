@@ -17,6 +17,7 @@ import {
 	canManageServer,
 	dms,
 	hideConversation,
+	importantIn,
 	isOwner,
 	openHome,
 	openServer,
@@ -99,7 +100,7 @@ function act(fn: () => void): void {
 				class="msgr-rail__item"
 				:class="{
 					'is-active': state.section === 'server' && state.activeServerId === conv.id,
-					'is-unread': conv.unread > 0,
+					'is-unread': conv.unread > 0 || importantIn(conv.id) > 0,
 				}"
 				@click="openServer(conv.id)"
 				@contextmenu.prevent="context($event, conv)"
@@ -109,8 +110,8 @@ function act(fn: () => void): void {
 					<img v-if="conv.avatarUrl" :src="conv.avatarUrl" alt="" />
 					<template v-else>{{ initials(conv.title) }}</template>
 				</span>
-				<span v-if="conv.unread" class="msgr-rail__badge">{{
-					conv.unread > 99 ? '99+' : conv.unread
+				<span v-if="importantIn(conv.id)" class="msgr-rail__badge">{{
+					importantIn(conv.id) > 99 ? '99+' : importantIn(conv.id)
 				}}</span>
 			</button>
 		</TransitionGroup>

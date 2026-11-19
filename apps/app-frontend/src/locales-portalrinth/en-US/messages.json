@@ -5103,9 +5103,6 @@
 	"app.messenger.intro.requestSent": {
 		"message": "Friend request sent"
 	},
-	"app.messenger.intro.shared": {
-		"message": "Shared servers · {n}"
-	},
 	"app.messenger.profile.noSkin": {
 		"message": "Skin not found"
 	},
@@ -5123,5 +5120,20 @@
 	},
 	"app.messenger.call.you": {
 		"message": "You"
+	},
+	"app.messenger.alias.title": {
+		"message": "Name for {name}"
+	},
+	"app.messenger.alias.text": {
+		"message": "Only you can see this name. Leave it empty to show the username again."
+	},
+	"app.messenger.alias.save": {
+		"message": "Save"
+	},
+	"app.messenger.alias.action": {
+		"message": "Change name"
+	},
+	"app.messenger.push.more": {
+		"message": "Show more"
 	}
 }

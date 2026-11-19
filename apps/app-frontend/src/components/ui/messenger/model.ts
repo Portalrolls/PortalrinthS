@@ -1,5 +1,7 @@
 import { type LooseRecord, resolveServiceMedia, UPROJECTS_BASE } from '@/helpers/uprojects-service'
 
+import type { Translate } from './i18n'
+
 export type Activity = {
 	playing?: boolean
 	hosting?: boolean
@@ -8,6 +10,7 @@ export type Activity = {
 	serverHost?: string
 	buildName?: string
 	gameVersion?: string
+	loader?: string
 }
 
 export type Peer = {
@@ -120,7 +123,7 @@ export function mapPeer(row: LooseRecord): Peer {
 		provider: row.provider ? String(row.provider) : undefined,
 		lastSeenAt: Number(row.lastSeenAt) || 0,
 		presenceStatus: String(row.presenceStatus || ''),
-		activity: (row.activity ?? null) as Activity | null,
+		activity: mapActivity(row.activity),
 		bot: isBotUser(row),
 	}
 }
@@ -320,13 +323,16 @@ export function mapMessage(
 			kind: attachmentKind(name, mime),
 		}
 	}
+	// Сервис подставляет имя файла в body, если текста не было — это не подпись.
+	let body = String(row.body || '')
+	if (attachment && body.trim() === attachment.name) body = ''
 	return {
 		id,
 		conversationId: String(row.conversationId || opts.conversationId || ''),
 		channelId: row.channelId ? String(row.channelId) : '',
 		senderId: String(row.senderId ?? ''),
 		senderName: String(row.senderUsername || ''),
-		body: String(row.body || ''),
+		body,
 		createdAt: Number(row.createdAt) || Date.now(),
 		editedAt: Number(row.editedAt) || 0,
 		attachment,
@@ -350,6 +356,56 @@ export function previewOf(row: LooseRecord): string {
 	if (body) return body
 	const name = String(row.attachment?.name || '')
 	return name ? `📎 ${name}` : ''
+}
+
+/** Сервис отдаёт активность то как build/version, то как buildName/gameVersion. */
+export function mapActivity(raw: unknown): Activity | null {
+	if (!raw || typeof raw !== 'object') return null
+	const row = raw as LooseRecord
+	const text = (...keys: string[]) => {
+		for (const key of keys) if (row[key]) return String(row[key])
+		return ''
+	}
+	return {
+		playing: Boolean(row.playing),
+		hosting: Boolean(row.hosting),
+		worldShare: Boolean(row.worldShare),
+		serverName: text('serverName', 'server'),
+		serverHost: text('serverHost'),
+		buildName: text('buildName', 'build'),
+		gameVersion: text('gameVersion', 'version'),
+		loader: text('loader'),
+	}
+}
+
+const LOADER_NAMES: Record<string, string> = {
+	fabric: 'Fabric',
+	forge: 'Forge',
+	neoforge: 'NeoForge',
+	quilt: 'Quilt',
+}
+
+/** Как в Undefined Client: «Сборка · 1.21.1 · Fabric» вместо безликого «Играет в Minecraft». */
+export function buildLine(activity: Activity | null | undefined): string {
+	if (!activity?.buildName) return ''
+	const parts = [activity.buildName]
+	if (activity.gameVersion) parts.push(activity.gameVersion)
+	const loader = (activity.loader || '').toLowerCase()
+	if (loader && loader !== 'vanilla') parts.push(LOADER_NAMES[loader] ?? activity.loader!)
+	return parts.join(' · ')
+}
+
+export function activityLine(activity: Activity | null | undefined, t: Translate): string {
+	if (!activity) return ''
+	if (activity.hosting || activity.worldShare) {
+		return t('app.messenger.activity.hosting', 'Открыл мир по сети')
+	}
+	if (!activity.playing) return ''
+	const build = buildLine(activity)
+	if (build) return activity.serverName ? `${build} · ${activity.serverName}` : build
+	return activity.serverName
+		? t('app.messenger.activity.server', 'Играет на {name}', { name: activity.serverName })
+		: t('app.messenger.activity.playing', 'Играет в Minecraft')
 }
 
 export function isInGame(peer: Pick<Peer, 'activity'> | undefined | null): boolean {

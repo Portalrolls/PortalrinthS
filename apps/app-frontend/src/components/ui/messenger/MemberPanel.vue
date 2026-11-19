@@ -3,7 +3,7 @@ import { CrownIcon, ShieldIcon } from '@modrinth/assets'
 import { computed, watch } from 'vue'
 
 import { useMessengerT } from './i18n'
-import { isInGame, type Member } from './model'
+import { activityLine, isInGame, type Member } from './model'
 import { cardOf, requestCard } from './profile-card'
 import {
 	activeConversation,
@@ -122,18 +122,7 @@ const groups = computed(() => {
 })
 
 function activityText(id: string): string {
-	const activity = userOf(id)?.activity
-	if (!activity) return ''
-	if (activity.hosting || activity.worldShare)
-		return t('app.messenger.activity.hosting', 'Открыл мир по сети')
-	if (activity.playing) {
-		if (activity.serverName)
-			return t('app.messenger.activity.server', 'Играет на {name}', { name: activity.serverName })
-		return activity.buildName
-			? t('app.messenger.activity.playingBuild', 'Играет в {name}', { name: activity.buildName })
-			: t('app.messenger.activity.playing', 'Играет в Minecraft')
-	}
-	return ''
+	return activityLine(userOf(id)?.activity, t)
 }
 
 function statusText(id: string): string {

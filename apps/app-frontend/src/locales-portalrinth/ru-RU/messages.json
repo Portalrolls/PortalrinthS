@@ -7693,9 +7693,6 @@
 	"app.messenger.intro.requestSent": {
 		"message": "Заявка в друзья отправлена"
 	},
-	"app.messenger.intro.shared": {
-		"message": "Общие серверы · {n}"
-	},
 	"app.messenger.profile.noSkin": {
 		"message": "Скин не найден"
 	},
@@ -7713,5 +7710,20 @@
 	},
 	"app.messenger.call.you": {
 		"message": "Вы"
+	},
+	"app.messenger.alias.title": {
+		"message": "Имя для {name}"
+	},
+	"app.messenger.alias.text": {
+		"message": "Это имя видите только вы. Оставьте поле пустым, чтобы вернуть ник."
+	},
+	"app.messenger.alias.save": {
+		"message": "Сохранить"
+	},
+	"app.messenger.alias.action": {
+		"message": "Изменить имя"
+	},
+	"app.messenger.push.more": {
+		"message": "Показать ещё"
 	}
 }

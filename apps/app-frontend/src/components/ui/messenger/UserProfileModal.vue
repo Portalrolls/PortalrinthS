@@ -22,8 +22,9 @@ import {
 	serviceRequest,
 } from '@/helpers/uprojects-service'
 
+import { aliasOf, promptAlias } from './aliases'
 import { useMessengerT } from './i18n'
-import { formatDate, isInGame, type Peer } from './model'
+import { buildLine, formatDate, isInGame, type Peer } from './model'
 import PhoneIcon from './PhoneIcon.vue'
 import { cardOf, profileEditor, requestCard } from './profile-card'
 import { callUser, presenceFor, rememberUser, showToast, state, userOf } from './store'
@@ -161,6 +162,12 @@ const peer = computed<Peer | null>(() => {
 	return userOf(userId.value)
 })
 
+const alias = computed(() => (isSelf.value ? '' : aliasOf(userId.value)))
+
+function rename(): void {
+	void promptAlias(userId.value, username.value, t)
+}
+
 const username = computed(
 	() =>
 		(profile.value?.username as string) ||
@@ -198,6 +205,7 @@ const activity = computed(() => {
 			build: live.buildName || '',
 			server: live.serverName || '',
 			version: live.gameVersion || '',
+			loader: live.loader || '',
 			hosting: Boolean(live.hosting || live.worldShare),
 		}
 	}
@@ -207,6 +215,7 @@ const activity = computed(() => {
 			build: String(snap.build ?? snap.buildName ?? ''),
 			server: String(snap.server ?? snap.serverName ?? ''),
 			version: String(snap.version ?? snap.gameVersion ?? ''),
+			loader: String(snap.loader ?? ''),
 			hosting: false,
 		}
 	}
@@ -216,9 +225,12 @@ const activity = computed(() => {
 const statusLine = computed(() => {
 	if (activity.value) {
 		if (activity.value.hosting) return t('app.messenger.activity.hosting', 'Открыл мир по сети')
-		return activity.value.build
-			? t('app.messenger.activity.playingBuild', 'Играет в {name}', { name: activity.value.build })
-			: t('app.messenger.activity.playing', 'Играет в Minecraft')
+		const build = buildLine({
+			buildName: activity.value.build,
+			gameVersion: activity.value.version,
+			loader: activity.value.loader,
+		})
+		return build || t('app.messenger.activity.playing', 'Играет в Minecraft')
 	}
 	switch (presence.value) {
 		case 'online':
@@ -515,6 +527,15 @@ function edit(): void {
 											<PhoneIcon />
 										</button>
 										<button
+											v-if="!peer?.bot"
+											v-tip="t('app.messenger.alias.action', 'Изменить имя')"
+											type="button"
+											class="upm__btn is-icon"
+											@click="rename"
+										>
+											<EditIcon />
+										</button>
+										<button
 											v-if="canFollow"
 											type="button"
 											class="upm__btn"
@@ -533,7 +554,8 @@ function edit(): void {
 							</header>
 
 							<div class="upm__identity">
-								<b class="upm__name">{{ username }}</b>
+								<b class="upm__name">{{ alias || username }}</b>
+								<span v-if="alias" class="upm__handle">{{ username }}</span>
 								<span class="upm__meta">
 									<span class="upm__chip">{{
 										providerLabel(profile?.provider ?? peer?.provider)
@@ -907,6 +929,12 @@ function edit(): void {
 	font-weight: 800;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.upm__handle {
+	margin-top: -0.25rem;
+	color: var(--color-secondary);
+	font-size: 0.85rem;
 }
 
 .upm__meta {

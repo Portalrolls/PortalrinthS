@@ -29,6 +29,7 @@ import {
 	deleteChannel,
 	displayName,
 	hideConversation,
+	importantIn,
 	isOwner,
 	openChannel,
 	saveCategory,
@@ -246,8 +247,8 @@ function voiceMembers(channelId: string) {
 						<Volume2Icon v-if="channel.kind === 'voice'" />
 						<HashIcon v-else />
 						<span class="msgr-side__channel-name">{{ channel.name }}</span>
-						<b v-if="state.channelUnread[channel.id]" class="msgr-side__badge">{{
-							state.channelUnread[channel.id]
+						<b v-if="importantIn(server.id, channel.id)" class="msgr-side__badge">{{
+							importantIn(server.id, channel.id) > 99 ? '99+' : importantIn(server.id, channel.id)
 						}}</b>
 						<button
 							v-if="canManage && channel.kind === 'text'"

@@ -82,5 +82,38 @@
 	},
 	"app.messenger.push.more": {
 		"message": "Továbbiak"
+	},
+	"app.media-viewer.image": {
+		"message": "Kép"
+	},
+	"app.media-viewer.downloaded": {
+		"message": "Kép elmentve"
+	},
+	"app.media-viewer.downloadFailed": {
+		"message": "Nem sikerült menteni"
+	},
+	"app.media-viewer.savedToScreens": {
+		"message": "Mentve a képernyőképek közé"
+	},
+	"app.media-viewer.saveToScreensFailed": {
+		"message": "Nem sikerült menteni a képernyőképek közé"
+	},
+	"app.media-viewer.noInstances": {
+		"message": "Nincsenek profilok"
+	},
+	"app.media-viewer.noInstancesText": {
+		"message": "A képernyőképek a profilokban vannak — hozz létre legalább egyet."
+	},
+	"app.media-viewer.toScreens": {
+		"message": "Képernyőképekhez"
+	},
+	"app.media-viewer.pickInstance": {
+		"message": "Melyik profilba?"
+	},
+	"app.media-viewer.download": {
+		"message": "Letöltés"
+	},
+	"app.media-viewer.openBrowser": {
+		"message": "Megnyitás böngészőben"
 	}
 }

@@ -121,7 +121,7 @@ onBeforeUnmount(() => audio.value?.pause())
 			v-if="isVisual && !imageFailed"
 			type="button"
 			class="msgr-att__image"
-			@click="openLightbox(attachment.url, attachment.name)"
+			@click="openLightbox(attachment.url, attachment.name, attachment.mime)"
 		>
 			<ServiceImage
 				:src="attachment.url"

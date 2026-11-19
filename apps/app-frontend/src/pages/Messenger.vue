@@ -15,7 +15,6 @@ import ForwardModal from '@/components/ui/messenger/ForwardModal.vue'
 import FriendsView from '@/components/ui/messenger/FriendsView.vue'
 import HomeSidebar from '@/components/ui/messenger/HomeSidebar.vue'
 import { useMessengerT } from '@/components/ui/messenger/i18n'
-import Lightbox from '@/components/ui/messenger/Lightbox.vue'
 import MemberPanel from '@/components/ui/messenger/MemberPanel.vue'
 import MemberPopover from '@/components/ui/messenger/MemberPopover.vue'
 import type { Channel, Conversation } from '@/components/ui/messenger/model'
@@ -56,7 +55,6 @@ const breadcrumb = useRootBreadcrumb({
 const profileModal = ref<InstanceType<typeof UserProfileModal> | null>(null)
 const promptModal = ref<InstanceType<typeof PromptModal> | null>(null)
 const forwardModal = ref<InstanceType<typeof ForwardModal> | null>(null)
-const lightbox = ref<InstanceType<typeof Lightbox> | null>(null)
 const createModal = ref<InstanceType<typeof CreateServerModal> | null>(null)
 const channelModal = ref<InstanceType<typeof ChannelModal> | null>(null)
 const settingsModal = ref<InstanceType<typeof ServerSettingsModal> | null>(null)
@@ -88,7 +86,6 @@ registerUi({
 	},
 	prompt: (opts) => promptModal.value?.ask(opts) ?? Promise.resolve(null),
 	forward: (msg) => forwardModal.value?.show(msg),
-	lightbox: (url, name) => lightbox.value?.show(url, name),
 })
 
 function onProfileWrite(user: { id: string; username?: string; name?: string }): void {
@@ -202,7 +199,6 @@ onUnmounted(() => {
 		<ProfileEditorModal />
 		<PromptModal ref="promptModal" />
 		<ForwardModal ref="forwardModal" />
-		<Lightbox ref="lightbox" />
 		<CreateServerModal ref="createModal" />
 		<ChannelModal ref="channelModal" />
 		<ServerSettingsModal ref="settingsModal" />

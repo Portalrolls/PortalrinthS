@@ -5135,5 +5135,38 @@
 	},
 	"app.messenger.push.more": {
 		"message": "Show more"
+	},
+	"app.media-viewer.image": {
+		"message": "Image"
+	},
+	"app.media-viewer.downloaded": {
+		"message": "Image saved"
+	},
+	"app.media-viewer.downloadFailed": {
+		"message": "Could not save"
+	},
+	"app.media-viewer.savedToScreens": {
+		"message": "Saved to screenshots"
+	},
+	"app.media-viewer.saveToScreensFailed": {
+		"message": "Could not save to screenshots"
+	},
+	"app.media-viewer.noInstances": {
+		"message": "No instances"
+	},
+	"app.media-viewer.noInstancesText": {
+		"message": "Screenshots live inside instances — create at least one."
+	},
+	"app.media-viewer.toScreens": {
+		"message": "To screenshots"
+	},
+	"app.media-viewer.pickInstance": {
+		"message": "Which instance?"
+	},
+	"app.media-viewer.download": {
+		"message": "Download"
+	},
+	"app.media-viewer.openBrowser": {
+		"message": "Open in browser"
 	}
 }

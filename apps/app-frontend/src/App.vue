@@ -92,6 +92,7 @@ import HostingUpdateRequired from '@/components/ui/HostingUpdateRequired.vue'
 import AddServerToInstanceModal from '@/components/ui/install_flow/AddServerToInstanceModal.vue'
 import UnknownPackWarningModal from '@/components/ui/install_flow/UnknownPackWarningModal.vue'
 import IconEditorModal from '@/components/ui/instance_settings/InstanceIconEditorModal.vue'
+import MediaViewerHost from '@/components/ui/media-viewer/MediaViewerHost.vue'
 import MessengerHost from '@/components/ui/messenger/MessengerHost.vue'
 import MinecraftAuthErrorModal from '@/components/ui/minecraft-auth-error-modal/MinecraftAuthErrorModal.vue'
 import MinecraftRequiredModal from '@/components/ui/minecraft-required-modal/MinecraftRequiredModal.vue'
@@ -3037,6 +3038,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 	>
 		<ViewportScrollbar />
 		<AiViewerHost />
+		<MediaViewerHost />
 		<div class="app-viewport flex-grow router-view">
 			<SurveyPopup />
 			<div

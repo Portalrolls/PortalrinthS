@@ -1,5 +1,8 @@
 import { reactive } from 'vue'
 
+import { isAnimatedImage, openMediaViewer } from '@/helpers/media-viewer'
+
+import { mediaBlobUrl, viaProxy } from './media'
 import type { Msg } from './model'
 
 export type Anchor = { x: number; y: number; w?: number; h?: number }
@@ -23,7 +26,6 @@ type Handlers = {
 	profile: (userId: string, fallbackName?: string) => void
 	prompt: (opts: PromptOptions) => Promise<string | null>
 	forward: (msg: Msg) => void
-	lightbox: (url: string, name: string) => void
 }
 
 const handlers: Partial<Handlers> = {}
@@ -79,6 +81,10 @@ export function openForward(msg: Msg): void {
 	handlers.forward?.(msg)
 }
 
-export function openLightbox(url: string, name: string): void {
-	handlers.lightbox?.(url, name)
+/** Картинка во весь экран — общий просмотр лаунчера, как у скриншотов. */
+export async function openLightbox(url: string, name: string, mime = ''): Promise<void> {
+	if (!url) return
+	// Через прокси вебвью до сервиса не достаёт — отдаём уже скачанный blob.
+	const src = (await viaProxy()) ? await mediaBlobUrl(url, mime).catch(() => url) : url
+	openMediaViewer([{ src, name, animated: isAnimatedImage(name, mime) }])
 }

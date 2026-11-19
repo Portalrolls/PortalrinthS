@@ -24,6 +24,7 @@ import {
 	type ReportReason,
 	useNewsText,
 } from './feed'
+import { openLightbox } from './lightbox'
 import NewsAvatar from './NewsAvatar.vue'
 import NewsCarousel from './NewsCarousel.vue'
 import NewsRichText from './NewsRichText.vue'
@@ -249,7 +250,12 @@ onBeforeUnmount(() => observer?.disconnect())
 
 		<p v-if="post.title" class="nf-post__title">{{ post.title }}</p>
 		<div v-if="text" class="nf-post__body" :class="{ 'is-clamped': long && !expanded }">
-			<NewsRichText :text="text" @tag="emit('tag', $event)" @mention="emit('mention', $event)" />
+			<NewsRichText
+				:text="text"
+				@tag="emit('tag', $event)"
+				@mention="emit('mention', $event)"
+				@image="(url) => openLightbox([{ url, video: false }])"
+			/>
 		</div>
 		<button v-if="long" type="button" class="nf-post__more" @click.stop="expanded = !expanded">
 			{{
@@ -275,6 +281,7 @@ onBeforeUnmount(() => observer?.disconnect())
 					:text="quote.bodyMd"
 					@tag="emit('tag', $event)"
 					@mention="emit('mention', $event)"
+					@image="(url) => openLightbox([{ url, video: false }])"
 				/>
 			</div>
 			<NewsCarousel v-if="quote.attachments?.length" :items="quote.attachments.slice(0, 1)" />

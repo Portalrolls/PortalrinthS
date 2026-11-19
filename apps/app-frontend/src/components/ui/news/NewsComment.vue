@@ -3,6 +3,7 @@ import { ReplyIcon, TrashIcon } from '@modrinth/assets'
 import { computed } from 'vue'
 
 import { type CommentNode, useNewsText, userAvatar } from './feed'
+import { openLightbox } from './lightbox'
 import NewsAvatar from './NewsAvatar.vue'
 import NewsRichText from './NewsRichText.vue'
 
@@ -57,6 +58,7 @@ const avatar = computed(() => userAvatar(props.node.author))
 					:text="node.bodyMd"
 					@tag="emit('tag', $event)"
 					@mention="emit('mention', $event)"
+					@image="(url) => openLightbox([{ url, video: false }])"
 				/>
 				<div class="nf-comment__actions">
 					<button

@@ -7725,5 +7725,38 @@
 	},
 	"app.messenger.push.more": {
 		"message": "Показать ещё"
+	},
+	"app.media-viewer.image": {
+		"message": "Изображение"
+	},
+	"app.media-viewer.downloaded": {
+		"message": "Изображение сохранено"
+	},
+	"app.media-viewer.downloadFailed": {
+		"message": "Не удалось сохранить"
+	},
+	"app.media-viewer.savedToScreens": {
+		"message": "Сохранено в скриншоты"
+	},
+	"app.media-viewer.saveToScreensFailed": {
+		"message": "Не удалось сохранить в скриншоты"
+	},
+	"app.media-viewer.noInstances": {
+		"message": "Нет сборок"
+	},
+	"app.media-viewer.noInstancesText": {
+		"message": "Скриншоты хранятся в сборках — создайте хотя бы одну."
+	},
+	"app.media-viewer.toScreens": {
+		"message": "В скриншоты"
+	},
+	"app.media-viewer.pickInstance": {
+		"message": "В какую сборку?"
+	},
+	"app.media-viewer.download": {
+		"message": "Скачать"
+	},
+	"app.media-viewer.openBrowser": {
+		"message": "Открыть в браузере"
 	}
 }

@@ -18,6 +18,7 @@ import {
 	FilePlusIcon,
 	GlobeIcon,
 	HammerIcon,
+	HistoryIcon,
 	HistoryIcon as MemoryIcon,
 	ImageIcon,
 	LayersIcon,
@@ -30,7 +31,6 @@ import {
 	PlusIcon,
 	RefreshCwIcon,
 	SearchIcon,
-	ServerIcon,
 	SparklesIcon,
 	StopCircleIcon,
 	SunIcon,
@@ -43,19 +43,15 @@ import { Avatar, Button, IconButton, Input, useVIntl } from '@modrinth/ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { CORE_PALETTES, CORE_STYLES, corePalette, coreStyle } from '@/components/ui/ai/agent-look'
-import AgentCore, { type CoreMode } from '@/components/ui/ai/AgentCore.vue'
 import AiActivity from '@/components/ui/ai/AiActivity.vue'
 import AiComposerMenu from '@/components/ui/ai/AiComposerMenu.vue'
 import AiModelPicker from '@/components/ui/ai/AiModelPicker.vue'
-import AiPersonaPanel from '@/components/ui/ai/AiPersonaPanel.vue'
 import AiRichText from '@/components/ui/ai/AiRichText.vue'
 import AiSteps from '@/components/ui/ai/AiSteps.vue'
 import AiTaskCard from '@/components/ui/ai/AiTaskCard.vue'
 import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import {
 	agentBusy,
-	agentDisplayName,
 	agentPhase,
 	agentQueue,
 	agentStreaming,
@@ -279,6 +275,7 @@ const jarInstalled = ref<Record<string, boolean>>({})
 const instances = ref<Awaited<ReturnType<typeof listInstances>>>([])
 const chosenInstance = ref('')
 const buildsOpen = ref(false)
+const historyOpen = ref(false)
 const sessionsList = ref<SessionMeta[]>([])
 const historyLoading = ref(false)
 const router = useRouter()
@@ -358,34 +355,15 @@ function removeQueued(index: number) {
 	agentQueue.value = agentQueue.value.filter((_, i) => i !== index)
 }
 
-/** Follows the newest line only while the player is at the bottom: scrolling
- * up to reread something is not yanked back by every streamed word. */
-const pinnedToBottom = ref(true)
-
-function onChatScroll() {
-	const box = scrollBox.value
-	if (!box) return
-	pinnedToBottom.value = box.scrollHeight - box.scrollTop - box.clientHeight < 96
-}
-
-function scrollToBottom(force = false) {
-	if (!force && !pinnedToBottom.value) return
+function scrollToBottom() {
 	void nextTick(() => {
 		const box = scrollBox.value
-		if (!box) return
-		box.scrollTop = box.scrollHeight
-		pinnedToBottom.value = true
+		if (box) box.scrollTop = box.scrollHeight
 	})
 }
 
-watch(
-	() => visibleHistory.value.length,
-	(length, previous) => {
-		const last = visibleHistory.value[length - 1]
-		scrollToBottom(length < (previous ?? 0) || last?.role === 'user')
-	},
-)
-watch(streaming, () => scrollToBottom())
+watch(visibleHistory, scrollToBottom, { deep: false })
+watch(streaming, scrollToBottom)
 
 function actionName(tool: string) {
 	const map: Record<string, string> = {
@@ -554,6 +532,20 @@ async function installJar(jar: AiJarCard) {
 
 // ---- Chat history (saved sessions) -----------------------------------------
 
+async function toggleHistory() {
+	historyOpen.value = !historyOpen.value
+	if (historyOpen.value) {
+		historyLoading.value = true
+		try {
+			sessionsList.value = await listSessions(30)
+		} catch {
+			sessionsList.value = []
+		} finally {
+			historyLoading.value = false
+		}
+	}
+}
+
 async function refreshSessionLists() {
 	try {
 		sessionsList.value = await listSessions(30)
@@ -573,6 +565,16 @@ async function deleteChat(meta: SessionMeta) {
 	await refreshSessionLists()
 }
 
+/**
+ * One word of the chat and an ellipsis: a list of conversations reads at a
+ * glance while the date-and-count label carries the rest.
+ */
+function shortPreview(meta: SessionMeta): string {
+	const first = (meta.preview || '').split(/\s+/)[0]?.trim() ?? ''
+	if (!first) return meta.id
+	return first.length > 16 ? `${first.slice(0, 16)}…` : `${first}…`
+}
+
 function sessionLabel(meta: SessionMeta): string {
 	const date = new Date(meta.updated || Date.now())
 	const stamp = Number.isNaN(date.getTime())
@@ -588,6 +590,7 @@ function sessionLabel(meta: SessionMeta): string {
 
 async function openSession(meta: SessionMeta) {
 	if (sending.value) return
+	historyOpen.value = false
 	const session = await readSession(meta.id)
 	if (session?.messages?.length) {
 		stopTyping()
@@ -602,6 +605,7 @@ async function openSession(meta: SessionMeta) {
  * a function) made the button silently do nothing; a running agent is
  * stopped first, so the button answers every time. */
 async function startFreshChat() {
+	historyOpen.value = false
 	if (sending.value) stopAgentRun()
 	stopTyping()
 	errorText.value = ''
@@ -773,14 +777,6 @@ const builtInCommands = computed<SlashCommand[]>(() => [
 		hint: 'запустить сборку',
 		icon: PlayIcon,
 		text: 'Запусти мою сборку.',
-		send: true,
-	},
-	{
-		id: 'лан',
-		label: 'лан',
-		hint: 'сервер для друзей (LAN)',
-		icon: ServerIcon,
-		text: 'Запусти мою сборку и открой мир для друзей (LAN).',
 		send: true,
 	},
 	{
@@ -1168,7 +1164,7 @@ async function resolveCurseforgeProject(slug: string, projectType: string): Prom
  */
 async function openLink(url: string) {
 	try {
-		// Launcher paths ([Сборка](/instance/…), [LAN](/lan)) open right here.
+		// Launcher paths ([Сборка](/instance/…), [Скины](/skins)) open right here.
 		if (url.startsWith('/')) {
 			await router.push(url)
 			return
@@ -1358,106 +1354,8 @@ function instanceIcon(iconPath: string | undefined): string | null {
 	return getInstanceIconUrl(iconPath ?? null)
 }
 
-// ---- Оболочка агента: история слева, сам агент справа --------------------
-// Вместо блоба — «ядро» (AgentCore): кольца крутятся быстрее, пока агент
-// думает, внутри появляется голос, когда он отвечает, и расходятся волны,
-// когда ждёт ответа игрока.
-
-const sideOpen = ref(true)
-const aboutOpen = ref(true)
-const aboutTab = ref<'activity' | 'looks' | 'persona'>('activity')
-const agentName = computed(() => agentDisplayName(aiSettings.value))
-
-/** Ядро повторяет ход работы: думает, говорит, ждёт ответа или ругается. */
-const faceMode = computed<CoreMode>(() => {
-	if (sending.value)
-		return streaming.value || agentPhase.value === 'speaking' ? 'speaking' : 'thinking'
-	if (lastQuestion.value) return 'notify'
-	if (errorText.value) return 'alert'
-	return 'idle'
-})
-
-const statusLine = computed(() => {
-	switch (faceMode.value) {
-		case 'thinking':
-		case 'speaking':
-			return phaseLabel.value
-		case 'notify':
-			return 'Ждёт вашего ответа'
-		case 'alert':
-			return 'Что-то пошло не так'
-		default:
-			return 'На связи'
-	}
-})
-
-/** Панель «Активность»: живые шаги во время работы, иначе — шаги
- * последнего ответа. */
-const activitySteps = computed(() => {
-	if (sending.value && agentTurn.value.steps.length) return agentTurn.value.steps
-	for (let i = visibleHistory.value.length - 1; i >= 0; i--) {
-		const message = visibleHistory.value[i] as AiMessage
-		if (message.role === 'assistant' && message.steps?.length) return message.steps
-	}
-	return []
-})
-
-const chatStats = computed(() => {
-	let tools = 0
-	for (const message of visibleHistory.value as AiMessage[]) {
-		for (const step of message.steps ?? []) if (step.kind === 'tool') tools++
-	}
-	return { messages: visibleHistory.value.length, tools }
-})
-
-const greeting = computed(() => {
-	const hour = new Date().getHours()
-	if (hour < 5) return 'Доброй ночи'
-	if (hour < 12) return 'Доброе утро'
-	if (hour < 18) return 'Добрый день'
-	return 'Добрый вечер'
-})
-
-const suggestionCards = computed(() => [
-	{ icon: PackageIcon, title: 'Сборка', text: suggestions.value[0] },
-	{ icon: SearchIcon, title: 'Поиск модов', text: suggestions.value[1] },
-	{ icon: TerminalSquareIcon, title: 'Разбор вылета', text: suggestions.value[2] },
-	{ icon: PaletteIcon, title: 'Скины', text: suggestions.value[3] },
-])
-
-const sessionQuery = ref('')
-
-function sessionTitle(meta: SessionMeta): string {
-	const text = (meta.preview || '').replace(/\s+/g, ' ').trim()
-	if (!text) return 'Без названия'
-	return text.length > 44 ? `${text.slice(0, 44).trimEnd()}…` : text
-}
-
-/** Чаты по дням, как в мессенджерах: «Сегодня», «Вчера», «На неделе», «Раньше». */
-const sessionGroups = computed(() => {
-	const query = sessionQuery.value.trim().toLowerCase()
-	const startOfDay = new Date()
-	startOfDay.setHours(0, 0, 0, 0)
-	const today = startOfDay.getTime()
-	const day = 86_400_000
-	const groups: { label: string; items: SessionMeta[] }[] = [
-		{ label: 'Сегодня', items: [] },
-		{ label: 'Вчера', items: [] },
-		{ label: 'На неделе', items: [] },
-		{ label: 'Раньше', items: [] },
-	]
-	for (const meta of sessionsList.value) {
-		if (query && !(meta.preview || '').toLowerCase().includes(query)) continue
-		const at = meta.updated || 0
-		const slot = at >= today ? 0 : at >= today - day ? 1 : at >= today - 7 * day ? 2 : 3
-		groups[slot].items.push(meta)
-	}
-	return groups.filter((group) => group.items.length)
-})
-
 onMounted(async () => {
-	scrollToBottom(true)
-	void refreshSessionLists()
+	scrollToBottom()
 	// The chat itself lives in localStorage; the sessions folder is the
 	// long-term memory. If the local copy is gone, the last session restores.
 	if (aiHistory.value.length === 0) {
@@ -1486,257 +1384,252 @@ onMounted(async () => {
 	)
 })
 
-onBeforeUnmount(() => {
-	stopTyping()
-})
+onBeforeUnmount(stopTyping)
 
 defineExpose({ send })
 </script>
 
 <template>
-	<div class="ai-page uag-shell flex h-full min-h-0">
-		<aside class="uag-side" :class="{ 'uag-side--closed': !sideOpen }" aria-label="История чатов">
-			<div class="uag-side-head">
-				<button class="uag-new" type="button" @click="startFreshChat">
-					<PlusIcon class="size-4 shrink-0" />
-					<span class="uag-new-label">{{ formatMessage(messages.historyNewChat) }}</span>
-					<kbd class="uag-new-kbd">{{ chatStats.messages ? 'чистый лист' : 'вы здесь' }}</kbd>
-				</button>
-				<label v-if="sessionsList.length > 4" class="uag-side-search">
-					<SearchIcon class="size-3.5 shrink-0" />
-					<input v-model="sessionQuery" type="search" placeholder="Найти чат" />
-				</label>
-			</div>
-			<div class="uag-side-list">
-				<template v-if="historyLoading">
-					<span v-for="n in 4" :key="n" class="uag-side-skeleton" />
-				</template>
-				<div v-else-if="sessionsList.length === 0" class="uag-side-empty">
-					<MessagesSquareIcon class="size-5" />
-					<span>{{ formatMessage(messages.historyEmpty) }}</span>
-				</div>
-				<p v-else-if="sessionGroups.length === 0" class="uag-side-note">Ничего не нашлось</p>
-				<section v-for="group in sessionGroups" :key="group.label" class="uag-side-group">
-					<p class="uag-side-group-title">{{ group.label }}</p>
-					<TransitionGroup name="uag-list" tag="div" class="uag-side-group-list">
-						<div
-							v-for="meta in group.items"
-							:key="meta.id"
-							class="uag-side-item"
-							:class="{ 'uag-side-item--active': currentSessionId === meta.id }"
-						>
-							<button class="uag-side-btn" type="button" @click="() => openSession(meta)">
-								<span class="uag-side-label">{{ sessionTitle(meta) }}</span>
-								<span class="uag-side-preview">{{ sessionLabel(meta) }}</span>
+	<div class="ai-page flex h-full min-h-0 flex-col">
+		<div class="flex items-start justify-end gap-3 px-6 pt-6">
+			<div class="relative flex shrink-0 items-center gap-1">
+				<IconButton
+					v-tooltip="formatMessage(messages.historyNewChat)"
+					type="quiet"
+					:label="formatMessage(messages.historyNewChat)"
+					@click="startFreshChat"
+				>
+					<EditIcon />
+				</IconButton>
+				<IconButton
+					v-tooltip="formatMessage(messages.historyTitle)"
+					type="quiet"
+					:label="formatMessage(messages.historyTitle)"
+					@click="toggleHistory"
+				>
+					<HistoryIcon />
+				</IconButton>
+				<div
+					v-if="historyOpen"
+					class="fixed inset-0 z-10 cursor-default"
+					@click="historyOpen = false"
+				/>
+				<div
+					v-if="historyOpen"
+					class="ai-menu absolute right-0 top-full z-20 mt-2 flex max-h-[30rem] w-[24rem] flex-col rounded-2xl border border-solid border-surface-5 bg-surface-2 p-2"
+				>
+					<div class="mb-1 flex items-center justify-between gap-2 px-2">
+						<p class="m-0 text-sm font-semibold text-primary">
+							{{ formatMessage(messages.historyTitle) }}
+						</p>
+						<div class="flex items-center gap-1">
+							<Button size="sm" @click="startFreshChat">
+								{{ formatMessage(messages.historyNewChat) }}
+							</Button>
+						</div>
+					</div>
+					<div class="flex min-h-0 flex-col gap-0.5 overflow-y-auto">
+						<p v-if="historyLoading" class="m-0 px-2 py-3 text-sm text-secondary">…</p>
+						<p v-else-if="sessionsList.length === 0" class="m-0 px-2 py-3 text-sm text-secondary">
+							{{ formatMessage(messages.historyEmpty) }}
+						</p>
+						<div v-for="meta in sessionsList" :key="meta.id" class="flex items-center gap-0.5">
+							<button class="ai-history-item grow" @click="() => openSession(meta)">
+								<span class="ai-history-meta">{{ sessionLabel(meta) }}</span>
+								<span class="ai-history-preview">{{ shortPreview(meta) }}</span>
 							</button>
-							<button
-								class="uag-side-del"
-								type="button"
-								:aria-label="formatMessage(messages.chatDelete)"
+							<IconButton
+								v-tooltip="formatMessage(messages.chatDelete)"
+								type="quiet"
+								:label="formatMessage(messages.chatDelete)"
 								@click="() => deleteChat(meta)"
 							>
-								<TrashIcon class="size-3.5" />
-							</button>
+								<TrashIcon />
+							</IconButton>
 						</div>
-					</TransitionGroup>
-				</section>
-			</div>
-			<button
-				class="uag-rail"
-				type="button"
-				:aria-label="sideOpen ? 'Свернуть историю' : 'Развернуть историю'"
-				@click="sideOpen = !sideOpen"
-			>
-				<ChevronDownIcon
-					class="size-4 transition-transform duration-300"
-					:class="sideOpen ? 'rotate-90' : '-rotate-90'"
-				/>
-			</button>
-		</aside>
-
-		<section class="uag-chat flex h-full min-w-0 grow flex-col">
-			<div
-				ref="scrollBox"
-				class="ai-scroll min-h-0 grow overflow-y-auto px-6 py-4"
-				@scroll.passive="onChatScroll"
-			>
-				<div v-if="visibleHistory.length === 0" class="uag-hero">
-					<div class="uag-hero-core">
-						<AgentCore :size="132" :mode="faceMode" />
-					</div>
-					<p class="uag-hero-kicker">{{ greeting }} · {{ agentName }}</p>
-					<h2 class="uag-hero-title">{{ formatMessage(messages.emptyTitle) }}</h2>
-					<p class="uag-hero-hint">{{ formatMessage(messages.emptyHint) }}</p>
-					<div class="uag-cards">
-						<button
-							v-for="(card, cardIndex) in suggestionCards"
-							:key="card.title"
-							type="button"
-							class="uag-card"
-							:style="{ animationDelay: `${120 + cardIndex * 70}ms` }"
-							@click="() => send(card.text)"
-						>
-							<span class="uag-card-icon"><component :is="card.icon" class="size-4" /></span>
-							<span class="uag-card-title">{{ card.title }}</span>
-							<span class="uag-card-text">{{ card.text }}</span>
-						</button>
 					</div>
 				</div>
+			</div>
+		</div>
 
-				<template v-else>
-					<div
-						v-for="(message, index) in visibleHistory"
-						:key="message.ts ? `${message.role}-${message.ts}` : `i-${index}`"
-						class="mb-3 flex min-w-0 uag-in"
-						:class="message.role === 'user' ? 'justify-end' : 'justify-start'"
+		<div ref="scrollBox" class="min-h-0 grow overflow-y-auto px-6 py-4">
+			<div
+				v-if="visibleHistory.length === 0"
+				class="flex h-full flex-col items-center justify-center gap-2 text-center"
+			>
+				<p class="m-0 text-2xl font-bold text-primary">{{ formatMessage(messages.aiName) }}</p>
+				<p class="m-0 text-lg font-semibold text-primary">
+					{{ formatMessage(messages.emptyTitle) }}
+				</p>
+				<p class="m-0 max-w-xl text-sm text-secondary">
+					{{ formatMessage(messages.emptyHint) }}
+				</p>
+				<div class="mt-2 flex max-w-xl flex-wrap justify-center gap-2">
+					<Button
+						v-for="suggestion in suggestions"
+						:key="suggestion"
+						size="sm"
+						@click="() => send(suggestion)"
 					>
-						<div
-							class="ai-bubble max-w-[85%] rounded-2xl px-4 py-2.5"
-							:class="message.role === 'user' ? 'ai-bubble-user' : 'ai-bubble-assistant'"
-						>
-							<AiTaskCard v-if="message.task" :task="message.task" class="mb-2" />
-							<AiSteps
-								v-if="message.role === 'assistant' && message.steps?.length"
-								:steps="message.steps"
-								@open-link="openLink"
-								@zoom="(src) => openImageViewer(src)"
-							/>
-							<div v-if="message.attachments?.length" class="mb-2 flex flex-wrap gap-2">
-								<template v-for="(file, fileIndex) in message.attachments" :key="fileIndex">
-									<img
-										v-if="file.kind === 'image' && file.dataUrl"
-										:src="file.dataUrl"
-										:alt="file.name"
-										class="ai-attach-image cursor-zoom-in"
-										@click="() => openImageViewer(file.dataUrl!, file.name)"
-									/>
-									<span v-else class="ai-attach-chip">
-										<FileIcon class="size-3.5 shrink-0" />
-										{{ file.name }}
-										<span v-if="file.size" class="text-secondary">{{ formatSize(file.size) }}</span>
-									</span>
-								</template>
-							</div>
-							<template v-if="parseSegments(message.content).length > 0">
-								<template
-									v-for="(segment, segmentIndex) in parseSegments(message.content)"
-									:key="`seg-${segmentIndex}`"
+						{{ suggestion }}
+					</Button>
+				</div>
+			</div>
+
+			<template v-else>
+				<div
+					v-for="(message, index) in visibleHistory"
+					:key="index"
+					class="mb-3 flex"
+					:class="message.role === 'user' ? 'justify-end' : 'justify-start'"
+				>
+					<div
+						class="ai-bubble max-w-[85%] rounded-2xl px-4 py-2.5"
+						:class="message.role === 'user' ? 'ai-bubble-user' : 'ai-bubble-assistant'"
+					>
+						<AiTaskCard v-if="message.task" :task="message.task" class="mb-2" />
+						<AiSteps
+							v-if="message.role === 'assistant' && message.steps?.length"
+							:steps="message.steps"
+							@open-link="openLink"
+							@zoom="(src) => openImageViewer(src)"
+						/>
+						<div v-if="message.attachments?.length" class="mb-2 flex flex-wrap gap-2">
+							<template v-for="(file, fileIndex) in message.attachments" :key="fileIndex">
+								<img
+									v-if="file.kind === 'image' && file.dataUrl"
+									:src="file.dataUrl"
+									:alt="file.name"
+									class="ai-attach-image cursor-zoom-in"
+									@click="() => openImageViewer(file.dataUrl!, file.name)"
+								/>
+								<span v-else class="ai-attach-chip">
+									<FileIcon class="size-3.5 shrink-0" />
+									{{ file.name }}
+									<span v-if="file.size" class="text-secondary">{{ formatSize(file.size) }}</span>
+								</span>
+							</template>
+						</div>
+						<template v-if="parseSegments(message.content).length > 0">
+							<template
+								v-for="(segment, segmentIndex) in parseSegments(message.content)"
+								:key="`seg-${segmentIndex}`"
+							>
+								<div
+									v-if="segment.kind === 'code'"
+									class="ai-code-block"
+									:class="{
+										'ai-code-block--folded': codeFolded(
+											`${index}-${segmentIndex}`,
+											segment.lines.length,
+										),
+									}"
 								>
-									<div
-										v-if="segment.kind === 'code'"
-										class="ai-code-block"
-										:class="{
-											'ai-code-block--folded': codeFolded(
-												`${index}-${segmentIndex}`,
-												segment.lines.length,
-											),
-										}"
-									>
-										<div class="ai-code-head">
-											<FileCodeIcon class="size-3.5 shrink-0" />
-											<span class="grow truncate">
-												{{ segment.lang || 'код'
-												}}<template v-if="segment.file"> · {{ segment.file }}</template>
-											</span>
-											<span
-												v-if="activityFor(message, segment)"
-												class="ai-code-diff"
-												:class="{ 'ai-code-diff--created': activityFor(message, segment)?.created }"
+									<div class="ai-code-head">
+										<FileCodeIcon class="size-3.5 shrink-0" />
+										<span class="grow truncate">
+											{{ segment.lang || 'код'
+											}}<template v-if="segment.file"> · {{ segment.file }}</template>
+										</span>
+										<span
+											v-if="activityFor(message, segment)"
+											class="ai-code-diff"
+											:class="{ 'ai-code-diff--created': activityFor(message, segment)?.created }"
+										>
+											{{
+												activityFor(message, segment)?.created
+													? formatMessage(messages.codeFileCreated)
+													: formatMessage(messages.codeFileChanged)
+											}}
+											<span class="text-green"
+												>+{{ activityFor(message, segment)?.added ?? 0 }}</span
+											><span class="text-red">
+												−{{ activityFor(message, segment)?.removed ?? 0 }}</span
 											>
-												{{
-													activityFor(message, segment)?.created
-														? formatMessage(messages.codeFileCreated)
-														: formatMessage(messages.codeFileChanged)
-												}}
-												<span class="text-green"
-													>+{{ activityFor(message, segment)?.added ?? 0 }}</span
-												><span class="text-red">
-													−{{ activityFor(message, segment)?.removed ?? 0 }}</span
-												>
-											</span>
-											<span class="ai-code-count"
-												>{{ segment.lines.length }} {{ linesWord(segment.lines.length) }}</span
-											>
-											<button
-												v-tooltip="formatMessage(messages.codePingHint)"
-												type="button"
-												class="ai-code-btn"
-												:aria-label="formatMessage(messages.codePing)"
-												@click="() => pingCode(`${index}-${segmentIndex}`, segment)"
-											>
-												<TextQuoteIcon class="size-3.5" />
-											</button>
-											<button
-												v-tooltip="
-													editingCode[`${index}-${segmentIndex}`]
-														? formatMessage(messages.codeDone)
-														: formatMessage(messages.codeEdit)
-												"
-												type="button"
-												class="ai-code-btn"
-												:aria-label="
-													editingCode[`${index}-${segmentIndex}`]
-														? formatMessage(messages.codeDone)
-														: formatMessage(messages.codeEdit)
-												"
-												@click="() => toggleEdit(`${index}-${segmentIndex}`, segment)"
-											>
-												<CheckIcon
-													v-if="editingCode[`${index}-${segmentIndex}`]"
-													class="size-3.5 text-green"
-												/>
-												<PencilIcon v-else class="size-3.5" />
-											</button>
-											<button
-												v-tooltip="'Скопировать'"
-												type="button"
-												class="ai-code-btn"
-												aria-label="Скопировать"
-												@click="
-													() =>
-														copyCode(
-															`${index}-${segmentIndex}`,
-															codeText(`${index}-${segmentIndex}`, segment),
-														)
-												"
-											>
-												<CheckIcon
-													v-if="copiedCode === `${index}-${segmentIndex}`"
-													class="size-3.5 text-green"
-												/>
-												<CopyIcon v-else class="size-3.5" />
-											</button>
-											<button
-												v-if="segment.lines.length > CODE_FOLD_LINES"
-												v-tooltip="
-													codeFolded(`${index}-${segmentIndex}`, segment.lines.length)
-														? 'Развернуть'
-														: 'Свернуть'
-												"
-												type="button"
-												class="ai-code-btn"
-												:aria-label="
-													codeFolded(`${index}-${segmentIndex}`, segment.lines.length)
-														? 'Развернуть'
-														: 'Свернуть'
-												"
-												@click="() => toggleCode(`${index}-${segmentIndex}`, segment.lines.length)"
-											>
-												<ChevronDownIcon
-													class="size-3.5 transition-transform duration-300"
-													:class="{
-														'rotate-180': !codeFolded(
-															`${index}-${segmentIndex}`,
-															segment.lines.length,
-														),
-													}"
-												/>
-											</button>
-										</div>
-										<pre
-											v-if="!editingCode[`${index}-${segmentIndex}`]"
-											class="ai-code-pre m-0"
-										><code><span
+										</span>
+										<span class="ai-code-count"
+											>{{ segment.lines.length }} {{ linesWord(segment.lines.length) }}</span
+										>
+										<button
+											v-tooltip="formatMessage(messages.codePingHint)"
+											type="button"
+											class="ai-code-btn"
+											:aria-label="formatMessage(messages.codePing)"
+											@click="() => pingCode(`${index}-${segmentIndex}`, segment)"
+										>
+											<TextQuoteIcon class="size-3.5" />
+										</button>
+										<button
+											v-tooltip="
+												editingCode[`${index}-${segmentIndex}`]
+													? formatMessage(messages.codeDone)
+													: formatMessage(messages.codeEdit)
+											"
+											type="button"
+											class="ai-code-btn"
+											:aria-label="
+												editingCode[`${index}-${segmentIndex}`]
+													? formatMessage(messages.codeDone)
+													: formatMessage(messages.codeEdit)
+											"
+											@click="() => toggleEdit(`${index}-${segmentIndex}`, segment)"
+										>
+											<CheckIcon
+												v-if="editingCode[`${index}-${segmentIndex}`]"
+												class="size-3.5 text-green"
+											/>
+											<PencilIcon v-else class="size-3.5" />
+										</button>
+										<button
+											v-tooltip="'Скопировать'"
+											type="button"
+											class="ai-code-btn"
+											aria-label="Скопировать"
+											@click="
+												() =>
+													copyCode(
+														`${index}-${segmentIndex}`,
+														codeText(`${index}-${segmentIndex}`, segment),
+													)
+											"
+										>
+											<CheckIcon
+												v-if="copiedCode === `${index}-${segmentIndex}`"
+												class="size-3.5 text-green"
+											/>
+											<CopyIcon v-else class="size-3.5" />
+										</button>
+										<button
+											v-if="segment.lines.length > CODE_FOLD_LINES"
+											v-tooltip="
+												codeFolded(`${index}-${segmentIndex}`, segment.lines.length)
+													? 'Развернуть'
+													: 'Свернуть'
+											"
+											type="button"
+											class="ai-code-btn"
+											:aria-label="
+												codeFolded(`${index}-${segmentIndex}`, segment.lines.length)
+													? 'Развернуть'
+													: 'Свернуть'
+											"
+											@click="() => toggleCode(`${index}-${segmentIndex}`, segment.lines.length)"
+										>
+											<ChevronDownIcon
+												class="size-3.5 transition-transform duration-300"
+												:class="{
+													'rotate-180': !codeFolded(
+														`${index}-${segmentIndex}`,
+														segment.lines.length,
+													),
+												}"
+											/>
+										</button>
+									</div>
+									<pre
+										v-if="!editingCode[`${index}-${segmentIndex}`]"
+										class="ai-code-pre m-0"
+									><code><span
                                                                                 v-for="(line, lineIndex) in segment.lines"
                                                                                 :key="lineIndex"
                                                                                 class="ai-code-line"
@@ -1747,857 +1640,730 @@ defineExpose({ send })
                                                                                         :key="tokenIndex"
                                                                                         :class="token.c"
                                                                                 >{{ token.t }}</span></template><template v-else>{{ line }}</template></span></code></pre>
-										<textarea
-											v-else
-											v-model="codeEdits[`${index}-${segmentIndex}`]"
-											class="ai-code-edit"
-											spellcheck="false"
-											:rows="Math.min(segment.lines.length + 1, 24)"
-											@focus="initEdit(`${index}-${segmentIndex}`, segment)"
-										/>
-										<button
-											v-if="codeFolded(`${index}-${segmentIndex}`, segment.lines.length)"
-											type="button"
-											class="ai-code-more"
-											@click="() => toggleCode(`${index}-${segmentIndex}`, segment.lines.length)"
-										>
-											Показать всё · {{ segment.lines.length }}
-											{{ linesWord(segment.lines.length) }}
-											<ChevronDownIcon class="size-3.5" />
-										</button>
-									</div>
-									<AiRichText v-else :text="segment.text" @open="openLink" />
-								</template>
+									<textarea
+										v-else
+										v-model="codeEdits[`${index}-${segmentIndex}`]"
+										class="ai-code-edit"
+										spellcheck="false"
+										:rows="Math.min(segment.lines.length + 1, 24)"
+										@focus="initEdit(`${index}-${segmentIndex}`, segment)"
+									/>
+									<button
+										v-if="codeFolded(`${index}-${segmentIndex}`, segment.lines.length)"
+										type="button"
+										class="ai-code-more"
+										@click="() => toggleCode(`${index}-${segmentIndex}`, segment.lines.length)"
+									>
+										Показать всё · {{ segment.lines.length }} {{ linesWord(segment.lines.length) }}
+										<ChevronDownIcon class="size-3.5" />
+									</button>
+								</div>
+								<AiRichText v-else :text="segment.text" @open="openLink" />
 							</template>
-							<p v-else class="m-0 whitespace-pre-wrap break-words text-sm leading-relaxed">
-								{{ message.content }}
-							</p>
+						</template>
+						<p v-else class="m-0 whitespace-pre-wrap break-words text-sm leading-relaxed">
+							{{ message.content }}
+						</p>
 
-							<div v-if="message.activity" class="ai-activity">
-								<span v-if="message.activity.commands > 0" class="ai-activity-chip">
-									<TerminalSquareIcon class="size-3.5" />
-									{{ message.activity.commands }} {{ formatMessage(messages.commands) }}
-								</span>
+						<div v-if="message.activity" class="ai-activity">
+							<span v-if="message.activity.commands > 0" class="ai-activity-chip">
+								<TerminalSquareIcon class="size-3.5" />
+								{{ message.activity.commands }} {{ formatMessage(messages.commands) }}
+							</span>
+							<span
+								v-for="file in message.activity.filesCreated"
+								:key="`c-${file}`"
+								class="ai-activity-chip ai-activity-created"
+							>
+								<FilePlusIcon class="size-3.5" />
+								{{ formatMessage(messages.filesCreated) }}: {{ file }}
+							</span>
+							<span
+								v-for="change in message.activity.filesChanged"
+								:key="`m-${change.path}`"
+								class="ai-activity-chip ai-activity-changed"
+							>
+								<EditIcon class="size-3.5" />
+								{{ formatMessage(messages.filesChanged) }}: {{ change.path }}
+								<span class="text-green">+{{ change.added }}</span
+								>/<span class="text-red"> −{{ change.removed }}</span>
+							</span>
+							<span
+								v-for="claim in declaredFiles(message)"
+								:key="`d-${claim.path}`"
+								class="ai-activity-chip ai-activity-claimed"
+							>
+								<FileCodeIcon class="size-3.5" />
+								{{ claim.verb }}: {{ claim.path }}
+							</span>
+							<span
+								v-for="(image, imageIndex) in message.activity.images ?? []"
+								:key="`img-${imageIndex}`"
+								class="ai-activity-image-wrap"
+							>
+								<img
+									:src="image"
+									class="ai-activity-image cursor-zoom-in"
+									alt=""
+									@click="() => openImageViewer(image)"
+								/>
+							</span>
+						</div>
+
+						<div v-if="message.activity?.mods?.length" class="ai-cards">
+							<button class="ai-cards-toggle" @click="() => toggleCardGroup(`m-${index}`)">
 								<span
-									v-for="file in message.activity.filesCreated"
-									:key="`c-${file}`"
-									class="ai-activity-chip ai-activity-created"
+									>{{ formatMessage(messages.modsTitle) }} ·
+									{{ message.activity.mods.length }}</span
 								>
-									<FilePlusIcon class="size-3.5" />
-									{{ formatMessage(messages.filesCreated) }}: {{ file }}
-								</span>
-								<span
-									v-for="change in message.activity.filesChanged"
-									:key="`m-${change.path}`"
-									class="ai-activity-chip ai-activity-changed"
-								>
-									<EditIcon class="size-3.5" />
-									{{ formatMessage(messages.filesChanged) }}: {{ change.path }}
-									<span class="text-green">+{{ change.added }}</span
-									>/<span class="text-red"> −{{ change.removed }}</span>
-								</span>
-								<span
-									v-for="claim in declaredFiles(message)"
-									:key="`d-${claim.path}`"
-									class="ai-activity-chip ai-activity-claimed"
-								>
-									<FileCodeIcon class="size-3.5" />
-									{{ claim.verb }}: {{ claim.path }}
-								</span>
-								<span
-									v-for="(image, imageIndex) in message.activity.images ?? []"
-									:key="`img-${imageIndex}`"
-									class="ai-activity-image-wrap"
+								<ChevronDownIcon
+									class="size-3.5 transition-transform"
+									:class="{ '-rotate-90': collapsedCards[`m-${index}`] }"
+								/>
+							</button>
+							<div v-if="!collapsedCards[`m-${index}`]" class="flex flex-col gap-1.5">
+								<button
+									v-for="mod in message.activity.mods"
+									:key="`${mod.source}-${mod.projectId}`"
+									class="ai-mod-card"
+									@click="() => openMod(mod)"
 								>
 									<img
-										:src="image"
-										class="ai-activity-image cursor-zoom-in"
+										v-if="mod.iconUrl"
+										:src="mod.iconUrl"
+										class="ai-mod-icon"
 										alt=""
-										@click="() => openImageViewer(image)"
+										loading="lazy"
 									/>
-								</span>
-							</div>
-
-							<div v-if="message.activity?.mods?.length" class="ai-cards">
-								<button class="ai-cards-toggle" @click="() => toggleCardGroup(`m-${index}`)">
-									<span
-										>{{ formatMessage(messages.modsTitle) }} ·
-										{{ message.activity.mods.length }}</span
-									>
-									<ChevronDownIcon
-										class="size-3.5 transition-transform"
-										:class="{ '-rotate-90': collapsedCards[`m-${index}`] }"
-									/>
-								</button>
-								<div v-if="!collapsedCards[`m-${index}`]" class="flex flex-col gap-1.5">
-									<button
-										v-for="mod in message.activity.mods"
-										:key="`${mod.source}-${mod.projectId}`"
-										class="ai-mod-card"
-										@click="() => openMod(mod)"
-									>
-										<img
-											v-if="mod.iconUrl"
-											:src="mod.iconUrl"
-											class="ai-mod-icon"
-											alt=""
-											loading="lazy"
-										/>
-										<FileIcon v-else class="ai-mod-icon ai-mod-icon-fallback" />
-										<div class="min-w-0 grow text-left">
-											<p class="ai-card-title">{{ mod.title }}</p>
-											<p class="ai-card-meta">
-												{{ mod.source }}<template v-if="mod.author"> · {{ mod.author }}</template>
-											</p>
-											<p v-if="mod.description" class="ai-card-desc">{{ mod.description }}</p>
-											<p class="ai-card-meta">
-												{{ compactCount(mod.downloads) }} ↓
-												<template v-if="mod.source === 'Modrinth' && mod.follows">
-													· {{ compactCount(mod.follows) }} ♥
-												</template>
-											</p>
-											<span
-												v-if="mod.gallery?.length"
-												class="ai-gallery-open"
-												@click.stop="() => toggleGallery(`${index}-${mod.projectId}`)"
-											>
-												Галерея · {{ mod.gallery.length }}
-											</span>
-											<div
-												v-if="galleryOpen[`${index}-${mod.projectId}`] && mod.gallery?.length"
-												class="ai-gallery"
-											>
-												<img
-													v-for="(shot, shotIndex) in mod.gallery"
-													:key="shotIndex"
-													:src="shot"
-													class="ai-gallery-thumb"
-													loading="lazy"
-													alt=""
-													@click.stop="() => openImageViewer(shot)"
-												/>
-											</div>
+									<FileIcon v-else class="ai-mod-icon ai-mod-icon-fallback" />
+									<div class="min-w-0 grow text-left">
+										<p class="ai-card-title">{{ mod.title }}</p>
+										<p class="ai-card-meta">
+											{{ mod.source }}<template v-if="mod.author"> · {{ mod.author }}</template>
+										</p>
+										<p v-if="mod.description" class="ai-card-desc">{{ mod.description }}</p>
+										<p class="ai-card-meta">
+											{{ compactCount(mod.downloads) }} ↓
+											<template v-if="mod.source === 'Modrinth' && mod.follows">
+												· {{ compactCount(mod.follows) }} ♥
+											</template>
+										</p>
+										<span
+											v-if="mod.gallery?.length"
+											class="ai-gallery-open"
+											@click.stop="() => toggleGallery(`${index}-${mod.projectId}`)"
+										>
+											Галерея · {{ mod.gallery.length }}
+										</span>
+										<div
+											v-if="galleryOpen[`${index}-${mod.projectId}`] && mod.gallery?.length"
+											class="ai-gallery"
+										>
+											<img
+												v-for="(shot, shotIndex) in mod.gallery"
+												:key="shotIndex"
+												:src="shot"
+												class="ai-gallery-thumb"
+												loading="lazy"
+												alt=""
+												@click.stop="() => openImageViewer(shot)"
+											/>
 										</div>
-									</button>
-								</div>
-							</div>
-
-							<div v-if="message.activity?.wikis?.length" class="ai-cards">
-								<button class="ai-cards-toggle" @click="() => toggleCardGroup(`w-${index}`)">
-									<span>Вики · {{ message.activity.wikis.length }}</span>
-									<ChevronDownIcon
-										class="size-3.5 transition-transform"
-										:class="{ '-rotate-90': collapsedCards[`w-${index}`] }"
-									/>
+									</div>
 								</button>
-								<div v-if="!collapsedCards[`w-${index}`]" class="flex flex-col gap-1.5">
-									<button
-										v-for="wiki in message.activity.wikis as AiWikiCard[]"
-										:key="wiki.url"
-										class="ai-mod-card ai-wiki-card"
-										title="Открыть в браузере"
-										@click="() => openLink(wiki.url)"
-									>
-										<img
-											v-if="wiki.image"
-											:src="wiki.image"
-											class="ai-wiki-image"
-											alt=""
-											loading="lazy"
-										/>
-										<span v-else class="ai-mod-icon ai-mod-icon-fallback"
-											><BookOpenIcon class="size-5"
-										/></span>
-										<div class="min-w-0 grow text-left">
-											<p class="ai-card-title">{{ wiki.title }}</p>
-											<p class="ai-card-meta">{{ wiki.wiki }}</p>
-											<p v-if="wiki.excerpt" class="ai-card-desc">{{ wiki.excerpt }}</p>
-										</div>
-										<BookOpenIcon class="size-4 shrink-0 opacity-60" />
-									</button>
-								</div>
 							</div>
+						</div>
 
-							<div v-if="message.activity?.sites?.length" class="flex flex-col gap-1.5">
+						<div v-if="message.activity?.wikis?.length" class="ai-cards">
+							<button class="ai-cards-toggle" @click="() => toggleCardGroup(`w-${index}`)">
+								<span>Вики · {{ message.activity.wikis.length }}</span>
+								<ChevronDownIcon
+									class="size-3.5 transition-transform"
+									:class="{ '-rotate-90': collapsedCards[`w-${index}`] }"
+								/>
+							</button>
+							<div v-if="!collapsedCards[`w-${index}`]" class="flex flex-col gap-1.5">
 								<button
-									v-for="site in message.activity.sites"
-									:key="site.path"
-									class="ai-mod-card ai-site-card"
-									@click="() => openSite(site.path, site.title)"
+									v-for="wiki in message.activity.wikis as AiWikiCard[]"
+									:key="wiki.url"
+									class="ai-mod-card ai-wiki-card"
+									title="Открыть в браузере"
+									@click="() => openLink(wiki.url)"
 								>
-									<span class="ai-mod-icon ai-mod-icon-fallback ai-site-glyph"
-										><CompassIcon class="size-5"
+									<img
+										v-if="wiki.image"
+										:src="wiki.image"
+										class="ai-wiki-image"
+										alt=""
+										loading="lazy"
+									/>
+									<span v-else class="ai-mod-icon ai-mod-icon-fallback"
+										><BookOpenIcon class="size-5"
 									/></span>
 									<div class="min-w-0 grow text-left">
-										<p class="ai-card-title">{{ site.title || 'Сайт' }}</p>
-										<p class="ai-card-meta">Предпросмотр сайта · {{ site.path }}</p>
+										<p class="ai-card-title">{{ wiki.title }}</p>
+										<p class="ai-card-meta">{{ wiki.wiki }}</p>
+										<p v-if="wiki.excerpt" class="ai-card-desc">{{ wiki.excerpt }}</p>
 									</div>
-									<PlayIcon class="size-4 shrink-0 opacity-70" />
+									<BookOpenIcon class="size-4 shrink-0 opacity-60" />
 								</button>
 							</div>
+						</div>
 
-							<div v-if="message.activity?.skins?.length" class="ai-cards">
-								<button class="ai-cards-toggle" @click="() => toggleCardGroup(`s-${index}`)">
-									<span
-										>{{ formatMessage(messages.skinsTitle) }} ·
-										{{ message.activity.skins.length }}</span
-									>
-									<ChevronDownIcon
-										class="size-3.5 transition-transform"
-										:class="{ '-rotate-90': collapsedCards[`s-${index}`] }"
+						<div v-if="message.activity?.sites?.length" class="flex flex-col gap-1.5">
+							<button
+								v-for="site in message.activity.sites"
+								:key="site.path"
+								class="ai-mod-card ai-site-card"
+								@click="() => openSite(site.path, site.title)"
+							>
+								<span class="ai-mod-icon ai-mod-icon-fallback ai-site-glyph"
+									><CompassIcon class="size-5"
+								/></span>
+								<div class="min-w-0 grow text-left">
+									<p class="ai-card-title">{{ site.title || 'Сайт' }}</p>
+									<p class="ai-card-meta">Предпросмотр сайта · {{ site.path }}</p>
+								</div>
+								<PlayIcon class="size-4 shrink-0 opacity-70" />
+							</button>
+						</div>
+
+						<div v-if="message.activity?.skins?.length" class="ai-cards">
+							<button class="ai-cards-toggle" @click="() => toggleCardGroup(`s-${index}`)">
+								<span
+									>{{ formatMessage(messages.skinsTitle) }} ·
+									{{ message.activity.skins.length }}</span
+								>
+								<ChevronDownIcon
+									class="size-3.5 transition-transform"
+									:class="{ '-rotate-90': collapsedCards[`s-${index}`] }"
+								/>
+							</button>
+							<div v-if="!collapsedCards[`s-${index}`]" class="ai-skin-grid">
+								<div v-for="skin in message.activity.skins" :key="skin.hash" class="ai-skin-card">
+									<img
+										v-if="skinPreviewSrc(skin.render || skin.hash)"
+										:src="skinPreviewSrc(skin.render || skin.hash)"
+										class="ai-skin-img"
+										alt=""
+										loading="lazy"
 									/>
-								</button>
-								<div v-if="!collapsedCards[`s-${index}`]" class="ai-skin-grid">
-									<div v-for="skin in message.activity.skins" :key="skin.hash" class="ai-skin-card">
-										<img
-											v-if="skinPreviewSrc(skin.render || skin.hash)"
-											:src="skinPreviewSrc(skin.render || skin.hash)"
-											class="ai-skin-img"
-											alt=""
-											loading="lazy"
-										/>
-										<div v-else class="ai-skin-img ai-skin-skeleton" />
-										<p class="ai-card-title">
-											{{ skin.tags || formatMessage(messages.skinsTitle) }}
-										</p>
-										<p class="ai-card-meta">
-											{{ skin.uses ?? 0 }} игр. · {{ skin.variant === 'SLIM' ? 'Slim' : 'Classic' }}
-										</p>
+									<div v-else class="ai-skin-img ai-skin-skeleton" />
+									<p class="ai-card-title">{{ skin.tags || formatMessage(messages.skinsTitle) }}</p>
+									<p class="ai-card-meta">
+										{{ skin.uses ?? 0 }} игр. · {{ skin.variant === 'SLIM' ? 'Slim' : 'Classic' }}
+									</p>
+									<Button
+										size="sm"
+										class="w-full"
+										:disabled="
+											skinInstalling.includes(skin.hash) || skinInstalledSkins.includes(skin.hash)
+										"
+										@click="() => installSkin(skin)"
+									>
+										{{
+											skinInstalledSkins.includes(skin.hash)
+												? formatMessage(messages.skinInstalled)
+												: formatMessage(messages.skinInstall)
+										}}
+									</Button>
+								</div>
+							</div>
+						</div>
+
+						<div v-if="message.activity?.jars?.length" class="ai-cards">
+							<button class="ai-cards-toggle" @click="() => toggleCardGroup(`j-${index}`)">
+								<span
+									>{{ formatMessage(messages.jarsTitle) }} ·
+									{{ message.activity.jars.length }}</span
+								>
+								<ChevronDownIcon
+									class="size-3.5 transition-transform"
+									:class="{ '-rotate-90': collapsedCards[`j-${index}`] }"
+								/>
+							</button>
+							<div v-if="!collapsedCards[`j-${index}`]" class="flex flex-col gap-1.5">
+								<div v-for="jar in message.activity.jars" :key="jar.path" class="ai-jar-card">
+									<img v-if="jar.iconDataUrl" :src="jar.iconDataUrl" class="ai-mod-icon" alt="" />
+									<FileIcon v-else class="ai-mod-icon ai-mod-icon-fallback" />
+									<div class="min-w-0 grow">
+										<p class="ai-card-title">{{ jar.name }}</p>
+										<p class="ai-card-meta">{{ jar.version }} · .jar</p>
+									</div>
+									<div class="flex shrink-0 items-center gap-1.5">
+										<select
+											v-if="instances.length > 1"
+											v-model="chosenInstance"
+											class="ai-jar-select"
+										>
+											<option v-for="instance in instances" :key="instance.id" :value="instance.id">
+												{{ instance.name }}
+											</option>
+										</select>
 										<Button
 											size="sm"
-											class="w-full"
-											:disabled="
-												skinInstalling.includes(skin.hash) || skinInstalledSkins.includes(skin.hash)
-											"
-											@click="() => installSkin(skin)"
+											color="brand"
+											:disabled="jarInstalled[jar.path]"
+											@click="() => installJar(jar)"
 										>
 											{{
-												skinInstalledSkins.includes(skin.hash)
-													? formatMessage(messages.skinInstalled)
-													: formatMessage(messages.skinInstall)
+												jarInstalled[jar.path]
+													? formatMessage(messages.installed)
+													: formatMessage(messages.install)
 											}}
 										</Button>
 									</div>
 								</div>
 							</div>
+						</div>
 
-							<div v-if="message.activity?.jars?.length" class="ai-cards">
-								<button class="ai-cards-toggle" @click="() => toggleCardGroup(`j-${index}`)">
-									<span
-										>{{ formatMessage(messages.jarsTitle) }} ·
-										{{ message.activity.jars.length }}</span
-									>
-									<ChevronDownIcon
-										class="size-3.5 transition-transform"
-										:class="{ '-rotate-90': collapsedCards[`j-${index}`] }"
-									/>
-								</button>
-								<div v-if="!collapsedCards[`j-${index}`]" class="flex flex-col gap-1.5">
-									<div v-for="jar in message.activity.jars" :key="jar.path" class="ai-jar-card">
-										<img v-if="jar.iconDataUrl" :src="jar.iconDataUrl" class="ai-mod-icon" alt="" />
-										<FileIcon v-else class="ai-mod-icon ai-mod-icon-fallback" />
-										<div class="min-w-0 grow">
-											<p class="ai-card-title">{{ jar.name }}</p>
-											<p class="ai-card-meta">{{ jar.version }} · .jar</p>
-										</div>
-										<div class="flex shrink-0 items-center gap-1.5">
-											<select
-												v-if="instances.length > 1"
-												v-model="chosenInstance"
-												class="ai-jar-select"
-											>
-												<option
-													v-for="instance in instances"
-													:key="instance.id"
-													:value="instance.id"
-												>
-													{{ instance.name }}
-												</option>
-											</select>
-											<Button
-												size="sm"
-												color="brand"
-												:disabled="jarInstalled[jar.path]"
-												@click="() => installJar(jar)"
-											>
-												{{
-													jarInstalled[jar.path]
-														? formatMessage(messages.installed)
-														: formatMessage(messages.install)
-												}}
-											</Button>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div v-if="message.activity?.polls?.length" class="ai-cards">
-								<div
-									v-for="(poll, pollIndex) in message.activity.polls"
-									:key="`poll-${pollIndex}`"
-									class="ai-poll-card"
-								>
-									<p class="ai-card-title m-0">{{ poll.text }}</p>
-									<template v-if="poll.mode === 'instances'">
-										<div class="mt-1 flex flex-col gap-1.5">
-											<button
-												v-for="instance in pollInstances"
-												:key="instance.id"
-												type="button"
-												class="ai-instance-option"
-												:disabled="sending || !!poll.answered"
-												@click="() => pickInstance(poll, instance)"
-											>
-												<Avatar
-													v-if="instance.icon"
-													:src="instance.icon"
-													size="28px"
-													no-shadow
-													class="!rounded-lg"
-												/>
-												<span class="min-w-0 flex-1 truncate text-left">
-													<span class="block truncate text-sm font-semibold text-contrast">
-														{{ instance.name }}
-													</span>
-													<span class="block truncate text-xs text-secondary">
-														Minecraft {{ instance.game_version }} · {{ instance.loader }}
-													</span>
-												</span>
-												<CheckIcon
-													v-if="poll.answered === instance.name"
-													class="size-4 text-green"
-												/>
-											</button>
-										</div>
-										<p v-if="poll.answered" class="m-0 mt-1 text-xs font-medium text-secondary">
-											{{ poll.answered }}
-										</p>
-									</template>
-									<div v-else class="mt-1 flex flex-wrap gap-2">
-										<Button
-											v-for="option in poll.options"
-											:key="option"
-											size="sm"
-											:disabled="sending"
-											@click="() => answerPoll(option)"
-										>
-											{{ option }}
-										</Button>
-									</div>
-								</div>
-							</div>
+						<div v-if="message.activity?.polls?.length" class="ai-cards">
 							<div
-								v-if="message.actions?.length && !message.steps?.length"
-								class="mt-1.5 flex flex-wrap gap-1"
+								v-for="(poll, pollIndex) in message.activity.polls"
+								:key="`poll-${pollIndex}`"
+								class="ai-poll-card"
 							>
-								<span v-for="action in message.actions" :key="action" class="ai-action-chip">
-									{{ actionName(action) }}
-								</span>
+								<p class="ai-card-title m-0">{{ poll.text }}</p>
+								<template v-if="poll.mode === 'instances'">
+									<div class="mt-1 flex flex-col gap-1.5">
+										<button
+											v-for="instance in pollInstances"
+											:key="instance.id"
+											type="button"
+											class="ai-instance-option"
+											:disabled="sending || !!poll.answered"
+											@click="() => pickInstance(poll, instance)"
+										>
+											<Avatar
+												v-if="instance.icon"
+												:src="instance.icon"
+												size="28px"
+												no-shadow
+												class="!rounded-lg"
+											/>
+											<span class="min-w-0 flex-1 truncate text-left">
+												<span class="block truncate text-sm font-semibold text-contrast">
+													{{ instance.name }}
+												</span>
+												<span class="block truncate text-xs text-secondary">
+													Minecraft {{ instance.game_version }} · {{ instance.loader }}
+												</span>
+											</span>
+											<CheckIcon v-if="poll.answered === instance.name" class="size-4 text-green" />
+										</button>
+									</div>
+									<p v-if="poll.answered" class="m-0 mt-1 text-xs font-medium text-secondary">
+										{{ poll.answered }}
+									</p>
+								</template>
+								<div v-else class="mt-1 flex flex-wrap gap-2">
+									<Button
+										v-for="option in poll.options"
+										:key="option"
+										size="sm"
+										:disabled="sending"
+										@click="() => answerPoll(option)"
+									>
+										{{ option }}
+									</Button>
+								</div>
 							</div>
 						</div>
-					</div>
-
-					<div v-if="lastQuestion" class="mb-3 flex justify-start uag-in">
-						<div class="ai-question-card rounded-2xl p-4">
-							<p class="m-0 mb-2 text-sm font-semibold text-primary">
-								{{ lastQuestion.text }}
-							</p>
-							<div class="flex flex-wrap gap-2">
-								<Button
-									v-for="option in lastQuestion.options"
-									:key="option"
-									size="sm"
-									:disabled="sending"
-									@click="() => answerQuestion(option)"
-								>
-									{{ option }}
-								</Button>
-							</div>
-							<div class="mt-2 flex items-center gap-2">
-								<Input
-									v-model="questionDraft"
-									:disabled="sending"
-									:placeholder="formatMessage(messages.questionOwn)"
-									class="max-w-xs grow"
-									@keydown.enter.prevent="() => answerQuestion(questionDraft)"
-								/>
-								<Button
-									color="brand"
-									size="sm"
-									:disabled="sending || !questionDraft.trim()"
-									@click="() => answerQuestion(questionDraft)"
-								>
-									{{ formatMessage(messages.questionSend) }}
-								</Button>
-							</div>
-						</div>
-					</div>
-				</template>
-
-				<Transition name="ai-site">
-					<div v-if="sitePreview" class="ai-site-overlay" @click.self="sitePreview = null">
-						<div class="ai-site-window">
-							<div class="ai-site-bar">
-								<CompassIcon class="size-4 shrink-0" />
-								<span class="min-w-0 grow truncate font-semibold">{{ sitePreview.title }}</span>
-								<button class="ai-error-btn" aria-label="Закрыть" @click="sitePreview = null">
-									<XIcon class="size-4" />
-								</button>
-							</div>
-							<iframe
-								class="ai-site-frame"
-								sandbox="allow-scripts"
-								:srcdoc="sitePreview.html"
-								title="Предпросмотр сайта"
-							/>
-						</div>
-					</div>
-				</Transition>
-
-				<div v-if="sending" class="mb-3 flex justify-start uag-in">
-					<div
-						class="ai-bubble ai-bubble-assistant ai-process rounded-2xl px-3 py-2.5"
-						:class="{ 'ai-live-bubble': agentTurn.steps.length > 0 || agentTurn.task }"
-					>
-						<AiTaskCard v-if="agentTurn.task" :task="agentTurn.task" live class="mb-2" />
-						<AiSteps
-							v-if="agentTurn.steps.length > 0"
-							:steps="agentTurn.steps"
-							live
-							:phase="phaseLabel"
-							default-open
-							@open-link="openLink"
-							@zoom="(src) => openImageViewer(src)"
-						/>
-						<AiActivity v-else-if="!streaming" :phase="agentPhase" />
-						<div v-if="streaming" class="ai-live-text px-1">
-							<AiRichText :text="streaming" @open="openLink" />
+						<div
+							v-if="message.actions?.length && !message.steps?.length"
+							class="mt-1.5 flex flex-wrap gap-1"
+						>
+							<span v-for="action in message.actions" :key="action" class="ai-action-chip">
+								{{ actionName(action) }}
+							</span>
 						</div>
 					</div>
 				</div>
-				<div v-else-if="streaming" class="mb-3 flex justify-start uag-in">
-					<div class="ai-bubble ai-bubble-assistant rounded-2xl px-4 py-2.5">
+
+				<div v-if="lastQuestion" class="mb-3 flex justify-start">
+					<div class="ai-question-card rounded-2xl p-4">
+						<p class="m-0 mb-2 text-sm font-semibold text-primary">
+							{{ lastQuestion.text }}
+						</p>
+						<div class="flex flex-wrap gap-2">
+							<Button
+								v-for="option in lastQuestion.options"
+								:key="option"
+								size="sm"
+								:disabled="sending"
+								@click="() => answerQuestion(option)"
+							>
+								{{ option }}
+							</Button>
+						</div>
+						<div class="mt-2 flex items-center gap-2">
+							<Input
+								v-model="questionDraft"
+								:disabled="sending"
+								:placeholder="formatMessage(messages.questionOwn)"
+								class="max-w-xs grow"
+								@keydown.enter.prevent="() => answerQuestion(questionDraft)"
+							/>
+							<Button
+								color="brand"
+								size="sm"
+								:disabled="sending || !questionDraft.trim()"
+								@click="() => answerQuestion(questionDraft)"
+							>
+								{{ formatMessage(messages.questionSend) }}
+							</Button>
+						</div>
+					</div>
+				</div>
+			</template>
+
+			<Transition name="ai-site">
+				<div v-if="sitePreview" class="ai-site-overlay" @click.self="sitePreview = null">
+					<div class="ai-site-window">
+						<div class="ai-site-bar">
+							<CompassIcon class="size-4 shrink-0" />
+							<span class="min-w-0 grow truncate font-semibold">{{ sitePreview.title }}</span>
+							<button class="ai-error-btn" aria-label="Закрыть" @click="sitePreview = null">
+								<XIcon class="size-4" />
+							</button>
+						</div>
+						<iframe
+							class="ai-site-frame"
+							sandbox="allow-scripts"
+							:srcdoc="sitePreview.html"
+							title="Предпросмотр сайта"
+						/>
+					</div>
+				</div>
+			</Transition>
+
+			<div v-if="sending" class="mb-3 flex justify-start">
+				<div
+					class="ai-bubble ai-bubble-assistant ai-process rounded-2xl px-3 py-2.5"
+					:class="{ 'ai-live-bubble': agentTurn.steps.length > 0 || agentTurn.task }"
+				>
+					<AiTaskCard v-if="agentTurn.task" :task="agentTurn.task" live class="mb-2" />
+					<AiSteps
+						v-if="agentTurn.steps.length > 0"
+						:steps="agentTurn.steps"
+						live
+						:phase="phaseLabel"
+						default-open
+						@open-link="openLink"
+						@zoom="(src) => openImageViewer(src)"
+					/>
+					<AiActivity v-else-if="!streaming" :phase="agentPhase" />
+					<div v-if="streaming" class="ai-live-text px-1">
 						<AiRichText :text="streaming" @open="openLink" />
 					</div>
 				</div>
 			</div>
-
-			<div class="shrink-0 px-6 pb-6">
-				<div v-if="agentQueue.length > 0" class="mb-2 flex flex-col gap-1">
-					<div v-for="(queued, queueIndex) in agentQueue" :key="queued.ts" class="ai-queued">
-						<span class="ai-queued-badge">{{ formatMessage(messages.queuedBadge) }}</span>
-						<span class="min-w-0 grow truncate">{{ queued.text }}</span>
-						<button
-							v-tooltip="'Убрать из очереди'"
-							class="ai-queued-remove"
-							aria-label="Убрать из очереди"
-							@click="() => removeQueued(queueIndex)"
-						>
-							<XIcon class="size-3.5" />
-						</button>
-					</div>
+			<div v-else-if="streaming" class="mb-3 flex justify-start">
+				<div class="ai-bubble ai-bubble-assistant rounded-2xl px-4 py-2.5">
+					<AiRichText :text="streaming" @open="openLink" />
 				</div>
+			</div>
+		</div>
 
-				<div v-if="showHandoff" class="ai-handoff mb-2">
-					<HammerIcon class="size-3.5 shrink-0 text-brand" />
-					<span class="min-w-0 grow truncate">{{ formatMessage(messages.handoffText) }}</span>
-					<button class="ai-handoff-btn" @click="handoffToBuild">
-						{{ formatMessage(messages.handoffAction) }}
-					</button>
-				</div>
-
-				<div
-					v-if="errorText"
-					class="ai-error m-0 mb-2 flex items-start gap-2 rounded-xl px-3 py-2 text-sm"
-				>
-					<span class="min-w-0 grow break-words">{{ errorText }}</span>
+		<div class="shrink-0 px-6 pb-6">
+			<div v-if="agentQueue.length > 0" class="mb-2 flex flex-col gap-1">
+				<div v-for="(queued, queueIndex) in agentQueue" :key="queued.ts" class="ai-queued">
+					<span class="ai-queued-badge">{{ formatMessage(messages.queuedBadge) }}</span>
+					<span class="min-w-0 grow truncate">{{ queued.text }}</span>
 					<button
-						v-tooltip="'Скопировать'"
-						class="ai-error-btn"
-						aria-label="Скопировать"
-						@click="copyError"
-					>
-						<ClipboardCopyIcon class="size-3.5" />
-					</button>
-					<button
-						v-tooltip="'Закрыть'"
-						class="ai-error-btn"
-						aria-label="Закрыть"
-						@click="dismissError"
+						v-tooltip="'Убрать из очереди'"
+						class="ai-queued-remove"
+						aria-label="Убрать из очереди"
+						@click="() => removeQueued(queueIndex)"
 					>
 						<XIcon class="size-3.5" />
 					</button>
 				</div>
-
-				<div v-if="aiPings.length > 0" class="mb-2 flex flex-wrap gap-2">
-					<span v-for="ping in aiPings" :key="ping.id" class="ai-ping-chip">
-						<TextQuoteIcon v-if="ping.kind === 'code'" class="size-3.5 shrink-0" />
-						<SparklesIcon v-else class="size-3.5 shrink-0" />
-						<span class="max-w-64 truncate">
-							{{ formatMessage(messages.pingsTitle) }}: {{ ping.title }}
-						</span>
-						<button
-							class="ml-1 cursor-pointer border-none bg-transparent p-0 text-secondary hover:text-primary"
-							:aria-label="formatMessage(messages.clear)"
-							@click="removeAiPing(ping.id)"
-						>
-							<XIcon class="size-3.5" />
-						</button>
-					</span>
-				</div>
-				<div v-if="attachments.length > 0" class="mb-2 flex flex-wrap gap-2">
-					<span
-						v-for="(file, index) in attachments"
-						:key="`${file.name}-${index}`"
-						class="ai-attach-chip"
-					>
-						<img
-							v-if="file.kind === 'image' && file.dataUrl"
-							:src="file.dataUrl"
-							:alt="file.name"
-							class="size-6 rounded object-cover"
-						/>
-						<FileIcon v-else class="size-3.5 shrink-0" />
-						{{ file.name }}
-						<span v-if="file.size" class="text-secondary">{{ formatSize(file.size) }}</span>
-						<button
-							class="ml-1 cursor-pointer border-none bg-transparent p-0 text-secondary hover:text-primary"
-							@click="removeAttachment(index)"
-						>
-							<XIcon class="size-3.5" />
-						</button>
-					</span>
-				</div>
-
-				<Transition name="ai-slash">
-					<div v-if="slashOpen" class="ai-slash" role="listbox" aria-label="Команды">
-						<p class="ai-slash-title">Команды и навыки</p>
-						<button
-							v-for="(command, commandIndex) in slashOptions"
-							:key="command.id"
-							type="button"
-							role="option"
-							class="ai-slash-item"
-							:class="{ 'ai-slash-item--active': commandIndex === slashIndex }"
-							:aria-selected="commandIndex === slashIndex"
-							@mouseenter="slashIndex = commandIndex"
-							@mousedown.prevent="() => pickSlash(command)"
-						>
-							<span class="ai-slash-icon"><component :is="command.icon" class="size-4" /></span>
-							<span class="ai-slash-name">/{{ command.label }}</span>
-							<span class="ai-slash-hint">{{ command.hint }}</span>
-							<span v-if="command.send" class="ai-slash-tag">сразу</span>
-						</button>
-						<p class="ai-slash-foot">↑↓ — выбор · Enter/Tab — выбрать · Esc — закрыть</p>
-					</div>
-				</Transition>
-				<div class="ai-input-row flex items-center gap-2 rounded-3xl bg-surface-2 p-2">
-					<div class="relative shrink-0">
-						<IconButton
-							v-tooltip="formatMessage(messages.plus)"
-							:label="formatMessage(messages.plus)"
-							@click="togglePlus"
-						>
-							<PlusIcon />
-						</IconButton>
-						<div
-							v-if="plusOpen"
-							class="fixed inset-0 z-10 cursor-default"
-							@click="plusOpen = false"
-						/>
-						<Transition name="ai-pop">
-							<AiComposerMenu
-								v-if="plusOpen"
-								class="absolute bottom-full left-0 z-20 mb-2"
-								:focus-options="FOCUS_OPTIONS"
-								@attach="plusAttach"
-								@slash="openSlashFromMenu"
-								@close="plusOpen = false"
-							/>
-						</Transition>
-					</div>
-					<div
-						v-if="
-							aiSettings.webSearch ||
-							aiSettings.deepThink ||
-							aiSettings.mode === 'ask' ||
-							activeFocus
-						"
-						class="flex shrink-0 items-center gap-1"
-					>
-						<button
-							v-if="aiSettings.mode === 'ask'"
-							v-tooltip="formatMessage(messages.modeAskHint)"
-							class="ai-mode-chip"
-							@click="setMode('build')"
-						>
-							<MessagesSquareIcon class="size-3.5" />
-							<span class="ai-mode-label">{{ formatMessage(messages.modeAsk) }}</span>
-						</button>
-						<button
-							v-if="activeFocus"
-							v-tooltip="formatMessage(messages.focus)"
-							class="ai-mode-chip"
-							@click="setFocus('any')"
-						>
-							<component :is="activeFocus.icon" class="size-3.5" />
-							<span class="ai-mode-label">{{ activeFocus.label }}</span>
-						</button>
-						<button
-							v-if="aiSettings.webSearch"
-							v-tooltip="'Веб-поиск включён — нажми, чтобы выключить'"
-							class="ai-mode-chip"
-							@click="toggleWebSearch"
-						>
-							<GlobeIcon class="size-3.5" />
-							<span class="ai-mode-label">Поиск</span>
-						</button>
-						<button
-							v-if="aiSettings.deepThink"
-							v-tooltip="'Глубокое мышление: умнее и внимательнее, но дольше'"
-							class="ai-mode-chip ai-mode-chip--deep"
-							@click="toggleDeepThink"
-						>
-							<BrainCogIcon class="size-3.5" />
-							<span class="ai-mode-label">Глубоко</span>
-						</button>
-					</div>
-					<textarea
-						ref="inputEl"
-						v-model="input"
-						class="ai-input grow"
-						rows="1"
-						:placeholder="formatMessage(messages.placeholder)"
-						@keydown="onInputKeydown"
-						@keydown.enter.exact.prevent="onEnter"
-						@paste="onPaste"
-					/>
-					<div class="relative shrink-0">
-						<button v-tooltip="chosenBuildLabel" class="ai-model-chip" @click="toggleBuilds">
-							<img
-								v-if="chosenBuildIcon"
-								:src="chosenBuildIcon"
-								alt=""
-								class="size-4 shrink-0 rounded object-cover"
-							/>
-							{{ chosenBuildLabel }}
-							<ChevronDownIcon class="size-3.5 opacity-70" />
-						</button>
-						<div
-							v-if="buildsOpen"
-							class="fixed inset-0 z-10 cursor-default"
-							@click="buildsOpen = false"
-						/>
-						<div
-							v-if="buildsOpen"
-							class="ai-menu absolute bottom-full left-0 z-20 mb-2 flex max-h-[26rem] w-[22rem] flex-col overflow-y-auto rounded-2xl border border-solid border-surface-5 bg-surface-2 p-2"
-						>
-							<p class="m-0 mb-2 px-1 text-sm font-semibold text-primary">
-								{{ formatMessage(messages.builds) }}
-							</p>
-							<button class="ai-build-item" @click="() => selectBuild('')">
-								<span class="ai-build-glyph"><PlusIcon class="size-4" /></span>
-								<span class="min-w-0 grow text-left">
-									<span class="ai-build-name">{{ formatMessage(messages.buildNone) }}</span>
-									<span class="ai-build-meta">{{ formatMessage(messages.buildNoneHint) }}</span>
-								</span>
-							</button>
-							<button
-								v-for="instance in instances"
-								:key="instance.id"
-								class="ai-build-item"
-								@click="() => selectBuild(instance.id)"
-							>
-								<img
-									v-if="instanceIcon(instance.icon_path)"
-									:src="instanceIcon(instance.icon_path) ?? ''"
-									class="ai-build-icon"
-									alt=""
-									loading="lazy"
-								/>
-								<span v-else class="ai-build-glyph"><FileIcon class="size-4" /></span>
-								<span class="min-w-0 grow text-left">
-									<span class="ai-build-name">{{ instance.name }}</span>
-									<span class="ai-build-meta">
-										{{ instance.loader ?? 'vanilla'
-										}}{{ instance.loader_version ? ` ${instance.loader_version}` : '' }} · Minecraft
-										{{ instance.game_version }}
-									</span>
-								</span>
-								<span v-if="chosenInstance === instance.id" class="ai-build-check">✓</span>
-							</button>
-						</div>
-					</div>
-					<div class="relative shrink-0">
-						<button class="ai-model-chip" @click="toggleModels">
-							{{ modelChipLabel }}
-							<ChevronDownIcon class="size-3.5 opacity-70" />
-						</button>
-						<div
-							v-if="modelsOpen"
-							class="fixed inset-0 z-10 cursor-default"
-							@click="modelsOpen = false"
-						/>
-						<Transition name="ai-pop">
-							<div
-								v-if="modelsOpen"
-								class="ai-menu ai-model-menu absolute bottom-full right-0 z-20 mb-2 flex w-[36rem] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-solid border-surface-5 p-2.5"
-							>
-								<div class="ai-model-menu-body">
-									<AiModelPicker @picked="modelsOpen = false" />
-								</div>
-							</div>
-						</Transition>
-					</div>
-					<Button
-						v-if="sending"
-						v-tooltip="formatMessage(messages.stop)"
-						color="brand"
-						class="ai-send !rounded-full"
-						:label="formatMessage(messages.stop)"
-						@click="stopAgentRun"
-					>
-						<StopCircleIcon />
-					</Button>
-					<Button
-						v-else
-						color="brand"
-						class="ai-send !rounded-full"
-						:disabled="!input.trim() && attachments.length === 0"
-						@click="() => send()"
-					>
-						<ArrowUpIcon />
-					</Button>
-				</div>
 			</div>
-		</section>
 
-		<aside class="uag-about" :class="{ 'uag-about--open': aboutOpen }">
-			<button
-				class="uag-about-toggle"
-				type="button"
-				:aria-label="aboutOpen ? 'Скрыть панель агента' : 'Показать панель агента'"
-				@click="aboutOpen = !aboutOpen"
+			<div v-if="showHandoff" class="ai-handoff mb-2">
+				<HammerIcon class="size-3.5 shrink-0 text-brand" />
+				<span class="min-w-0 grow truncate">{{ formatMessage(messages.handoffText) }}</span>
+				<button class="ai-handoff-btn" @click="handoffToBuild">
+					{{ formatMessage(messages.handoffAction) }}
+				</button>
+			</div>
+
+			<div
+				v-if="errorText"
+				class="ai-error m-0 mb-2 flex items-start gap-2 rounded-xl px-3 py-2 text-sm"
 			>
-				<ChevronDownIcon
-					class="size-4 transition-transform duration-300"
-					:class="aboutOpen ? 'rotate-180' : ''"
-				/>
-			</button>
-			<div class="uag-about-inner">
-				<div class="uag-agent-card">
-					<AgentCore :size="104" :mode="faceMode" />
-					<p class="uag-agent-name">{{ agentName }}</p>
-					<p class="uag-agent-status">{{ statusLine }}</p>
-					<div class="uag-agent-stats">
-						<span>
-							<b>{{ chatStats.messages }}</b>
-							сообщ.
-						</span>
-						<span>
-							<b>{{ chatStats.tools }}</b>
-							действий
-						</span>
-						<span>
-							<b>{{ sessionsList.length }}</b>
-							чатов
-						</span>
-					</div>
-				</div>
-				<div class="uag-about-tabs" role="tablist">
+				<span class="min-w-0 grow break-words">{{ errorText }}</span>
+				<button
+					v-tooltip="'Скопировать'"
+					class="ai-error-btn"
+					aria-label="Скопировать"
+					@click="copyError"
+				>
+					<ClipboardCopyIcon class="size-3.5" />
+				</button>
+				<button
+					v-tooltip="'Закрыть'"
+					class="ai-error-btn"
+					aria-label="Закрыть"
+					@click="dismissError"
+				>
+					<XIcon class="size-3.5" />
+				</button>
+			</div>
+
+			<div v-if="aiPings.length > 0" class="mb-2 flex flex-wrap gap-2">
+				<span v-for="ping in aiPings" :key="ping.id" class="ai-ping-chip">
+					<TextQuoteIcon v-if="ping.kind === 'code'" class="size-3.5 shrink-0" />
+					<SparklesIcon v-else class="size-3.5 shrink-0" />
+					<span class="max-w-64 truncate">
+						{{ formatMessage(messages.pingsTitle) }}: {{ ping.title }}
+					</span>
 					<button
-						v-for="tab in [
-							{ id: 'activity', label: 'Активность' },
-							{ id: 'looks', label: 'Облик' },
-							{ id: 'persona', label: 'Личность' },
-						] as const"
-						:key="tab.id"
-						class="uag-about-tab"
-						:class="{ 'uag-about-tab--active': aboutTab === tab.id }"
-						type="button"
-						role="tab"
-						:aria-selected="aboutTab === tab.id"
-						@click="aboutTab = tab.id"
+						class="ml-1 cursor-pointer border-none bg-transparent p-0 text-secondary hover:text-primary"
+						:aria-label="formatMessage(messages.clear)"
+						@click="removeAiPing(ping.id)"
 					>
-						{{ tab.label }}
+						<XIcon class="size-3.5" />
+					</button>
+				</span>
+			</div>
+			<div v-if="attachments.length > 0" class="mb-2 flex flex-wrap gap-2">
+				<span
+					v-for="(file, index) in attachments"
+					:key="`${file.name}-${index}`"
+					class="ai-attach-chip"
+				>
+					<img
+						v-if="file.kind === 'image' && file.dataUrl"
+						:src="file.dataUrl"
+						:alt="file.name"
+						class="size-6 rounded object-cover"
+					/>
+					<FileIcon v-else class="size-3.5 shrink-0" />
+					{{ file.name }}
+					<span v-if="file.size" class="text-secondary">{{ formatSize(file.size) }}</span>
+					<button
+						class="ml-1 cursor-pointer border-none bg-transparent p-0 text-secondary hover:text-primary"
+						@click="removeAttachment(index)"
+					>
+						<XIcon class="size-3.5" />
+					</button>
+				</span>
+			</div>
+
+			<Transition name="ai-slash">
+				<div v-if="slashOpen" class="ai-slash" role="listbox" aria-label="Команды">
+					<p class="ai-slash-title">Команды и навыки</p>
+					<button
+						v-for="(command, commandIndex) in slashOptions"
+						:key="command.id"
+						type="button"
+						role="option"
+						class="ai-slash-item"
+						:class="{ 'ai-slash-item--active': commandIndex === slashIndex }"
+						:aria-selected="commandIndex === slashIndex"
+						@mouseenter="slashIndex = commandIndex"
+						@mousedown.prevent="() => pickSlash(command)"
+					>
+						<span class="ai-slash-icon"><component :is="command.icon" class="size-4" /></span>
+						<span class="ai-slash-name">/{{ command.label }}</span>
+						<span class="ai-slash-hint">{{ command.hint }}</span>
+						<span v-if="command.send" class="ai-slash-tag">сразу</span>
+					</button>
+					<p class="ai-slash-foot">↑↓ — выбор · Enter/Tab — выбрать · Esc — закрыть</p>
+				</div>
+			</Transition>
+			<div class="ai-input-row flex items-center gap-2 rounded-3xl bg-surface-2 p-2">
+				<div class="relative shrink-0">
+					<IconButton
+						v-tooltip="formatMessage(messages.plus)"
+						:label="formatMessage(messages.plus)"
+						@click="togglePlus"
+					>
+						<PlusIcon />
+					</IconButton>
+					<div
+						v-if="plusOpen"
+						class="fixed inset-0 z-10 cursor-default"
+						@click="plusOpen = false"
+					/>
+					<Transition name="ai-pop">
+						<AiComposerMenu
+							v-if="plusOpen"
+							class="absolute bottom-full left-0 z-20 mb-2"
+							:focus-options="FOCUS_OPTIONS"
+							@attach="plusAttach"
+							@slash="openSlashFromMenu"
+							@close="plusOpen = false"
+						/>
+					</Transition>
+				</div>
+				<div
+					v-if="
+						aiSettings.webSearch || aiSettings.deepThink || aiSettings.mode === 'ask' || activeFocus
+					"
+					class="flex shrink-0 items-center gap-1"
+				>
+					<button
+						v-if="aiSettings.mode === 'ask'"
+						v-tooltip="formatMessage(messages.modeAskHint)"
+						class="ai-mode-chip"
+						@click="setMode('build')"
+					>
+						<MessagesSquareIcon class="size-3.5" />
+						<span class="ai-mode-label">{{ formatMessage(messages.modeAsk) }}</span>
+					</button>
+					<button
+						v-if="activeFocus"
+						v-tooltip="formatMessage(messages.focus)"
+						class="ai-mode-chip"
+						@click="setFocus('any')"
+					>
+						<component :is="activeFocus.icon" class="size-3.5" />
+						<span class="ai-mode-label">{{ activeFocus.label }}</span>
+					</button>
+					<button
+						v-if="aiSettings.webSearch"
+						v-tooltip="'Веб-поиск включён — нажми, чтобы выключить'"
+						class="ai-mode-chip"
+						@click="toggleWebSearch"
+					>
+						<GlobeIcon class="size-3.5" />
+						<span class="ai-mode-label">Поиск</span>
+					</button>
+					<button
+						v-if="aiSettings.deepThink"
+						v-tooltip="'Глубокое мышление: умнее и внимательнее, но дольше'"
+						class="ai-mode-chip ai-mode-chip--deep"
+						@click="toggleDeepThink"
+					>
+						<BrainCogIcon class="size-3.5" />
+						<span class="ai-mode-label">Глубоко</span>
 					</button>
 				</div>
-				<Transition name="uag-tab" mode="out-in">
-					<AiPersonaPanel v-if="aboutTab === 'persona'" key="persona" />
-					<div v-else-if="aboutTab === 'activity'" key="activity" class="uag-about-steps">
-						<div v-if="activitySteps.length === 0" class="uag-side-empty">
-							<SparklesIcon class="size-5" />
-							<span>Пока тихо. Здесь появятся шаги агента: поиск, файлы, установка модов.</span>
-						</div>
-						<div
-							v-for="(step, stepIndex) in activitySteps.slice(-14)"
-							:key="`${stepIndex}-${step.id}`"
-							class="uag-act-row"
-							:class="{
-								'uag-act-row--error': step.status === 'error',
-								'uag-act-row--running': step.status === 'running',
-							}"
-						>
-							<span class="uag-act-dot" />
-							<span class="uag-act-text">
-								{{ step.kind === 'tool' ? step.tool || 'действие' : step.text || 'мысль' }}
+				<textarea
+					ref="inputEl"
+					v-model="input"
+					class="ai-input grow"
+					rows="1"
+					:placeholder="formatMessage(messages.placeholder)"
+					@keydown="onInputKeydown"
+					@keydown.enter.exact.prevent="onEnter"
+					@paste="onPaste"
+				/>
+				<div class="relative shrink-0">
+					<button v-tooltip="chosenBuildLabel" class="ai-model-chip" @click="toggleBuilds">
+						<img
+							v-if="chosenBuildIcon"
+							:src="chosenBuildIcon"
+							alt=""
+							class="size-4 shrink-0 rounded object-cover"
+						/>
+						{{ chosenBuildLabel }}
+						<ChevronDownIcon class="size-3.5 opacity-70" />
+					</button>
+					<div
+						v-if="buildsOpen"
+						class="fixed inset-0 z-10 cursor-default"
+						@click="buildsOpen = false"
+					/>
+					<div
+						v-if="buildsOpen"
+						class="ai-menu absolute bottom-full left-0 z-20 mb-2 flex max-h-[26rem] w-[22rem] flex-col overflow-y-auto rounded-2xl border border-solid border-surface-5 bg-surface-2 p-2"
+					>
+						<p class="m-0 mb-2 px-1 text-sm font-semibold text-primary">
+							{{ formatMessage(messages.builds) }}
+						</p>
+						<button class="ai-build-item" @click="() => selectBuild('')">
+							<span class="ai-build-glyph"><PlusIcon class="size-4" /></span>
+							<span class="min-w-0 grow text-left">
+								<span class="ai-build-name">{{ formatMessage(messages.buildNone) }}</span>
+								<span class="ai-build-meta">{{ formatMessage(messages.buildNoneHint) }}</span>
 							</span>
-						</div>
-					</div>
-					<div v-else key="looks" class="uag-looks">
-						<p class="uag-looks-title">Стиль ядра</p>
-						<div class="uag-looks-shapes">
-							<button
-								v-for="style in CORE_STYLES"
-								:key="style.id"
-								v-tooltip="style.hint"
-								class="uag-shape-btn"
-								:class="{ 'uag-shape-btn--active': coreStyle === style.id }"
-								type="button"
-								@click="coreStyle = style.id"
-							>
-								<AgentCore :size="44" :variant="style.id" :still="coreStyle !== style.id" />
-								<span>{{ style.label }}</span>
-							</button>
-						</div>
-						<p class="uag-looks-title">Палитра</p>
-						<div class="uag-looks-colors">
-							<button
-								v-for="palette in CORE_PALETTES"
-								:key="palette.id"
-								v-tooltip="palette.label"
-								class="uag-color-btn"
-								:class="{ 'uag-color-btn--active': corePalette === palette.id }"
-								type="button"
-								:style="{ background: `linear-gradient(135deg, ${palette.b}, ${palette.a})` }"
-								:aria-label="palette.label"
-								@click="corePalette = palette.id"
+						</button>
+						<button
+							v-for="instance in instances"
+							:key="instance.id"
+							class="ai-build-item"
+							@click="() => selectBuild(instance.id)"
+						>
+							<img
+								v-if="instanceIcon(instance.icon_path)"
+								:src="instanceIcon(instance.icon_path) ?? ''"
+								class="ai-build-icon"
+								alt=""
+								loading="lazy"
 							/>
-						</div>
+							<span v-else class="ai-build-glyph"><FileIcon class="size-4" /></span>
+							<span class="min-w-0 grow text-left">
+								<span class="ai-build-name">{{ instance.name }}</span>
+								<span class="ai-build-meta">
+									{{ instance.loader ?? 'vanilla'
+									}}{{ instance.loader_version ? ` ${instance.loader_version}` : '' }} · Minecraft
+									{{ instance.game_version }}
+								</span>
+							</span>
+							<span v-if="chosenInstance === instance.id" class="ai-build-check">✓</span>
+						</button>
 					</div>
-				</Transition>
+				</div>
+				<div class="relative shrink-0">
+					<button class="ai-model-chip" @click="toggleModels">
+						{{ modelChipLabel }}
+						<ChevronDownIcon class="size-3.5 opacity-70" />
+					</button>
+					<div
+						v-if="modelsOpen"
+						class="fixed inset-0 z-10 cursor-default"
+						@click="modelsOpen = false"
+					/>
+					<Transition name="ai-pop">
+						<div
+							v-if="modelsOpen"
+							class="ai-menu ai-model-menu absolute bottom-full right-0 z-20 mb-2 flex w-[36rem] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-solid border-surface-5 p-2.5"
+						>
+							<div class="ai-model-menu-body">
+								<AiModelPicker @picked="modelsOpen = false" />
+							</div>
+						</div>
+					</Transition>
+				</div>
+				<Button
+					v-if="sending"
+					v-tooltip="formatMessage(messages.stop)"
+					color="brand"
+					class="ai-send !rounded-full"
+					:label="formatMessage(messages.stop)"
+					@click="stopAgentRun"
+				>
+					<StopCircleIcon />
+				</Button>
+				<Button
+					v-else
+					color="brand"
+					class="ai-send !rounded-full"
+					:disabled="!input.trim() && attachments.length === 0"
+					@click="() => send()"
+				>
+					<ArrowUpIcon />
+				</Button>
 			</div>
-		</aside>
+		</div>
 	</div>
 </template>
 
 <style scoped>
 .ai-bubble-user {
-	background: color-mix(in srgb, var(--color-brand) 22%, var(--color-raised-bg));
+	background: color-mix(in srgb, var(--color-brand) 18%, var(--color-button-bg));
 	border: 1px solid color-mix(in srgb, var(--color-brand) 30%, transparent);
 	border-bottom-right-radius: 0.5rem;
 }
 
 .ai-bubble-assistant {
-	background: var(--color-raised-bg);
+	background: var(--color-button-bg);
 	border: 1px solid var(--surface-5);
 	border-bottom-left-radius: 0.5rem;
-	box-shadow: 0 4px 14px rgb(0 0 0 / 14%);
-}
-
-.ai-bubble {
-	min-width: 0;
-	overflow-wrap: anywhere;
 }
 
 .ai-action-chip {
@@ -2698,28 +2464,18 @@ defineExpose({ send })
 }
 
 .ai-input-row {
-	border: 1px solid var(--surface-5);
-	background: var(--color-raised-bg);
-	box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
-	transition:
-		border-color 0.18s ease,
-		box-shadow 0.18s ease;
-}
-
-.ai-input-row:focus-within {
-	border-color: color-mix(in srgb, var(--color-brand) 55%, transparent);
-	box-shadow:
-		0 8px 24px rgb(0 0 0 / 22%),
-		0 0 0 3px color-mix(in srgb, var(--color-brand) 18%, transparent);
+	box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
 }
 
 .ai-menu {
-	background: var(--color-raised-bg);
-	box-shadow: 0 12px 32px rgb(0 0 0 / 32%);
+	box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
 }
 
 .ai-model-menu {
 	max-height: min(36rem, calc(100vh - 12rem));
+	background: color-mix(in srgb, var(--color-raised-bg) 84%, transparent);
+	backdrop-filter: blur(24px) saturate(1.2);
+	-webkit-backdrop-filter: blur(24px) saturate(1.2);
 	transform-origin: bottom right;
 }
 
@@ -3551,7 +3307,7 @@ defineExpose({ send })
 	overflow: hidden;
 	border: 1px solid var(--surface-5);
 	border-radius: 1.25rem;
-	background: var(--color-raised-bg);
+	background: color-mix(in srgb, var(--color-raised-bg) 78%, transparent);
 	backdrop-filter: blur(22px);
 	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
@@ -3602,7 +3358,7 @@ defineExpose({ send })
 	padding: 0.4rem;
 	border: 1px solid var(--surface-5);
 	border-radius: 1.1rem;
-	background: var(--color-raised-bg);
+	background: color-mix(in srgb, var(--color-raised-bg) 72%, transparent);
 	backdrop-filter: blur(20px);
 	box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3);
 }
@@ -3822,802 +3578,5 @@ defineExpose({ send })
 
 .tok-typ {
 	color: #e5c07b;
-}
-
-/* ---- Оболочка агента ----
-   Прозрачные зоны: фон страницы и боковые панели (блюр поверх обоев).
-   Плотные: карточки, пузыри, поле ввода, вкладки — то, что читают и жмут. */
-
-.uag-shell {
-	background: color-mix(in srgb, var(--color-bg) 55%, transparent);
-	backdrop-filter: blur(18px) saturate(1.15);
-	-webkit-backdrop-filter: blur(18px) saturate(1.15);
-}
-
-.ai-scroll {
-	overscroll-behavior: contain;
-	scrollbar-gutter: stable;
-}
-
-/* История чатов. */
-.uag-side {
-	position: relative;
-	display: flex;
-	width: 17rem;
-	flex-direction: column;
-	flex-shrink: 0;
-	overflow: hidden;
-	border-right: 1px solid var(--surface-5);
-	background: color-mix(in srgb, var(--color-raised-bg) 48%, transparent);
-	transition:
-		width 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-		background 0.24s ease;
-}
-
-.uag-side--closed {
-	width: 2.5rem;
-	justify-content: flex-end;
-	background: transparent;
-}
-
-.uag-side-head {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	padding: 1rem 0.75rem 0.5rem;
-}
-
-.uag-new {
-	position: relative;
-	display: flex;
-	width: 100%;
-	align-items: center;
-	gap: 0.5rem;
-	overflow: hidden;
-	border: 1px solid color-mix(in srgb, var(--color-brand) 45%, var(--surface-5));
-	border-radius: 0.8rem;
-	background: linear-gradient(
-		135deg,
-		color-mix(in srgb, var(--color-brand) 26%, var(--color-raised-bg)),
-		var(--color-raised-bg) 70%
-	);
-	color: var(--color-contrast);
-	cursor: pointer;
-	font-weight: 700;
-	padding: 0.6rem 0.75rem;
-	transition:
-		transform 0.2s ease,
-		box-shadow 0.2s ease;
-}
-
-.uag-new:hover {
-	transform: translateY(-1px);
-	box-shadow: 0 6px 18px color-mix(in srgb, var(--color-brand) 22%, transparent);
-}
-
-.uag-new:active {
-	transform: translateY(0) scale(0.99);
-}
-
-.uag-new-kbd {
-	margin-left: auto;
-	border-radius: 999px;
-	background: color-mix(in srgb, var(--color-contrast) 8%, transparent);
-	color: var(--color-secondary);
-	font-family: inherit;
-	font-size: 0.65rem;
-	font-weight: 600;
-	padding: 0.1rem 0.45rem;
-}
-
-.uag-side-search {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.6rem;
-	background: var(--color-raised-bg);
-	color: var(--color-secondary);
-	padding: 0 0.55rem;
-}
-
-.uag-side-search:focus-within {
-	border-color: var(--color-brand);
-}
-
-.uag-side-search input {
-	min-width: 0;
-	flex: 1;
-	border: none;
-	background: transparent;
-	box-shadow: none;
-	color: var(--color-contrast);
-	font-size: 0.78rem;
-	outline: none;
-	padding: 0.4rem 0;
-}
-
-.uag-side--closed .uag-new,
-.uag-side--closed .uag-side-list,
-.uag-side--closed .uag-side-head {
-	display: none;
-}
-
-.uag-side-list {
-	display: flex;
-	min-height: 0;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.6rem;
-	overflow-y: auto;
-	padding: 0.25rem 0.75rem 1rem;
-}
-
-.uag-side-group-title {
-	margin: 0 0 0.2rem;
-	padding: 0 0.35rem;
-	color: var(--color-secondary);
-	font-size: 0.66rem;
-	font-weight: 700;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-}
-
-.uag-side-group-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.15rem;
-}
-
-.uag-side-note {
-	color: var(--color-secondary);
-	font-size: 0.8rem;
-	margin: 0;
-	padding: 0.5rem 0.25rem;
-}
-
-.uag-side-empty {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.5rem;
-	border: 1px dashed var(--surface-5);
-	border-radius: 0.8rem;
-	color: var(--color-secondary);
-	font-size: 0.78rem;
-	line-height: 1.35;
-	padding: 1.1rem 0.9rem;
-	text-align: center;
-}
-
-.uag-side-skeleton {
-	display: block;
-	height: 2.4rem;
-	border-radius: 0.6rem;
-	background: linear-gradient(
-		90deg,
-		var(--color-button-bg) 0%,
-		color-mix(in srgb, var(--color-button-bg) 40%, var(--color-raised-bg)) 50%,
-		var(--color-button-bg) 100%
-	);
-	background-size: 200% 100%;
-	animation: uag-shimmer 1.3s linear infinite;
-}
-
-.uag-side-item {
-	position: relative;
-	display: flex;
-	align-items: stretch;
-	border-radius: 0.6rem;
-	transition:
-		background 0.2s ease,
-		transform 0.2s ease;
-}
-
-.uag-side-item:hover {
-	background: color-mix(in srgb, var(--color-button-bg) 80%, transparent);
-}
-
-.uag-side-item--active {
-	background: var(--color-raised-bg);
-	box-shadow:
-		inset 0 0 0 1px var(--surface-5),
-		inset 3px 0 0 var(--color-brand);
-}
-
-.uag-side-btn {
-	display: flex;
-	min-width: 0;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.1rem;
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	padding: 0.45rem 0.6rem;
-	text-align: left;
-}
-
-.uag-side-label {
-	color: var(--color-contrast);
-	font-size: 0.8rem;
-	font-weight: 600;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.uag-side-preview {
-	color: var(--color-secondary);
-	font-size: 0.68rem;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.uag-side-del {
-	background: transparent;
-	border: none;
-	color: var(--color-secondary);
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	opacity: 0;
-	padding: 0 0.5rem;
-	transition:
-		opacity 0.15s ease,
-		color 0.15s ease;
-}
-
-.uag-side-item:hover .uag-side-del,
-.uag-side-item--active .uag-side-del {
-	opacity: 1;
-}
-
-.uag-side-del:hover {
-	color: var(--color-red);
-}
-
-.uag-list-enter-active,
-.uag-list-leave-active {
-	transition:
-		opacity 0.25s ease,
-		transform 0.25s ease;
-}
-
-.uag-list-enter-from,
-.uag-list-leave-to {
-	opacity: 0;
-	transform: translateX(-8px);
-}
-
-.uag-rail {
-	background: transparent;
-	border: none;
-	color: var(--color-secondary);
-	cursor: pointer;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: 2.5rem;
-	width: 100%;
-	flex-shrink: 0;
-	transition:
-		color 0.2s ease,
-		background 0.2s ease;
-}
-
-.uag-rail:hover {
-	background: var(--color-button-bg);
-	color: var(--color-contrast);
-}
-
-.uag-chat {
-	min-width: 0;
-}
-
-/* Пустой чат: ядро, приветствие и карточки-подсказки. */
-.uag-hero {
-	display: flex;
-	min-height: 100%;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 0.35rem;
-	padding: 1rem 0 2rem;
-	text-align: center;
-}
-
-.uag-hero-core {
-	position: relative;
-	display: grid;
-	place-items: center;
-	margin-bottom: 0.6rem;
-	animation: uag-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.uag-hero-core::before {
-	position: absolute;
-	inset: -1.5rem;
-	z-index: -1;
-	border-radius: 999px;
-	background: radial-gradient(
-		closest-side,
-		color-mix(in srgb, var(--color-brand) 16%, transparent),
-		transparent
-	);
-	content: '';
-}
-
-.uag-hero-kicker {
-	margin: 0;
-	color: var(--color-brand);
-	font-size: 0.75rem;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	animation: uag-rise 0.6s 0.05s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.uag-hero-title {
-	margin: 0;
-	color: var(--color-contrast);
-	font-size: 1.75rem;
-	font-weight: 800;
-	animation: uag-rise 0.6s 0.08s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.uag-hero-hint {
-	max-width: 34rem;
-	margin: 0;
-	color: var(--color-secondary);
-	font-size: 0.85rem;
-	animation: uag-rise 0.6s 0.11s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.uag-cards {
-	display: grid;
-	width: 100%;
-	max-width: 40rem;
-	gap: 0.6rem;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	margin-top: 1.1rem;
-}
-
-.uag-card {
-	display: grid;
-	grid-template-areas:
-		'icon title'
-		'icon text';
-	grid-template-columns: auto 1fr;
-	align-items: start;
-	column-gap: 0.7rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.9rem;
-	background: var(--color-raised-bg);
-	color: inherit;
-	cursor: pointer;
-	padding: 0.8rem 0.9rem;
-	text-align: left;
-	animation: uag-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-	transition:
-		transform 0.2s ease,
-		border-color 0.2s ease,
-		box-shadow 0.2s ease;
-}
-
-.uag-card:hover {
-	border-color: color-mix(in srgb, var(--color-brand) 60%, var(--surface-5));
-	box-shadow: 0 8px 22px rgb(0 0 0 / 18%);
-	transform: translateY(-2px);
-}
-
-.uag-card:active {
-	transform: translateY(0) scale(0.99);
-}
-
-.uag-card-icon {
-	display: grid;
-	grid-area: icon;
-	width: 2rem;
-	height: 2rem;
-	place-items: center;
-	border-radius: 0.6rem;
-	background: color-mix(in srgb, var(--color-brand) 16%, transparent);
-	color: var(--color-brand);
-}
-
-.uag-card-title {
-	grid-area: title;
-	color: var(--color-contrast);
-	font-size: 0.82rem;
-	font-weight: 700;
-}
-
-.uag-card-text {
-	grid-area: text;
-	color: var(--color-secondary);
-	font-size: 0.75rem;
-	line-height: 1.35;
-}
-
-/* Правая панель — сам агент. */
-.uag-about {
-	position: relative;
-	display: flex;
-	width: 19rem;
-	flex-shrink: 0;
-	flex-direction: column;
-	overflow: hidden;
-	border-left: 1px solid var(--surface-5);
-	background: color-mix(in srgb, var(--color-raised-bg) 48%, transparent);
-	transition:
-		width 0.32s cubic-bezier(0.2, 0.7, 0.2, 1),
-		background 0.24s ease;
-}
-
-.uag-about:not(.uag-about--open) {
-	width: 2.5rem;
-	background: transparent;
-}
-
-.uag-about-toggle {
-	position: absolute;
-	left: 0.45rem;
-	top: 0.75rem;
-	z-index: 2;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.6rem;
-	height: 1.6rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.6rem;
-	background: var(--color-raised-bg);
-	color: var(--color-secondary);
-	cursor: pointer;
-	padding: 0;
-	transition: color 0.2s ease;
-}
-
-.uag-about-toggle:hover {
-	color: var(--color-contrast);
-}
-
-.uag-about--open .uag-about-toggle {
-	left: auto;
-	right: 0.6rem;
-	width: 1.8rem;
-	height: 1.8rem;
-}
-
-.uag-about-inner {
-	display: flex;
-	min-height: 0;
-	flex: 1;
-	flex-direction: column;
-	gap: 0.85rem;
-	overflow-y: auto;
-	padding: 0.75rem 1rem 1.25rem;
-}
-
-.uag-about:not(.uag-about--open) .uag-about-inner {
-	display: none;
-}
-
-.uag-agent-card {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.2rem;
-	overflow: hidden;
-	border: 1px solid var(--surface-5);
-	border-radius: 1rem;
-	background:
-		radial-gradient(
-			120% 70% at 50% 0%,
-			color-mix(in srgb, var(--color-brand) 18%, transparent),
-			transparent 70%
-		),
-		var(--color-raised-bg);
-	padding: 1.1rem 0.9rem 0.9rem;
-	animation: uag-rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.uag-agent-name {
-	margin: 0.4rem 0 0;
-	color: var(--color-contrast);
-	font-size: 1rem;
-	font-weight: 800;
-}
-
-.uag-agent-status {
-	margin: 0;
-	color: var(--color-secondary);
-	font-size: 0.72rem;
-}
-
-.uag-agent-stats {
-	display: grid;
-	width: 100%;
-	gap: 0.35rem;
-	grid-template-columns: repeat(3, 1fr);
-	margin-top: 0.7rem;
-}
-
-.uag-agent-stats span {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	border-radius: 0.6rem;
-	background: var(--color-button-bg);
-	color: var(--color-secondary);
-	font-size: 0.62rem;
-	padding: 0.35rem 0.2rem;
-}
-
-.uag-agent-stats b {
-	color: var(--color-contrast);
-	font-size: 0.9rem;
-}
-
-.uag-about-tabs {
-	position: relative;
-	display: flex;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.75rem;
-	background: var(--color-raised-bg);
-	padding: 0.2rem;
-}
-
-.uag-about-tab {
-	flex: 1;
-	border: none;
-	border-radius: 0.55rem;
-	background: transparent;
-	color: var(--color-secondary);
-	cursor: pointer;
-	font-size: 0.76rem;
-	font-weight: 700;
-	padding: 0.42rem 0.4rem;
-	transition:
-		color 0.2s ease,
-		background 0.25s ease,
-		box-shadow 0.25s ease;
-}
-
-.uag-about-tab:hover {
-	color: var(--color-contrast);
-}
-
-.uag-about-tab--active {
-	background: var(--color-button-bg);
-	box-shadow: inset 0 -2px 0 var(--color-brand);
-	color: var(--color-contrast);
-}
-
-.uag-tab-enter-active,
-.uag-tab-leave-active {
-	transition:
-		opacity 0.18s ease,
-		transform 0.18s ease;
-}
-
-.uag-tab-enter-from {
-	opacity: 0;
-	transform: translateY(6px);
-}
-
-.uag-tab-leave-to {
-	opacity: 0;
-	transform: translateY(-4px);
-}
-
-/* Лента шагов с вертикальной линией. */
-.uag-about-steps {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	gap: 0.45rem;
-}
-
-.uag-act-row {
-	position: relative;
-	display: flex;
-	align-items: baseline;
-	gap: 0.6rem;
-	padding-left: 0.1rem;
-	animation: uag-in 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.uag-act-row:not(:last-child)::after {
-	position: absolute;
-	top: 0.85rem;
-	bottom: -0.55rem;
-	left: 0.27rem;
-	width: 1px;
-	background: var(--surface-5);
-	content: '';
-}
-
-.uag-act-dot {
-	flex-shrink: 0;
-	width: 0.45rem;
-	height: 0.45rem;
-	margin-top: 0.3rem;
-	border-radius: 999px;
-	background: var(--color-secondary);
-}
-
-.uag-act-row--running .uag-act-dot {
-	animation: uag-pulse 1.4s ease-in-out infinite;
-	background: var(--color-brand);
-}
-
-.uag-act-row--error .uag-act-dot {
-	background: var(--color-red);
-}
-
-.uag-act-text {
-	min-width: 0;
-	color: var(--color-secondary);
-	font-size: 0.78rem;
-	overflow-wrap: anywhere;
-}
-
-.uag-act-row--running .uag-act-text {
-	color: var(--color-contrast);
-}
-
-/* Облик ядра. */
-.uag-looks {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.uag-looks-title {
-	margin: 0;
-	padding: 0.25rem 0.15rem 0;
-	color: var(--color-secondary);
-	font-size: 0.68rem;
-	font-weight: 700;
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-}
-
-.uag-looks-shapes {
-	display: grid;
-	gap: 0.4rem;
-	grid-template-columns: repeat(3, 1fr);
-}
-
-.uag-shape-btn {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.35rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.8rem;
-	background: var(--color-raised-bg);
-	color: var(--color-secondary);
-	cursor: pointer;
-	font-size: 0.7rem;
-	font-weight: 600;
-	padding: 0.6rem 0.3rem 0.45rem;
-	transition:
-		border-color 0.2s ease,
-		transform 0.2s ease,
-		color 0.2s ease;
-}
-
-.uag-shape-btn:hover {
-	transform: translateY(-1px);
-	color: var(--color-contrast);
-}
-
-.uag-shape-btn--active {
-	border-color: var(--color-brand);
-	color: var(--color-contrast);
-}
-
-.uag-looks-colors {
-	display: grid;
-	gap: 0.5rem;
-	grid-template-columns: repeat(6, 1fr);
-}
-
-.uag-color-btn {
-	aspect-ratio: 1;
-	border: 2px solid transparent;
-	border-radius: 999px;
-	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
-	cursor: pointer;
-	transition:
-		transform 0.2s ease,
-		border-color 0.2s ease;
-}
-
-.uag-color-btn:hover {
-	transform: scale(1.1);
-}
-
-.uag-color-btn--active {
-	border-color: var(--color-contrast);
-	transform: scale(1.06);
-}
-
-/* Появление сообщений. */
-.uag-in {
-	animation: uag-in 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-.uag-chat .ai-bubble-user {
-	border-radius: 1rem 1rem 0.375rem 1rem;
-}
-
-.uag-chat .ai-bubble-assistant {
-	border-radius: 1rem 1rem 1rem 0.375rem;
-}
-
-@keyframes uag-in {
-	from {
-		opacity: 0;
-		transform: translateY(10px) scale(0.98);
-	}
-	to {
-		opacity: 1;
-		transform: none;
-	}
-}
-
-@keyframes uag-rise {
-	from {
-		opacity: 0;
-		transform: translateY(14px);
-	}
-	to {
-		opacity: 1;
-		transform: none;
-	}
-}
-
-@keyframes uag-shimmer {
-	to {
-		background-position: -200% 0;
-	}
-}
-
-@keyframes uag-pulse {
-	0%,
-	100% {
-		transform: scale(1);
-		opacity: 0.55;
-	}
-	50% {
-		transform: scale(1.35);
-		opacity: 1;
-	}
-}
-
-@media (max-width: 760px) {
-	.uag-cards {
-		grid-template-columns: minmax(0, 1fr);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.uag-in,
-	.uag-act-row,
-	.uag-hero-core,
-	.uag-hero-kicker,
-	.uag-hero-title,
-	.uag-hero-hint,
-	.uag-card,
-	.uag-agent-card,
-	.uag-side-skeleton {
-		animation: none;
-	}
 }
 </style>

@@ -15,7 +15,6 @@ import {
 import { Input, Toggle, useVIntl } from '@modrinth/ui'
 import { computed, ref, watch } from 'vue'
 
-import AiBrandIcon from '@/components/ui/ai/AiBrandIcon.vue'
 import {
 	AI_PROVIDERS,
 	type AiProvider,
@@ -28,13 +27,6 @@ import {
 	zaiPeakHoursNow,
 } from '@/helpers/ai-assistant'
 import { useAiCatalogText } from '@/helpers/ai-catalog-text'
-import {
-	applyForPixi,
-	isPixiModelOpen,
-	PIXI_MODELS,
-	pixiAccess,
-	refreshPixiAccess,
-} from '@/helpers/pixi-agent'
 
 const emit = defineEmits<{ picked: [] }>()
 
@@ -77,90 +69,9 @@ const messages = {
 	testFail: { id: 'app.ai.picker.test.fail', defaultMessage: 'Не отвечает' },
 	peakBusy: { id: 'app.ai.picker.peak-busy', defaultMessage: 'Z.AI: часы пик' },
 	peakFree: { id: 'app.ai.picker.peak-free', defaultMessage: 'Z.AI: свободно' },
-	picked: { id: 'app.ai.picker.picked', defaultMessage: 'Выбрана' },
-	pixiChecking: { id: 'app.ai.picker.pixi.checking', defaultMessage: 'Проверяю доступ к Pixi…' },
-	pixiOpen: {
-		id: 'app.ai.picker.pixi.open',
-		defaultMessage: 'Pixi работает бесплатно через аккаунт Undefined',
-	},
-	pixiNoAccount: {
-		id: 'app.ai.picker.pixi.no-account',
-		defaultMessage:
-			'Нужен вход в аккаунт Undefined (Microsoft или Ely.by) — выберите его в карточке аккаунтов',
-	},
-	pixiOffline: {
-		id: 'app.ai.picker.pixi.offline',
-		defaultMessage:
-			'Офлайн-аккаунт не входит в Undefined — выберите аккаунт Microsoft или Ely.by в карточке аккаунтов',
-	},
-	pixiDenied: {
-		id: 'app.ai.picker.pixi.denied',
-		defaultMessage:
-			'Undefined пока не открыл Pixi этому аккаунту — вместо него бесплатно ответят модели каталога',
-	},
-	pixiPending: {
-		id: 'app.ai.picker.pixi.pending',
-		defaultMessage: 'Заявка отправлена — ожидайте решения Undefined',
-	},
-	pixiRejected: {
-		id: 'app.ai.picker.pixi.rejected',
-		defaultMessage: 'Заявка отклонена — можно подать её повторно',
-	},
-	pixiError: {
-		id: 'app.ai.picker.pixi.error',
-		defaultMessage: 'Сервер Undefined не ответил: {error}',
-	},
-	pixiReason: {
-		id: 'app.ai.picker.pixi.reason',
-		defaultMessage: 'Зачем вам Pixi (необязательно)',
-	},
-	pixiApply: { id: 'app.ai.picker.pixi.apply', defaultMessage: 'Подать заявку' },
-	pixiRetry: { id: 'app.ai.picker.pixi.retry', defaultMessage: 'Проверить снова' },
-	pixiLocked: { id: 'app.ai.picker.pixi.locked', defaultMessage: 'Закрыта — ответит открытая' },
 }
 
 const viewedId = ref(aiSettings.value.provider)
-
-const pixiReason = ref('')
-const pixiApplying = ref(false)
-const pixiApplyError = ref('')
-
-watch(
-	viewedId,
-	(id) => {
-		if (id === 'pixi' && pixiAccess.value.state === 'checking') void refreshPixiAccess()
-	},
-	{ immediate: true },
-)
-
-const pixiLine = computed(() => {
-	const access = pixiAccess.value
-	if (access.state === 'checking') return formatMessage(messages.pixiChecking)
-	if (access.state === 'open') return formatMessage(messages.pixiOpen)
-	if (access.state === 'no_account')
-		return formatMessage(access.offline ? messages.pixiOffline : messages.pixiNoAccount)
-	if (access.state === 'denied') {
-		if (access.application === 'pending') return formatMessage(messages.pixiPending)
-		if (access.application === 'rejected') return formatMessage(messages.pixiRejected)
-		return formatMessage(messages.pixiDenied)
-	}
-	return formatMessage(messages.pixiError, { error: access.message })
-})
-
-const pixiCanApply = computed(
-	() => pixiAccess.value.state === 'denied' && pixiAccess.value.application !== 'pending',
-)
-
-async function sendPixiApplication() {
-	if (pixiApplying.value) return
-	pixiApplying.value = true
-	pixiApplyError.value = ''
-	const result = await applyForPixi(pixiReason.value.trim())
-	pixiApplying.value = false
-	if (result.ok) pixiReason.value = ''
-	else pixiApplyError.value = result.message ?? ''
-}
-
 const query = ref('')
 const managing = ref(false)
 const keyVisible = ref(false)
@@ -212,10 +123,9 @@ function isCurrent(p: AiProvider, modelId: string): boolean {
 }
 
 function selectModel(p: AiProvider, modelId: string) {
-	saveAiSettings({
-		provider: p.id,
-		models: { ...aiSettings.value.models, [p.id]: modelId },
-	})
+	aiSettings.value.provider = p.id
+	aiSettings.value.models = { ...aiSettings.value.models, [p.id]: modelId }
+	saveAiSettings()
 	if (hasKey(p)) {
 		emit('picked')
 	} else {
@@ -332,10 +242,7 @@ async function runTest() {
 
 		<div v-if="query.trim()" class="ai-picker-results">
 			<template v-for="group in searchResults" :key="group.provider.id">
-				<p class="ai-picker-caption ai-picker-caption--brand">
-					<AiBrandIcon :provider="group.provider.id" />
-					{{ catalog.label(group.provider.label) }}
-				</p>
+				<p class="ai-picker-caption">{{ catalog.label(group.provider.label) }}</p>
 				<button
 					v-for="model in group.models"
 					:key="model.id"
@@ -344,7 +251,6 @@ async function runTest() {
 					:class="{ 'ai-picker-model--on': isCurrent(group.provider, model.id) }"
 					@click="selectModel(group.provider, model.id)"
 				>
-					<AiBrandIcon :provider="group.provider.id" :model="model.id" :label="model.label" />
 					<span class="min-w-0 grow">
 						<span class="ai-picker-model-name">{{ catalog.label(model.label) }}</span>
 						<span class="ai-picker-model-id">{{ model.id }}</span>
@@ -371,7 +277,6 @@ async function runTest() {
 					@click="viewedId = p.id"
 				>
 					<span class="ai-picker-provider-row">
-						<AiBrandIcon :provider="p.id" />
 						<span class="ai-picker-provider-name">{{ catalog.label(p.label) }}</span>
 						<span
 							v-if="aiSettings.provider === p.id"
@@ -394,10 +299,7 @@ async function runTest() {
 
 			<section class="ai-picker-detail">
 				<div class="ai-picker-detail-head">
-					<span class="ai-picker-detail-title">
-						<AiBrandIcon :provider="viewed.id" size="md" />
-						<span class="min-w-0 truncate">{{ catalog.label(viewed.label) }}</span>
-					</span>
+					<span class="ai-picker-detail-title">{{ catalog.label(viewed.label) }}</span>
 					<p v-if="viewed.note" class="ai-picker-note">{{ catalog.note(viewed) }}</p>
 				</div>
 
@@ -480,7 +382,6 @@ async function runTest() {
 					</p>
 					<template v-if="managing">
 						<label v-for="model in visibleModels" :key="model.id" class="ai-picker-model">
-							<AiBrandIcon :provider="viewed.id" :model="model.id" :label="model.label" />
 							<span class="min-w-0 grow">
 								<span class="ai-picker-model-name">{{ catalog.label(model.label) }}</span>
 								<span class="ai-picker-model-id">{{ model.id }}</span>
@@ -492,83 +393,6 @@ async function runTest() {
 							/>
 						</label>
 					</template>
-					<template v-else-if="viewed.id === 'pixi'">
-						<div
-							class="ai-picker-pixi-access"
-							:data-state="pixiAccess.state"
-							role="status"
-							aria-live="polite"
-						>
-							<SpinnerIcon
-								v-if="pixiAccess.state === 'checking'"
-								class="size-4 shrink-0 animate-spin"
-							/>
-							<span class="min-w-0 grow">{{ pixiLine }}</span>
-							<button
-								v-if="pixiAccess.state !== 'checking' && pixiAccess.state !== 'open'"
-								type="button"
-								class="ai-picker-link"
-								@click="refreshPixiAccess"
-							>
-								{{ formatMessage(messages.pixiRetry) }}
-							</button>
-						</div>
-						<form
-							v-if="pixiCanApply"
-							class="ai-picker-pixi-apply"
-							@submit.prevent="sendPixiApplication"
-						>
-							<Input
-								v-model="pixiReason"
-								size="small"
-								autocomplete="off"
-								:placeholder="formatMessage(messages.pixiReason)"
-								wrapper-class="min-w-0 grow"
-							/>
-							<button type="submit" class="ai-picker-use" :disabled="pixiApplying">
-								<SpinnerIcon v-if="pixiApplying" class="size-4 animate-spin" />
-								{{ formatMessage(messages.pixiApply) }}
-							</button>
-							<span v-if="pixiApplyError" class="ai-picker-warn basis-full">
-								{{ pixiApplyError }}
-							</span>
-						</form>
-						<button
-							v-for="pixi in PIXI_MODELS.filter((row) => modelOn(viewed, row.id))"
-							:key="pixi.id"
-							type="button"
-							class="ai-picker-pixi"
-							:data-tone="pixi.tone"
-							:class="{
-								'ai-picker-pixi--on': isCurrent(viewed, pixi.id),
-								'ai-picker-pixi--locked': !isPixiModelOpen(pixi.id),
-							}"
-							:aria-pressed="isCurrent(viewed, pixi.id)"
-							@click="selectModel(viewed, pixi.id)"
-						>
-							<svg class="ai-picker-pixi-mark" viewBox="0 0 16 16" aria-hidden="true">
-								<rect width="11" height="11" rx="1.5" />
-								<rect x="11" y="11" width="5" height="5" rx="1" />
-							</svg>
-							<span class="ai-picker-pixi-tier">{{ pixi.tier }}</span>
-							<span class="min-w-0 grow">
-								<span class="ai-picker-model-name">{{ pixi.family }}</span>
-								<span class="ai-picker-pixi-desc">{{ pixi.description }}</span>
-							</span>
-							<span
-								v-if="!isPixiModelOpen(pixi.id)"
-								class="ai-picker-pixi-state ai-picker-pixi-state--locked"
-							>
-								{{ formatMessage(messages.pixiLocked) }}
-							</span>
-							<span v-else-if="isCurrent(viewed, pixi.id)" class="ai-picker-pixi-state">
-								{{ formatMessage(messages.picked) }}
-							</span>
-						</button>
-						<p v-if="visibleModels.length === 0" class="ai-picker-empty">
-							{{ formatMessage(messages.allOff) }}
-						</p>
-					</template>
 					<template v-else>
 						<button
 							v-for="model in visibleModels"
@@ -578,7 +402,6 @@ async function runTest() {
 							:class="{ 'ai-picker-model--on': isCurrent(viewed, model.id) }"
 							@click="selectModel(viewed, model.id)"
 						>
-							<AiBrandIcon :provider="viewed.id" :model="model.id" :label="model.label" />
 							<span class="min-w-0 grow">
 								<span class="ai-picker-model-name">{{ catalog.label(model.label) }}</span>
 								<span class="ai-picker-model-id">{{ model.id }}</span>
@@ -643,13 +466,6 @@ async function runTest() {
 </template>
 
 <style scoped>
-@keyframes ai-mode-pop {
-	from {
-		opacity: 0;
-		transform: scale(0.85);
-	}
-}
-
 .ai-picker {
 	display: flex;
 	flex-direction: column;
@@ -802,10 +618,6 @@ async function runTest() {
 }
 
 .ai-picker-detail-title {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	min-width: 0;
 	font-size: 0.9375rem;
 	font-weight: 700;
 	color: var(--color-contrast);
@@ -1035,134 +847,6 @@ async function runTest() {
 
 .ai-picker-foot-btn--active {
 	background: color-mix(in srgb, var(--color-brand) 14%, transparent);
-	color: var(--color-brand);
-}
-
-.ai-picker-pixi-access {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	margin-bottom: 0.25rem;
-	padding: 0.5rem 0.65rem;
-	border: 1px solid var(--surface-5);
-	border-radius: 0.7rem;
-	background: var(--surface-3, var(--color-button-bg));
-	font-size: 0.75rem;
-	line-height: 1.35;
-	color: var(--color-secondary);
-}
-
-.ai-picker-pixi-access[data-state='open'] {
-	border-color: color-mix(in srgb, var(--color-green) 40%, transparent);
-	color: var(--color-green);
-}
-
-.ai-picker-pixi-access[data-state='no_account'],
-.ai-picker-pixi-access[data-state='denied'] {
-	border-color: color-mix(in srgb, var(--color-orange) 40%, transparent);
-	color: var(--color-orange);
-}
-
-.ai-picker-pixi-access[data-state='error'] {
-	border-color: color-mix(in srgb, var(--color-red) 40%, transparent);
-	color: var(--color-red);
-}
-
-.ai-picker-pixi-apply {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.4rem;
-	margin-bottom: 0.25rem;
-}
-
-.ai-picker-pixi {
-	--pixi-tone: #9ca3af;
-	display: flex;
-	align-items: center;
-	gap: 0.6rem;
-	width: 100%;
-	padding: 0.5rem 0.6rem;
-	border: 1px solid transparent;
-	border-radius: 0.6rem;
-	background: transparent;
-	color: var(--color-primary);
-	font: inherit;
-	text-align: left;
-	cursor: pointer;
-	transition:
-		background-color 0.15s ease,
-		border-color 0.15s ease;
-}
-
-.ai-picker-pixi[data-tone='pro'] {
-	--pixi-tone: #7fb069;
-}
-
-.ai-picker-pixi[data-tone='ultra'] {
-	--pixi-tone: #3b82f6;
-}
-
-.ai-picker-pixi[data-tone='flash'] {
-	--pixi-tone: #a066d3;
-}
-
-.ai-picker-pixi:hover {
-	background: var(--color-button-bg);
-}
-
-.ai-picker-pixi--on {
-	border-color: color-mix(in srgb, var(--color-brand) 45%, transparent);
-	background: color-mix(in srgb, var(--color-brand) 10%, transparent);
-}
-
-.ai-picker-pixi-mark {
-	flex-shrink: 0;
-	width: 1rem;
-	height: 1rem;
-	fill: var(--pixi-tone);
-}
-
-.ai-picker-pixi-tier {
-	flex-shrink: 0;
-	min-width: 3.1rem;
-	padding: 0.1rem 0.45rem;
-	border-radius: 0.45rem;
-	background: color-mix(in srgb, var(--pixi-tone) 30%, transparent);
-	color: var(--color-contrast);
-	font-size: 0.75rem;
-	font-weight: 800;
-	text-align: center;
-}
-
-.ai-picker-pixi-desc {
-	display: block;
-	overflow: hidden;
-	font-size: 0.6875rem;
-	color: var(--color-secondary);
-	white-space: nowrap;
-	text-overflow: ellipsis;
-}
-
-.ai-picker-caption--brand {
-	display: flex;
-	align-items: center;
-	gap: 0.4rem;
-}
-
-.ai-picker-pixi--locked {
-	opacity: 0.62;
-}
-
-.ai-picker-pixi-state--locked {
-	color: var(--color-secondary);
-	font-weight: 600;
-}
-
-.ai-picker-pixi-state {
-	flex-shrink: 0;
-	font-size: 0.6875rem;
-	font-weight: 700;
 	color: var(--color-brand);
 }
 

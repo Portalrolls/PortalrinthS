@@ -52,6 +52,8 @@ const group = ref(EMOJI_GROUPS[0].id)
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
+	font-family:
+		'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
 	font-size: 1.05rem;
 	cursor: pointer;
 	opacity: 0.55;
@@ -79,6 +81,8 @@ const group = ref(EMOJI_GROUPS[0].id)
 	border: 0;
 	border-radius: 6px;
 	background: transparent;
+	font-family:
+		'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Twemoji Mozilla', sans-serif;
 	font-size: 1.3rem;
 	line-height: 1;
 	cursor: pointer;

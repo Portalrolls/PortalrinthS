@@ -179,6 +179,9 @@ const username = computed(
 
 const card = computed(() => cardOf(userId.value))
 
+/** Галочка проверенного профиля — только у владельца Portalrolls (ник в Microsoft). */
+const isVerified = computed(() => username.value.trim().toLowerCase() === 'portalrolls')
+
 const accent = computed(() => card.value.accent || card.value.bannerColor || '')
 
 const bannerStyle = computed(() => {
@@ -376,6 +379,11 @@ const statItems = computed(() => {
 			value: s.followerCount,
 			label: t('app.messenger.profile.followers', 'подписчики'),
 		},
+		{
+			key: 'likes',
+			value: s.likesReceived ?? s.likeCount ?? null,
+			label: t('app.messenger.profile.likes', 'лайки'),
+		},
 	]
 		.filter((item) => item.value != null)
 		.map((item) => ({ ...item, value: String(item.value) }))
@@ -554,7 +562,18 @@ function edit(): void {
 							</header>
 
 							<div class="upm__identity">
-								<b class="upm__name">{{ alias || username }}</b>
+								<span class="upm__namerow">
+									<b class="upm__name">{{ alias || username }}</b>
+									<span
+										v-if="isVerified"
+										class="upm__verified"
+										:title="t('app.messenger.profile.verified', 'Проверенный профиль')"
+									>
+										<svg viewBox="0 0 16 16" aria-hidden="true">
+											<path d="M6.4 12.6 2 8.2l1.4-1.4 3 3 6-6 1.4 1.4z" />
+										</svg>
+									</span>
+								</span>
 								<span v-if="alias" class="upm__handle">{{ username }}</span>
 								<span class="upm__meta">
 									<span class="upm__chip">{{
@@ -922,6 +941,13 @@ function edit(): void {
 	gap: 0.3rem;
 }
 
+.upm__namerow {
+	display: flex;
+	gap: 0.4rem;
+	align-items: center;
+	min-width: 0;
+}
+
 .upm__name {
 	overflow: hidden;
 	color: var(--color-contrast);
@@ -929,6 +955,24 @@ function edit(): void {
 	font-weight: 800;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.upm__verified {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: center;
+	width: 1.15rem;
+	height: 1.15rem;
+	border-radius: 50%;
+	background: var(--color-brand, #1bd96a);
+	box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.upm__verified svg {
+	width: 0.8rem;
+	height: 0.8rem;
+	fill: #fff;
 }
 
 .upm__handle {

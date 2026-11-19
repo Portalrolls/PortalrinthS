@@ -6,7 +6,7 @@ import ServiceImage from './ServiceImage.vue'
 import { loadStickerJson, type StickerKind } from './stickers'
 
 const props = withDefaults(defineProps<{ url: string; kind: StickerKind; size?: number }>(), {
-	size: 160,
+	size: 224,
 })
 
 type Player = { destroy: () => void; play: () => void; pause: () => void }
@@ -62,6 +62,14 @@ async function mountLottie(): Promise<void> {
 			animationData: data,
 			rendererSettings: { clearCanvas: true },
 		}) as Player
+		// Lottie-канвас не учитывает devicePixelRatio — на HiDPI стикер мылился.
+		// Бэкбуфер увеличиваем сами; CSS всё равно растягивает канвас на 100%.
+		const canvas = host.value.querySelector('canvas')
+		const dpr = Math.min(window.devicePixelRatio || 1, 2)
+		if (canvas && dpr > 1 && canvas.width > 0) {
+			canvas.width = Math.round(canvas.width * dpr)
+			canvas.height = Math.round(canvas.height * dpr)
+		}
 	} catch {
 		if (ticket === seq) failed.value = true
 	}

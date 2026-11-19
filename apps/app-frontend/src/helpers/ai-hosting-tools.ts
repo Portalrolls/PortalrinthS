@@ -3,15 +3,21 @@
  * start and stop them, read the console and type commands into it, exactly
  * as the player would on the server's console tab.
  */
-import { noteAgentThought, registerAiToolHandler } from './ai-assistant'
+import { noteAgentThought, registerAiFinishHandler, registerAiToolHandler } from './ai-assistant'
 import { installToHostedServer, NoFittingVersionError, searchHostedContent } from './hosted-content'
 import {
 	hostedAddress,
 	type HostedServerView,
 	hosting_command,
+	hosting_file_read,
+	hosting_file_write,
+	hosting_files,
 	hosting_get,
 	hosting_list,
 	hosting_log,
+	hosting_plugin_remove,
+	hosting_plugin_toggle,
+	hosting_plugins,
 	hosting_restart,
 	hosting_start,
 	hosting_stop,
@@ -126,6 +132,52 @@ function notRunning(server: HostedServerView) {
 	return `«${server.name}» ${STATUS[server.status] ?? server.status} — команды принимает только работающий сервер. Предложи игроку запустить: <<hosting_power|${server.id}::start>>.`
 }
 
+/** Серверы, выключенные ради изменений за этот ход: включатся сами, когда ход агента закончится. */
+const autoStopped = new Map<string, string>()
+
+/** Выключает работающий сервер перед изменением и запоминает его для авто-запуска в конце хода. */
+async function stopForChange(server: HostedServerView): Promise<boolean> {
+	if (!isHostedActive(server.status)) return false
+	noteAgentThought(`Выключаю «${server.name}» для изменений`)
+	await hosting_stop(server.id)
+	autoStopped.set(server.id, server.name)
+	return true
+}
+
+// Когда ход агента закончен (финальный ответ уже у игрока), серверы,
+// выключенные ради изменений, включаются сами — игрок не должен помнить про них.
+registerAiFinishHandler(async () => {
+	for (const [id, name] of [...autoStopped.entries()]) {
+		autoStopped.delete(id)
+		try {
+			noteAgentThought(`Запускаю «${name}» — изменения закончены`)
+			await hosting_start(id)
+		} catch (error) {
+			console.warn('Не удалось запустить сервер после изменений:', error)
+		}
+	}
+})
+
+/** Пути сервера нормализуем: без ведущих слешей и без блуждания вверх по дереву. */
+function normalizeServerPath(raw: string): string {
+	const trimmed = raw
+		.trim()
+		.replace(/\\/g, '/')
+		.replace(/^\.?\//, '')
+	const segments = trimmed
+		.split('/')
+		.filter((segment) => segment && segment !== '.' && segment !== '..')
+	return segments.join('/')
+}
+
+function formatSize(size: number): string {
+	return size >= 1024 * 1024
+		? `${(size / (1024 * 1024)).toFixed(1)} МБ`
+		: size >= 1024
+			? `${(size / 1024).toFixed(1)} КБ`
+			: `${size} Б`
+}
+
 function pickPlayer(server: HostedServerView, wanted: string): string {
 	const name = wanted.trim()
 	if (name) return server.players.find((p) => p.toLowerCase() === name.toLowerCase()) ?? name
@@ -162,10 +214,12 @@ registerAiToolHandler(async (tool, args) => {
 			const verb = action.toLowerCase()
 			if (verb === 'stop') {
 				if (!isHostedActive(server.status)) return `«${server.name}» и так выключен.`
+				autoStopped.delete(server.id)
 				await hosting_stop(server.id)
 				return `Выключаю «${server.name}» — мир сохранится сам.`
 			}
 			if (verb === 'restart') {
+				autoStopped.delete(server.id)
 				await hosting_restart(server.id)
 				return `Перезапускаю «${server.name}».`
 			}
@@ -281,8 +335,9 @@ registerAiToolHandler(async (tool, args) => {
 				return 'Что ставить? Формат: <<hosting_install|сервер::название или id на Modrinth>>.'
 			noteAgentThought(`Ставлю «${wanted}» на «${server.name}»`)
 			const attempt = async (projectId: string, title: string) => {
+				await stopForChange(server)
 				await installToHostedServer(server, projectId)
-				return `Установлено на «${server.name}» (${server.software} ${server.game_version}): ${title}. Заработает после перезапуска — предложи <<hosting_power|${server.id}::restart>>.`
+				return `Установлено на «${server.name}» (${server.software} ${server.game_version}): ${title}. Сервер включится сам, когда задача будет закончена.`
 			}
 			try {
 				if (/^[\w-]{3,64}$/.test(wanted)) return await attempt(wanted, wanted)
@@ -300,6 +355,108 @@ registerAiToolHandler(async (tool, args) => {
 				return error instanceof NoFittingVersionError
 					? `У «${hit.title}» нет файла под ${server.software} ${server.game_version}.`
 					: `Не установилось: ${String(error).slice(0, 200)}`
+			}
+		}
+		case 'hosting_plugins': {
+			const server = await resolveServer(args)
+			if (typeof server === 'string') return server
+			const plugins = await hosting_plugins(server.id).catch(() => null)
+			if (!plugins) return `Не удалось прочитать плагины «${server.name}».`
+			if (plugins.length === 0)
+				return `На «${server.name}» нет плагинов/модов. Поставить: <<hosting_install|${server.id}::название>>.`
+			return [
+				`Плагины/моды «${server.name}» (${plugins.length}):`,
+				...plugins.map((plugin) => `- ${plugin.name}: ${plugin.enabled ? 'включён' : 'ВЫКЛЮЧЕН'}`),
+			].join('\n')
+		}
+		case 'hosting_plugin': {
+			const parts = args.split('::')
+			const server = await resolveServer(parts[0] ?? '')
+			if (typeof server === 'string') return server
+			const name = (parts[1] ?? '').trim()
+			const action = (parts[2] ?? '').trim().toLowerCase()
+			if (!name)
+				return 'Какой плагин? Список: <<hosting_plugins|сервер>>. Формат: <<hosting_plugin|сервер::plugin.jar::enable>>.'
+			if (action !== 'enable' && action !== 'disable' && action !== 'remove')
+				return 'Действие: enable, disable или remove.'
+			await stopForChange(server)
+			try {
+				if (action === 'remove') {
+					await hosting_plugin_remove(server.id, name)
+					return `Плагин ${name} удалён с «${server.name}». Сервер включится сам, когда задача будет закончена.`
+				}
+				await hosting_plugin_toggle(server.id, name)
+				const plugins = await hosting_plugins(server.id).catch(() => null)
+				const now = plugins?.find((plugin) => plugin.name === name)?.enabled
+				const state =
+					now === undefined
+						? action === 'disable'
+							? 'выключен'
+							: 'включён'
+						: now
+							? 'включён'
+							: 'выключен'
+				return `Плагин ${name} на «${server.name}»: ${state}. Сервер включится сам, когда задача будет закончена.`
+			} catch (error) {
+				return `Не получилось: ${String(error).slice(0, 200)}`
+			}
+		}
+		case 'hosting_files': {
+			const [target, raw] = splitArgs(args)
+			const server = await resolveServer(target)
+			if (typeof server === 'string') return server
+			const folder = normalizeServerPath(raw || '.')
+			const items = await hosting_files(server.id, folder).catch(() => null)
+			if (!items) return `Не удалось прочитать папку «${folder}» на «${server.name}».`
+			if (items.length === 0) return `Папка «${folder}» на «${server.name}» пуста.`
+			return [
+				`Папка «${folder}» на «${server.name}» (всего ${items.length}, показаны первые):`,
+				...items
+					.slice(0, 80)
+					.map((item) =>
+						item.dir
+							? `- [папка] ${item.name}/`
+							: `- [файл] ${item.name} (${formatSize(item.size)})`,
+					),
+			].join('\n')
+		}
+		case 'hosting_read': {
+			const [target, raw] = splitArgs(args)
+			const server = await resolveServer(target)
+			if (typeof server === 'string') return server
+			const path = normalizeServerPath(raw)
+			if (!path)
+				return 'Какой файл? Формат: <<hosting_read|сервер::server.properties>>. Список: <<hosting_files|сервер::папка>>.'
+			const bytes = await hosting_file_read(server.id, path).catch(() => null)
+			if (bytes === null)
+				return `Не удалось прочитать «${path}» на «${server.name}» (файла нет или это папка).`
+			const text = new TextDecoder().decode(Uint8Array.from(bytes))
+			if (text.length > 4000)
+				return `${path} на «${server.name}» (первые 4000 символов из ${text.length}):\n${text.slice(0, 4000)}\n…(дальше обрезано)`
+			return `${path} на «${server.name}»:\n${text}`
+		}
+		case 'hosting_write': {
+			const parts = args.split('::')
+			const server = await resolveServer(parts[0] ?? '')
+			if (typeof server === 'string') return server
+			const path = normalizeServerPath(parts[1] ?? '')
+			const content = parts.slice(2).join('::')
+			if (!path)
+				return 'Какой файл? Формат: <<hosting_write|сервер::путь::текст>> — текст это всё после второго «::».'
+			if (!content.trim())
+				return 'Пустой текст так сотрёт файл. Прочитай файл <<hosting_read|сервер::путь>> и запиши полный текст.'
+			const current = await hosting_file_read(server.id, path).catch(() => null)
+			if (current !== null) {
+				const existing = new TextDecoder().decode(Uint8Array.from(current))
+				if (content.length < existing.length * 0.4)
+					return `Файл «${path}» существует и в нём ${existing.length} символов, а новый текст — ${content.length} символов: похоже на обрезку. Прочитай файл <<hosting_read|${server.id}::${path}>> и запиши ПОЛНЫЙ текст, а не кусок.`
+			}
+			await stopForChange(server)
+			try {
+				await hosting_file_write(server.id, path, new TextEncoder().encode(content))
+				return `Записано «${path}» на «${server.name}» (${content.length} символов). Сервер включится сам, когда задача будет закончена.`
+			} catch (error) {
+				return `Не удалось записать: ${String(error).slice(0, 200)}`
 			}
 		}
 		case 'hosting_console': {

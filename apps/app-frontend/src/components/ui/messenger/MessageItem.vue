@@ -390,7 +390,7 @@ function mention(name: string, el: HTMLElement): void {
 					</div>
 				</div>
 				<div v-else-if="serverSticker" class="msgr-msg__sticker">
-					<StickerView :url="serverSticker.url" :kind="serverSticker.kind" :size="160" />
+					<StickerView :url="serverSticker.url" :kind="serverSticker.kind" :size="224" />
 				</div>
 				<button
 					v-else-if="playerSticker"
@@ -606,8 +606,8 @@ function mention(name: string, el: HTMLElement): void {
 
 .msgr-msg__sticker {
 	display: inline-grid;
-	width: 10rem;
-	height: 10rem;
+	width: 14rem;
+	height: 14rem;
 	place-items: center;
 	padding: 0;
 	margin-top: 0.15rem;

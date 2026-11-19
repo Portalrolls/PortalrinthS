@@ -1256,7 +1256,8 @@ export const AI_LAUNCHER_HINT = [
 	'- <<open_settings|>> — открыть настройки лаунчера',
 	'Установка контента: launcher_install ставит ТОЛЬКО версию под Minecraft и ядро сборки, сама подтягивает зависимости (как кнопка «Установить» в лаунчере). Id с Modrinth — как есть, с CurseForge — cf:ID (их даёт launcher_search_mods). Если ответ «НЕ установлено» — мод не вышел под эту версию: честно скажи и предложи аналог; НИКОГДА не пиши «установил», если инструмент ответил ошибкой.',
 	'Сервер/LAN — думай логично, что к чему относится. «Открыть мир для сети», «игра по сети», «сервер мир», «лан», «друг заходит в мой мир» — это LAN (бесплатно): 1) <<launch_instance|сборка>>; 2) в игре Esc → «Открыть для сети» — ЭТО КЛИКАЕТ ИГРОК: ты не можешь нажимать внутри запущенной игры, честно скажи одной строкой, куда нажать, и подожди, пока игрок откроет мир; 3) <<lan_status|>> — если ответ «мир для сети ещё не открыт», НЕ публиковай и не паникуй: скажи игроку открыть мир и жди, когда он скажет «готово»; когда мир открыт — <<lan_publish|сборка>> даст адрес для друзей (дай адрес в обратных кавычках); <<lan_stop|сборка>> — закрыть. А вот «постоянный сервер», «сервер 24/7», «чтобы работало всегда», «хостинг» — это уже НЕ LAN: либо Modrinth Hosting (платно, экран /hosting/manage), либо Self-Hosted — свой сервер, который лаунчер запускает на компьютере игрока (бесплатно, экран /server-hosting; им ты управляешь сам инструментами hosting_*). Объясни разницу честно: LAN бесплатен, но живёт только пока открыт мир и запущена игра; Hosting платный, но сервер работает всегда. Не смешивай эти вещи и не обещай LAN то, что умеет только Hosting. Экран LAN: /lan.',
-	'Self-Hosted (свои серверы игрока, экран /server-hosting) — ты управляешь ими сам через консоль лаунчера: <<hosting_list|>> — все серверы со статусом, адресом и игроками онлайн; <<hosting_status|сервер>> — подробно (CPU/RAM, настройки, причина падения); <<hosting_power|сервер::start>> (или stop, restart); <<hosting_console|сервер::50>> — последние строки консоли; <<hosting_cmd|сервер::команда;;команда>> — выполнить команды в консоли сервера (без «/», до 20 за раз, ответ сервера вернётся); <<hosting_build|сервер::setblock …;;fill …;;…>> — стройка пачкой до 600 команд (setblock/fill/clone/summon), вернёт число ошибок и сами ошибки; <<hosting_player|сервер::ник>> — где игрок (Pos, измерение, поворот), что у него в руке и экипировка; <<hosting_chest|сервер::x y z>> — содержимое сундука/бочки/любого контейнера; <<hosting_install|сервер::название или id>> — поставить плагин (Paper/Purpur/Folia) или мод (Fabric/Quilt) с Modrinth под ядро и версию сервера. Сервер можно указать именем или id; если сервер один (или один запущен) — можно оставить пусто: <<hosting_cmd|::say Привет>>.',
+	'Self-Hosted (свои серверы игрока, экран /server-hosting) — ты управляешь ими сам через консоль лаунчера: <<hosting_list|>> — все серверы со статусом, адресом и игроками онлайн; <<hosting_status|сервер>> — подробно (CPU/RAM, настройки, причина падения); <<hosting_power|сервер::start>> (или stop, restart); <<hosting_console|сервер::50>> — последние строки консоли; <<hosting_cmd|сервер::команда;;команда>> — выполнить команды в консоли сервера (без «/», до 20 за раз, ответ сервера вернётся); <<hosting_build|сервер::setblock …;;fill …;;…>> — стройка пачкой до 600 команд (setblock/fill/clone/summon), вернёт число ошибок и сами ошибки; <<hosting_player|сервер::ник>> — где игрок (Pos, измерение, поворот), что у него в руке и экипировка; <<hosting_chest|сервер::x y z>> — содержимое сундука/бочки/любого контейнера; <<hosting_install|сервер::название или id>> — поставить плагин (Paper/Purpur/Folia) или мод (Fabric/Quilt) с Modrinth под ядро и версию сервера; <<hosting_plugins|сервер>> — список плагинов/модов и включены ли они; <<hosting_plugin|сервер::plugin.jar::enable>> (или disable, remove) — включить/выключить/удалить плагин; <<hosting_files|сервер::папка>> — файлы и папки в директории сервера (plugins, world, …); <<hosting_read|сервер::путь>> — прочитать файл (server.properties, конфиги плагинов configs/*.yml); <<hosting_write|сервер::путь::текст>> — записать файл целиком (можно создать новый). Сервер можно указать именем или id; если сервер один (или один запущен) — можно оставить пусто: <<hosting_cmd|::say Привет>>.',
+	'Изменения на сервере (поставить/удалить/выключить плагин, записать файл или конфиг): если сервер работает — инструменты САМИ его выключат перед изменением и САМИ запустят, когда задача будет закончена. hosting_power::stop вокруг таких изменений НЕ нужен: просто делай изменения (их может быть несколько подряд) и подведи итог — сервер вернётся в рабочий вид сам. Если игрок просил выключить сервер насовсем — последним шагом <<hosting_power|сервер::stop>>.',
 	'Как работать с сервером: 1) сначала <<hosting_list|>> (или status), если не знаешь, какой сервер и запущен ли он; 2) не запущен — спроси игрока, запустить ли, и <<hosting_power|сервер::start>>; 3) переведи просьбу в ванильные команды и выполни <<hosting_cmd|…>>; 4) прочитай ответ консоли и коротко скажи итог (ошибка «Unknown command»/«No player was found» — объясни и исправь). Если в просьбе не хватает важной детали — количество, предмет, ник игрока, время, режим — НЕ выдумывай, спроси через <<ask_user|Сколько алмазов выдать каждому?::1;;16;;64>> с удобными вариантами. Пример: «выдай всем алмазы» → спроси количество → <<hosting_cmd|::give @a minecraft:diamond 64>>.',
 	'Шпаргалка команд (Java 1.13+): выдать предмет give <ник|@a> minecraft:<id> [кол-во] (больше 64 можно — разложится по стакам); зачарованный предмет: give @p minecraft:diamond_sword[enchantments={sharpness:5}] на 1.20.5+, а на старых — give @p diamond_sword{Enchantments:[{id:sharpness,lvl:5}]}; опыт xp add <ник> <N> levels; режим gamemode <survival|creative|adventure|spectator> <ник|@a>; оператор op/deop <ник>; телепорт tp <кто> <к кому> или tp <кто> x y z; время time set <day|night|noon|midnight>; погода weather <clear|rain|thunder> [секунды]; сложность difficulty <peaceful|easy|normal|hard>; правила gamerule <правило> <значение> (keepInventory true, doDaylightCycle false, doMobSpawning false, playersSleepingPercentage 0…); эффекты effect give <ник> minecraft:<эффект> <сек> <уровень>, снять effect clear <ник>; лечение effect give <ник> minecraft:instant_health 1 10; спавн setworldspawn, spawnpoint <ник>; whitelist add/remove <ник>, whitelist on/off, whitelist list; кик kick <ник> [причина]; бан ban <ник> [причина], pardon <ник>; сообщение всем say <текст>, личное tell <ник> <текст>, большой экран title @a title {"text":"…"}; убрать предметы с земли kill @e[type=item]; очистить инвентарь clear <ник>; сохранить мир save-all; список игроков list; граница worldborder set <размер>. Версия сервера есть в hosting_list — учитывай синтаксис версии, при сомнении проверь web_search.',
 	'Работа с миром через консоль. Координаты НИКОГДА не выдумывай: сначала <<hosting_player|::ник>> (Pos [x, y, z] — округли вниз; Rotation [yaw, …]: yaw ≈ 0 смотрит на юг +Z, 90 — запад −X, 180/−180 — север −Z, −90 — восток +X), и строй ПЕРЕД игроком в 2-3 блоках от него, на его уровне Y. Консоль не знает «~» относительно игрока — используй execute: execute as <ник> at @s run setblock ~ ~ ~2 … или абсолютные числа из Pos. Предмет в руке/экипировка — hosting_player; содержимое сундука — hosting_chest по координатам (если игрок стоит у сундука — проверь блоки вокруг его Pos). Найти структуру: execute as <ник> at @s run locate structure minecraft:village_plains (1.19+; на 1.16-1.18 locate village) — ответ даёт координаты, предложи tp. Биом: locate biome minecraft:…. Модовые вещи: id вида mod:item — give <ник> create:wrench, summon modid:entity x y z; не знаешь id — найди (launcher_search_mods/web_search по «<мод> item id») или проверь give; ошибка «Unknown item» = неверный id, исправь и повтори. Рассказать про предмет: возьми id из SelectedItem, назови мод (часть до «:») и объясни, что это и для чего; крафт — объясни словами по сетке 3x3 (ряд за рядом) или по машине мода; если не уверен в рецепте — web_search «<мод> <предмет> recipe», не выдумывай.',
@@ -2714,6 +2715,9 @@ const PARALLEL_TOOLS = new Set([
 	'hosting_console',
 	'hosting_player',
 	'hosting_chest',
+	'hosting_plugins',
+	'hosting_files',
+	'hosting_read',
 ])
 
 /**
@@ -2917,7 +2921,45 @@ function smallTalkHistory(messages: ChatMessagePayload[]): ChatMessagePayload[] 
 	return plain
 }
 
+type AiFinishHandler = () => Promise<void> | void
+
+const finishHandlers: AiFinishHandler[] = []
+
+/** Колбэк на конец хода агента (после финального ответа): авто-действия, например запуск серверов, выключенных ради изменений. */
+export function registerAiFinishHandler(handler: AiFinishHandler) {
+	finishHandlers.push(handler)
+	return () => {
+		const index = finishHandlers.lastIndexOf(handler)
+		if (index >= 0) finishHandlers.splice(index, 1)
+	}
+}
+
+async function runAiFinishHandlers(): Promise<void> {
+	const handlers = [...finishHandlers]
+	finishHandlers.length = 0
+	for (const handler of handlers) {
+		try {
+			await handler()
+		} catch (error) {
+			console.warn('AI finish handler failed:', error)
+		}
+	}
+}
+
+/**
+ * Ход агента: сами ходы делает aiCompleteTurn; обёртка после хода (успех или
+ * провал) запускает finish-обработчики — например, возвращает серверы,
+ * которые инструменты выключили ради изменений.
+ */
 export async function aiComplete(request: AiRequest): Promise<AiResult> {
+	try {
+		return await aiCompleteTurn(request)
+	} finally {
+		void runAiFinishHandlers()
+	}
+}
+
+async function aiCompleteTurn(request: AiRequest): Promise<AiResult> {
 	const settings = aiSettings.value
 	// The fast lane skips the launcher's documentation, the memory files and
 	// the sessions overview: a greeting needs none of them, and reading them

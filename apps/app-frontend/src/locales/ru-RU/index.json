@@ -1238,6 +1238,12 @@
   "app.library.title": {
     "message": "Библиотека"
   },
+  "app.messenger.profile.likes": {
+    "message": "лайки"
+  },
+  "app.messenger.profile.verified": {
+    "message": "Проверенный профиль"
+  },
   "app.modal.install-to-play.additional-context": {
     "message": "Подробности"
   },

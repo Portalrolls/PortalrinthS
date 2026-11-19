@@ -2249,6 +2249,12 @@
   "app.library.title": {
     "message": "Library"
   },
+  "app.messenger.profile.likes": {
+    "message": "likes"
+  },
+  "app.messenger.profile.verified": {
+    "message": "Verified profile"
+  },
   "app.migration.modrinth.action.choose": {
     "message": "Choose instances"
   },

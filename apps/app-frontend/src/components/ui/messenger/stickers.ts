@@ -25,7 +25,7 @@ const SERVER_STICKER = /^\[\[sticker:(\d+)\]\]$/
 export const PLAYER_STICKER_MARK = '[[psticker]]'
 const OWN_KEY = 'portalrinth.messenger.stickers.own'
 const OWN_LIMIT = 60
-const OWN_SIDE = 320
+const OWN_SIDE = 512
 
 export const stickers = reactive({
 	catalog: {} as Record<number, Sticker>,
@@ -202,7 +202,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 	})
 }
 
-/** Свои стикеры храним уменьшенными до 320px в WebP — так их влезает много и они быстро уходят. */
+/** Свои стикеры храним уменьшенными до 512px в WebP — качество в сообщении и лайтбоксе остаётся нормальным. */
 async function shrink(src: string): Promise<string> {
 	const img = await loadImage(src)
 	const scale = Math.min(1, OWN_SIDE / Math.max(img.naturalWidth, img.naturalHeight, 1))
@@ -214,7 +214,7 @@ async function shrink(src: string): Promise<string> {
 	const ctx = canvas.getContext('2d')
 	if (!ctx) throw new Error('canvas')
 	ctx.drawImage(img, 0, 0, width, height)
-	const webp = canvas.toDataURL('image/webp', 0.9)
+	const webp = canvas.toDataURL('image/webp', 0.92)
 	return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/png')
 }
 
@@ -235,7 +235,7 @@ export async function addOwnSticker(source: Blob | string, name = ''): Promise<O
 	try {
 		const src = typeof source === 'string' ? source : await readAsDataUrl(source)
 		const animated = typeof source !== 'string' && source.type === 'image/gif'
-		dataUrl = animated && source.size <= 900_000 ? src : await shrink(src)
+		dataUrl = animated && source.size <= 2_500_000 ? src : await shrink(src)
 	} catch {
 		return 'bad'
 	}

@@ -1090,7 +1090,7 @@ watch(locale, () => {
 <style scoped>
 .nf-page {
 	display: grid;
-	grid-template-columns: minmax(0, 860px) minmax(260px, 320px);
+	grid-template-columns: minmax(0, 980px) minmax(300px, 360px);
 	justify-content: center;
 	align-items: start;
 	gap: 16px;
@@ -1350,8 +1350,8 @@ watch(locale, () => {
 	display: grid;
 	place-items: center;
 	flex-shrink: 0;
-	width: 168px;
-	height: 104px;
+	width: 192px;
+	height: 120px;
 	overflow: hidden;
 	border-radius: 10px;
 	background: #141417;
@@ -1539,8 +1539,8 @@ watch(locale, () => {
 
 .nf-sk--cover {
 	flex-shrink: 0;
-	width: 168px;
-	height: 104px;
+	width: 192px;
+	height: 120px;
 	border-radius: 10px;
 }
 
@@ -1556,7 +1556,7 @@ watch(locale, () => {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	padding: 10px;
+	padding: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	border-radius: 14px;
 	background: rgba(24, 24, 28, 0.6);
@@ -1639,7 +1639,7 @@ watch(locale, () => {
 	align-items: center;
 	gap: 8px;
 	width: 100%;
-	padding: 5px 4px;
+	padding: 7px 6px;
 	border: 0;
 	border-radius: 8px;
 	background: transparent;
@@ -1655,7 +1655,7 @@ watch(locale, () => {
 }
 
 .nf-popular__rank {
-	width: 14px;
+	width: 16px;
 	flex-shrink: 0;
 	color: rgba(255, 255, 255, 0.4);
 	font-size: 12px;
@@ -1678,12 +1678,12 @@ watch(locale, () => {
 
 .nf-popular__text b {
 	color: var(--color-contrast, #fff);
-	font-size: 12px;
+	font-size: 13px;
 }
 
 .nf-popular__text span {
 	color: rgba(255, 255, 255, 0.42);
-	font-size: 11px;
+	font-size: 12px;
 }
 
 .nf-tags {
@@ -1891,9 +1891,9 @@ watch(locale, () => {
 	}
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1240px) {
 	.nf-page {
-		grid-template-columns: minmax(0, 1fr) 260px;
+		grid-template-columns: minmax(0, 1fr) 300px;
 	}
 }
 

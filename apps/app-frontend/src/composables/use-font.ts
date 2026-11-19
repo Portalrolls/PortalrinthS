@@ -62,7 +62,7 @@ watch(
 		// that rule looks, the body where anything resolving the variable one
 		// step down (or reading body's computed style) looks.
 		if (trimmed) {
-			const value = `${fontFamilyCss(trimmed)}, Inter, sans-serif`
+			const value = `${fontFamilyCss(trimmed)}, Inter, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif`
 			root.style.setProperty('--font-standard', value)
 			body?.style.setProperty('--font-standard', value)
 			// The family itself, inline on the root: holds the choice even

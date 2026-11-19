@@ -7,13 +7,17 @@ use crate::install::{
 };
 use crate::state::JavaVersion;
 use crate::util::fetch::{
-    FetchProgressFn, fetch_advanced, fetch_advanced_with_progress,
+    DOWNLOAD_REQWEST_CLIENT, FetchProgressFn, fetch_advanced_with_client, fetch_advanced_with_progress,
 };
 use dashmap::DashMap;
+use futures::stream::{self, StreamExt};
 use reqwest::Method;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 use sysinfo::{MemoryRefreshKind, RefreshKind};
 
 use crate::util::io;
@@ -424,6 +428,160 @@ async fn install_from(
     Ok(Some(runtime_dir))
 }
 
+/// A single TCP stream downloads a forty-megabyte Java archive at whatever
+/// one connection through the player's route allows, which on Russian
+/// internet is often a crawl — the same host happily serves several parallel
+/// connections, and that is exactly how Undefined Client's own Java
+/// downloads are fast. Ranges are tried politely: a host that answers the
+/// probe with a plain 200 (no `Range` support) or a small archive gets the
+/// ordinary single-stream download instead, and the sha256 check the caller
+/// already makes covers whichever path produced the bytes.
+const JAVA_PARALLEL_PARTS: usize = 6;
+const JAVA_PARALLEL_MIN_SIZE: u64 = 8 * 1024 * 1024;
+const JAVA_RANGE_ATTEMPTS: usize = 3;
+
+/// `Content-Range: bytes 0-0/58618803` — the total after the last slash.
+fn total_from_content_range(value: Option<reqwest::header::HeaderValue>) -> Option<u64> {
+    let value = value?.to_str().ok()?;
+    let total = value.rsplit('/').next()?.trim();
+    total.parse::<u64>().ok().filter(|total| *total > 0)
+}
+
+/// Downloads the archive in parallel byte ranges. `Ok(None)` means the host
+/// or the file is not suitable for ranges, and the caller falls back to its
+/// ordinary single-stream download without treating it as an error.
+async fn download_archive_parallel(
+    url: &str,
+    java_version: u32,
+    state: &State,
+    loading_bar: Option<&crate::event::LoadingBarId>,
+    reporter: Option<&InstallProgressReporter>,
+) -> crate::Result<Option<bytes::Bytes>> {
+    // The probe doubles as the range-support check: 206 Partial Content means
+    // the host speaks ranges; anything else falls back to one stream.
+    let probe = DOWNLOAD_REQWEST_CLIENT
+        .get(url)
+        .header(reqwest::header::RANGE, "bytes=0-0")
+        .send()
+        .await?;
+    if probe.status().as_u16() != 206 {
+        return Ok(None);
+    }
+    let Some(total) = total_from_content_range(probe.headers().get(reqwest::header::CONTENT_RANGE))
+    else {
+        return Ok(None);
+    };
+    if total < JAVA_PARALLEL_MIN_SIZE {
+        return Ok(None);
+    }
+
+    let part = (total + JAVA_PARALLEL_PARTS as u64 - 1) / JAVA_PARALLEL_PARTS as u64;
+    let received = Arc::new(AtomicU64::new(0));
+
+    let parts = stream::iter((0..total).step_by(part as usize))
+        .map(|start| {
+            let received = received.clone();
+            async move {
+                let end = (start + part - 1).min(total - 1);
+                let expected = end - start + 1;
+                let mut last_error: Option<crate::Error> = None;
+                for attempt in 0..JAVA_RANGE_ATTEMPTS {
+                    if attempt > 0 {
+                        tokio::time::sleep(Duration::from_millis(400 * u64::from(attempt))).await;
+                    }
+                    let _permit = crate::install::control::download_step(
+                        state.fetch_semaphore.0.acquire(),
+                    )
+                    .await??;
+                    let response = match DOWNLOAD_REQWEST_CLIENT
+                        .get(url)
+                        .header(reqwest::header::RANGE, format!("bytes={start}-{end}"))
+                        .send()
+                        .await
+                    {
+                        Ok(response) => response,
+                        Err(error) => {
+                            last_error = Some(error.into());
+                            continue;
+                        }
+                    };
+                    let bytes = match response.error_for_status_ref() {
+                        Ok(response) => response.bytes().await,
+                        Err(error) => Err(error),
+                    };
+                    let bytes = match bytes {
+                        Ok(bytes) => bytes,
+                        Err(error) => {
+                            last_error = Some(error.into());
+                            continue;
+                        }
+                    };
+                    if bytes.len() as u64 != expected {
+                        last_error = Some(
+                            std::io::Error::new(
+                                std::io::ErrorKind::UnexpectedEof,
+                                format!(
+                                    "range {start}-{end} returned {} of {expected} bytes",
+                                    bytes.len()
+                                ),
+                            )
+                            .into(),
+                        );
+                        continue;
+                    }
+                    let now = received.fetch_add(bytes.len() as u64, Ordering::SeqCst)
+                        + bytes.len() as u64;
+                    if let Some(reporter) = reporter {
+                        update_java_install_progress(
+                            Some(reporter),
+                            java_version,
+                            InstallJavaStep::Downloading,
+                            Some(InstallProgress {
+                                current: now,
+                                total,
+                                secondary: None,
+                            }),
+                        )
+                        .await?;
+                    } else if let Some(loading_bar) = loading_bar {
+                        emit_loading(
+                            loading_bar,
+                            (bytes.len() as f64 / total as f64) * 80.0,
+                            Some("Downloading Java"),
+                        )?;
+                    }
+                    return Ok(bytes);
+                }
+                Err(last_error.unwrap_or_else(|| {
+                    std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "range download failed")
+                        .into()
+                }))
+            }
+        })
+        .buffer_unordered(JAVA_PARALLEL_PARTS)
+        .collect::<Vec<crate::Result<bytes::Bytes>>>()
+        .await;
+
+    let mut assembled = bytes::BytesMut::with_capacity(total as usize);
+    for part in parts {
+        match part {
+            Ok(bytes) => assembled.extend_from_slice(&bytes),
+            Err(error) => {
+                tracing::warn!("Parallel Java download fell back to one stream: {error}");
+                return Ok(None);
+            }
+        }
+    }
+    if assembled.len() as u64 != total {
+        tracing::warn!(
+            "Parallel Java download assembled {} of {total} bytes",
+            assembled.len()
+        );
+        return Ok(None);
+    }
+    Ok(Some(assembled.freeze()))
+}
+
 /// One archive, with the install's progress reported as it arrives.
 async fn download_archive(
     url: &str,
@@ -432,8 +590,18 @@ async fn download_archive(
     loading_bar: Option<&crate::event::LoadingBarId>,
     reporter: Option<&InstallProgressReporter>,
 ) -> crate::Result<bytes::Bytes> {
+    // Parallel ranges when the host allows them: the same archive in a
+    // fraction of the time on narrow per-connection routes.
+    if let Some(bytes) =
+        download_archive_parallel(url, java_version, state, loading_bar, reporter).await?
+    {
+        return Ok(bytes);
+    }
+
     let Some(reporter) = reporter else {
-        return fetch_advanced(
+        // The file-download client: its 180s read timeout survives a slow
+        // line that the 30s API client would cut off mid-archive.
+        return fetch_advanced_with_client(
             Method::GET,
             url,
             None,
@@ -444,6 +612,7 @@ async fn download_archive(
             None,
             &state.fetch_semaphore,
             &state.pool,
+            &DOWNLOAD_REQWEST_CLIENT,
         )
         .await;
     };

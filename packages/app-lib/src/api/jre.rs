@@ -441,7 +441,7 @@ const JAVA_PARALLEL_MIN_SIZE: u64 = 8 * 1024 * 1024;
 const JAVA_RANGE_ATTEMPTS: usize = 3;
 
 /// `Content-Range: bytes 0-0/58618803` — the total after the last slash.
-fn total_from_content_range(value: Option<reqwest::header::HeaderValue>) -> Option<u64> {
+fn total_from_content_range(value: Option<&reqwest::header::HeaderValue>) -> Option<u64> {
     let value = value?.to_str().ok()?;
     let total = value.rsplit('/').next()?.trim();
     total.parse::<u64>().ok().filter(|total| *total > 0)
@@ -487,7 +487,7 @@ async fn download_archive_parallel(
                 let mut last_error: Option<crate::Error> = None;
                 for attempt in 0..JAVA_RANGE_ATTEMPTS {
                     if attempt > 0 {
-                        tokio::time::sleep(Duration::from_millis(400 * u64::from(attempt))).await;
+                        tokio::time::sleep(Duration::from_millis(400 * attempt as u64)).await;
                     }
                     let _permit = crate::install::control::download_step(
                         state.fetch_semaphore.0.acquire(),

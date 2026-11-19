@@ -5,6 +5,7 @@ import {
 	PinIcon,
 	SearchIcon,
 	SendIcon,
+	TrashIcon,
 	UploadIcon,
 	UserIcon,
 	UserPlusIcon,
@@ -29,6 +30,8 @@ import {
 	activeServer,
 	activeThread,
 	backToLatest,
+	canManage,
+	deleteMessagesBulk,
 	displayName,
 	editMessage,
 	jumpTo,
@@ -39,12 +42,13 @@ import {
 	relationOf,
 	requestFriend,
 	searchMessages,
+	showToast,
 	state,
 	typingNames,
 	userOf,
 } from './store'
 import { vTip } from './tooltip'
-import { openProfile } from './ui-bus'
+import { askChoice, openProfile } from './ui-bus'
 import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps<{ sidePanel: boolean }>()
@@ -119,6 +123,15 @@ const mentionables = computed<Peer[]>(() => {
 	return conv.value.members.filter((member) => member.id !== myId.value)
 })
 
+/** Интро-карточка живёт только в пустом личном чате: появилось сообщение — она уходит. */
+const showIntro = computed(
+	() =>
+		Boolean(thread.value) &&
+		!thread.value?.hasMore &&
+		!thread.value?.loading &&
+		!(conv.value?.dm && peer.value && messages.value.length > 0),
+)
+
 type Row =
 	| { type: 'date'; key: string; label: string }
 	| { type: 'new'; key: string }
@@ -164,6 +177,7 @@ function scrollToBottom(smooth = false): void {
 watch(activeKey, async () => {
 	replyTo.value = null
 	editingId.value = ''
+	exitSelect()
 	tool.value = 'none'
 	searchResults.value = null
 	searchText.value = ''
@@ -284,6 +298,70 @@ async function saveEdit(msg: Msg, text: string): Promise<void> {
 
 function cancelEdit(): void {
 	editingId.value = ''
+	composer.value?.focus()
+}
+
+/* Мультивыбор сообщений: включается из меню сообщения, клики по сообщениям — выбор. */
+const selectMode = ref(false)
+const selectedIds = ref<Set<string>>(new Set())
+
+function startSelect(msg: Msg): void {
+	replyTo.value = null
+	editingId.value = ''
+	selectMode.value = true
+	selectedIds.value = new Set([msg.id])
+}
+
+function toggleSelect(msg: Msg): void {
+	const next = new Set(selectedIds.value)
+	if (next.has(msg.id)) next.delete(msg.id)
+	else next.add(msg.id)
+	selectedIds.value = next
+}
+
+function exitSelect(): void {
+	selectMode.value = false
+	selectedIds.value = new Set()
+}
+
+async function bulkRemove(): Promise<void> {
+	const selected = messages.value.filter((msg) => selectedIds.value.has(msg.id))
+	if (!selected.length) return
+	const withRights = selected.some((msg) => msg.senderId === myId.value || canManage.value)
+	const choices = [
+		{
+			id: 'me',
+			label: t('app.messenger.delete.forMe', 'Удалить у меня'),
+			danger: !withRights,
+		},
+	]
+	if (withRights)
+		choices.push({
+			id: 'all',
+			label: t('app.messenger.delete.forAll', 'Удалить у всех'),
+			danger: true,
+		})
+	const choice = await askChoice({
+		title: t('app.messenger.select.title', 'Удалить выбранные сообщения'),
+		text: withRights
+			? t(
+					'app.messenger.select.textBoth',
+					'«У меня» — сообщения пропадут только в этом лаунчере. «У всех» — исчезнут у всех, на кого хватает прав.',
+				)
+			: t('app.messenger.select.textMe', 'Сообщения пропадут только у вас, собеседники их увидят.'),
+		choices,
+	})
+	if (!choice) return
+	const { done, skipped } = await deleteMessagesBulk(selected, choice)
+	showToast(
+		choice === 'all' && skipped
+			? t('app.messenger.select.doneSkipped', 'Удалено: {done}, пропущено без прав: {skipped}', {
+					done,
+					skipped,
+				})
+			: t('app.messenger.select.done', 'Удалено: {done}', { done }),
+	)
+	exitSelect()
 	composer.value?.focus()
 }
 
@@ -467,7 +545,7 @@ function onDrop(event: DragEvent): void {
 					<div v-if="thread?.loadingOlder" class="msgr-chat__older">
 						<span class="msgr-spinner" />
 					</div>
-					<div v-if="thread && !thread.hasMore && !thread.loading" class="msgr-chat__intro">
+					<div v-if="showIntro" class="msgr-chat__intro">
 						<template v-if="conv.dm && peer">
 							<div class="msgr-chat__intro-card">
 								<button
@@ -514,26 +592,6 @@ function onDrop(event: DragEvent): void {
 									<UserIcon />
 									{{ t('app.messenger.intro.profile', 'Профиль') }}
 								</button>
-								<button
-									v-if="!peer.bot"
-									type="button"
-									:disabled="callPhase !== 'idle'"
-									@click="callPeer"
-								>
-									<PhoneIcon />
-									{{ t('app.messenger.call.short', 'Позвонить') }}
-								</button>
-								<button
-									v-if="!peer.bot && relationOf(peer.id) === 'none'"
-									type="button"
-									@click="addFriend"
-								>
-									<UserPlusIcon />
-									{{ t('app.messenger.friends.add', 'Добавить в друзья') }}
-								</button>
-								<span v-else-if="relationOf(peer.id) === 'outgoing'" class="msgr-chat__intro-note">
-									{{ t('app.messenger.intro.requestSent', 'Заявка в друзья отправлена') }}
-								</span>
 							</div>
 						</template>
 						<template v-else>
@@ -580,11 +638,15 @@ function onDrop(event: DragEvent): void {
 							:grouped="row.grouped"
 							:editing="editingId === row.msg.id"
 							:highlight="highlightId === row.msg.id"
+							:select-mode="selectMode"
+							:selected="selectedIds.has(row.msg.id)"
 							@reply="startReply"
 							@edit="startEdit"
 							@save="saveEdit"
 							@cancel="cancelEdit"
 							@jump="jumpReply"
+							@select="startSelect"
+							@toggle-select="toggleSelect"
 						/>
 					</template>
 					<div class="msgr-chat__tail" />
@@ -618,7 +680,24 @@ function onDrop(event: DragEvent): void {
 						</span>
 					</template>
 				</div>
+				<div v-if="selectMode" class="msgr-chat__bulkbar">
+					<b>{{ t('app.messenger.select.count', 'Выбрано: {n}', { n: selectedIds.size }) }}</b>
+					<div class="msgr-chat__bulkbar-spacer" />
+					<button
+						type="button"
+						class="msgr-chat__bulkbar-remove"
+						:disabled="!selectedIds.size"
+						@click="bulkRemove"
+					>
+						<TrashIcon />
+						{{ t('app.messenger.select.delete', 'Удалить') }}
+					</button>
+					<button type="button" @click="exitSelect">
+						{{ t('app.messenger.cancel', 'Отмена') }}
+					</button>
+				</div>
 				<Composer
+					v-else
 					ref="composer"
 					:placeholder="placeholder"
 					:reply-to="replyTo"
@@ -1488,5 +1567,55 @@ function onDrop(event: DragEvent): void {
 	.msgr-chat__drop-card {
 		animation: none;
 	}
+}
+
+.msgr-chat__bulkbar {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0.75rem 0.5rem;
+	padding: 0.5rem 0.8rem;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 10px;
+	background: #1f2023;
+}
+
+.msgr-chat__bulkbar b {
+	color: var(--color-contrast);
+	font-size: 0.85rem;
+}
+
+.msgr-chat__bulkbar-spacer {
+	flex: 1;
+}
+
+.msgr-chat__bulkbar button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.4rem 0.7rem;
+	border: 0;
+	border-radius: 6px;
+	background: #2b2d31;
+	color: var(--color-contrast);
+	font: inherit;
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.msgr-chat__bulkbar button:disabled {
+	cursor: default;
+	opacity: 0.5;
+}
+
+.msgr-chat__bulkbar button.msgr-chat__bulkbar-remove {
+	background: #da373c;
+	color: white;
+}
+
+.msgr-chat__bulkbar svg {
+	width: 0.95rem;
+	height: 0.95rem;
 }
 </style>

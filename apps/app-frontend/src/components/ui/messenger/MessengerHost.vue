@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 
 import { useAppEvent } from '@/composables/use-app-event'
 import { get as getInstance } from '@/helpers/instance'
+import { list_lan_relays } from '@/helpers/lan'
 import { initMessengerCall } from '@/helpers/messenger-call'
 import { get_all as runningProcesses } from '@/helpers/process'
 import { onServiceAccountChange, serviceRequest } from '@/helpers/uprojects-service'
@@ -60,6 +61,11 @@ setFailText((code) => {
 			return t('app.messenger.error.blocked', 'Пользователь ограничил общение с вами')
 		case 'network':
 			return t('app.messenger.error.network', 'Нет связи с сервером')
+		case 'delete':
+			return t(
+				'app.messenger.delete.forAllFailed',
+				'Не удалось удалить у всех — сообщение скрыто только у вас',
+			)
 		default:
 			return t('app.messenger.error.generic', 'Не получилось: {code}', { code })
 	}
@@ -104,6 +110,8 @@ type ProcessRow = { uuid: string; instance_id: string }
 
 const playing = new Map<string, string>()
 
+let activityJson = ''
+
 /** Друзья видят «Играет в …», только пока мы сами сообщаем серверу, что игра запущена. */
 async function syncActivity(): Promise<void> {
 	const rows = ((await runningProcesses().catch(() => [])) || []) as ProcessRow[]
@@ -111,17 +119,48 @@ async function syncActivity(): Promise<void> {
 	for (const row of rows) playing.set(row.uuid, row.instance_id)
 	const instanceId = [...playing.values()].pop()
 	if (!instanceId) {
-		setActivity(null)
+		if (activityJson) setActivity(null)
+		activityJson = ''
 		return
 	}
 	const instance = await getInstance(instanceId).catch(() => null)
-	setActivity({
+	// Открытый мир по сети делим с друзьями: их «Миры по сети» показывают
+	// карточку мира, а у опубликованного мира — ещё и адрес для подключения.
+	const relays = (await list_lan_relays().catch(() => [])) || []
+	const open =
+		relays.find(
+			(relay) =>
+				relay.instance_id === instanceId && (relay.state === 'ready' || relay.state === 'live'),
+		) ??
+		relays.find((relay) => relay.state === 'ready' || relay.state === 'live') ??
+		null
+	const address =
+		open && open.state === 'live' && open.public_host && open.public_port
+			? `${open.public_host}:${open.public_port}`
+			: ''
+	const payload = {
 		playing: true,
 		buildName: instance?.name || '',
 		gameVersion: instance?.game_version || '',
 		loader: instance?.loader || '',
-	})
+		...(open
+			? {
+					worldShare: true,
+					serverName: open.instance_name || instance?.name || '',
+					serverHost: address,
+				}
+			: {}),
+	}
+	const json = JSON.stringify(payload)
+	if (json === activityJson) return
+	activityJson = json
+	setActivity(payload)
 }
+
+/** Мир по сети открывают кнопкой в самой игре — без опроса лаунчер его не заметит. */
+const activityPoll = setInterval(() => {
+	if (state.session) void syncActivity()
+}, 20000)
 
 useAppEvent('process', (event) => {
 	if (event.event === 'launched' || event.event === 'finished') void syncActivity()
@@ -250,6 +289,7 @@ onMounted(() => {
 onUnmounted(() => {
 	stopAccountWatch()
 	stopIncoming()
+	clearInterval(activityPoll)
 	for (const toast of toasts) if (toast.timer) clearTimeout(toast.timer)
 })
 </script>

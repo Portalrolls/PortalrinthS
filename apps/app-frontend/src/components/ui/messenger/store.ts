@@ -822,13 +822,44 @@ export function hideMessageForMe(msg: Msg): void {
 }
 
 export async function deleteMessage(msg: Msg): Promise<boolean> {
+	// Сообщение исчезает сразу и навсегда в этом лаунчере: даже если сервис
+	// откажет в удалении или почему-то вернёт его в истории, оно уже не
+	// покажется — раньше такие «застрявшие» сообщения не удалялись ни «у всех»,
+	// ни «у меня». Для сообщений каналов сервису нужен и channelId.
+	hideMessageForMe(msg)
 	const response = await serviceRequest(
 		`/conversations/${enc(msg.conversationId || activeConversation.value?.id || '')}/messages/${enc(msg.id)}`,
-		{ method: 'DELETE' },
+		{
+			method: 'DELETE',
+			query: msg.channelId ? { channelId: msg.channelId } : undefined,
+		},
 	)
-	if (response.ok) patchEverywhere(msg.id, () => null)
-	else fail(response)
+	if (!response.ok)
+		showToast(failText(String(response.error || response.code || response.status || 'delete')))
 	return response.ok
+}
+
+/** Мультивыбор: «у меня» — скрыть все выбранные, «у всех» — удалить те, на которые хватает прав. */
+export async function deleteMessagesBulk(
+	msgs: Msg[],
+	mode: 'me' | 'all',
+): Promise<{ done: number; skipped: number }> {
+	if (!msgs.length) return { done: 0, skipped: 0 }
+	if (mode !== 'all') {
+		msgs.forEach((msg) => hideMessageForMe(msg))
+		return { done: msgs.length, skipped: 0 }
+	}
+	let done = 0
+	let skipped = 0
+	for (const msg of msgs) {
+		if (msg.senderId === myId.value || canManage.value) {
+			await deleteMessage(msg)
+			done += 1
+		} else {
+			skipped += 1
+		}
+	}
+	return { done, skipped }
 }
 
 function flipReaction(reactions: Msg['reactions'], emoji: string, mine: boolean): Msg['reactions'] {
@@ -1691,7 +1722,12 @@ let activityTimer: ReturnType<typeof setInterval> | null = null
 /** Что видят друзья: «Играет в …» держится, пока лаунчер шлёт это раз в 45 секунд. */
 export function setActivity(payload: LooseRecord | null): void {
 	activityPayload = payload?.playing
-		? { ...payload, playing: true, hosting: false, worldShare: false }
+		? {
+				...payload,
+				playing: true,
+				hosting: false,
+				worldShare: Boolean(payload.worldShare),
+			}
 		: { playing: false, hosting: false, worldShare: false }
 	if (activityTimer) clearInterval(activityTimer)
 	activityTimer = null

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+	CheckIcon,
 	CopyIcon,
 	EditIcon,
 	HashIcon,
@@ -58,6 +59,8 @@ const props = defineProps<{
 	grouped: boolean
 	editing: boolean
 	highlight: boolean
+	selectMode: boolean
+	selected: boolean
 }>()
 
 const emit = defineEmits<{
@@ -66,6 +69,8 @@ const emit = defineEmits<{
 	save: [msg: Msg, text: string]
 	cancel: []
 	jump: [id: string]
+	select: [msg: Msg]
+	toggleSelect: [msg: Msg]
 }>()
 
 const t = useMessengerT()
@@ -170,7 +175,7 @@ function openMenu(event: MouseEvent): void {
 }
 
 function openContext(event: MouseEvent): void {
-	if (props.editing || system.value) return
+	if (props.editing || system.value || props.selectMode) return
 	const selection = window.getSelection()?.toString()
 	if (selection) return
 	event.preventDefault()
@@ -186,6 +191,19 @@ function openPicker(event: MouseEvent): void {
 function closeAll(): void {
 	menuAnchor.value = null
 	pickerAnchor.value = null
+}
+
+/** Режим мультивыбора: первый же клик по сообщению выбирает его, внутренние клики глушатся. */
+function onCaptureClick(event: MouseEvent): void {
+	if (!props.selectMode) return
+	event.stopPropagation()
+	event.preventDefault()
+	emit('toggleSelect', props.msg)
+}
+
+function startSelect(): void {
+	closeAll()
+	emit('select', props.msg)
 }
 
 function react(emoji: string): void {
@@ -322,12 +340,15 @@ function mention(name: string, el: HTMLElement): void {
 			'is-highlight': highlight,
 			'is-menu': menuAnchor || pickerAnchor,
 			'is-pending': msg.pending,
+			'is-selectable': selectMode,
+			'is-selected': selected,
 			'is-mention': msg.body
 				.toLowerCase()
 				.includes(`@${String(state.session?.user?.username || '~').toLowerCase()}`),
 		}"
 		:data-msg-id="msg.id"
 		@contextmenu="openContext"
+		@click.capture="onCaptureClick"
 	>
 		<div v-if="msg.replyTo" class="msgr-msg__reply" @click="emit('jump', msg.replyTo.id)">
 			<span class="msgr-msg__reply-spine" />
@@ -452,7 +473,7 @@ function mention(name: string, el: HTMLElement): void {
 			</div>
 		</div>
 
-		<div v-if="!editing && !msg.pending" class="msgr-msg__toolbar" @pointerdown.stop>
+		<div v-if="!editing && !msg.pending && !selectMode" class="msgr-msg__toolbar" @pointerdown.stop>
 			<button
 				v-tip="t('app.messenger.react.heart', 'Нравится')"
 				type="button"
@@ -548,6 +569,9 @@ function mention(name: string, el: HTMLElement): void {
 			<button type="button" class="msgr-menu-item" @click="startReply">
 				<ReplyIcon /> {{ t('app.messenger.reply', 'Ответить') }}
 			</button>
+			<button type="button" class="msgr-menu-item" @click="startSelect">
+				<CheckIcon /> {{ t('app.messenger.select.action', 'Выбрать') }}
+			</button>
 			<button type="button" class="msgr-menu-item" @click="forward">
 				<SendIcon /> {{ t('app.messenger.forward.action', 'Переслать') }}
 			</button>
@@ -602,6 +626,19 @@ function mention(name: string, el: HTMLElement): void {
 <style scoped>
 .msgr-msg.is-pending .msgr-msg__content {
 	opacity: 0.55;
+}
+
+.msgr-msg.is-selectable {
+	cursor: pointer;
+}
+
+.msgr-msg.is-selectable:hover {
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.msgr-msg.is-selected {
+	background: color-mix(in srgb, var(--color-brand) 16%, transparent);
+	box-shadow: inset 2px 0 0 var(--color-brand);
 }
 
 .msgr-msg__sticker {

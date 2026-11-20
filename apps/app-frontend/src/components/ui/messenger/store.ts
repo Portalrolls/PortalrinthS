@@ -372,18 +372,32 @@ export function sharedServers(userId: string): Conversation[] {
 	return servers.value.filter((conv) => conv.members.some((member) => member.id === userId))
 }
 
+/** Диалоги ЛС, однажды привязанные к пользователю: если сервис не отдал
+    peer и участников в списке бесед (или диалог скрыт), по этой памяти
+    «Написать» всё равно найдёт чат друга и просто перекинет в него. */
+const dmIdsByUser = new Map<string, string>()
+
+function rememberDm(conv: Conversation): void {
+	if (!conv.dm) return
+	if (conv.peer?.id) dmIdsByUser.set(conv.peer.id, conv.id)
+	const others = conv.members.filter((member) => member.id !== myId.value)
+	if (others.length === 1 && others[0].id) dmIdsByUser.set(others[0].id, conv.id)
+}
+
 export function dmWith(userId: string): Conversation | null {
 	const direct = dms.value.find((conv) => conv.peer?.id === userId)
 	if (direct) return direct
 	// В списке бесед peer бывает пуст: тогда ищем по составу — собеседник
 	// один, и это не я. Иначе открытый диалог не находится, и «Написать» у
 	// друга упирается в повторный запрос вместо существующего чата.
-	return (
-		dms.value.find((conv) => {
-			const others = conv.members.filter((member) => member.id !== myId.value)
-			return others.length === 1 && others[0].id === userId
-		}) ?? null
-	)
+	const byMembers = dms.value.find((conv) => {
+		const others = conv.members.filter((member) => member.id !== myId.value)
+		return others.length === 1 && others[0].id === userId
+	})
+	if (byMembers) return byMembers
+	const remembered = dmIdsByUser.get(userId)
+	if (!remembered) return null
+	return dms.value.find((conv) => conv.id === remembered) ?? null
 }
 
 function enc(value: string): string {
@@ -441,6 +455,7 @@ export async function loadLists(): Promise<void> {
 			for (const member of Array.isArray(row.members) ? row.members : []) rememberUser(member)
 		}
 		mapped.sort((a, b) => b.updatedAt - a.updatedAt)
+		for (const conv of mapped) rememberDm(conv)
 		state.conversations = mapped
 	}
 	if (friendResponse.ok) {
@@ -1037,12 +1052,43 @@ export async function startDm(user: {
 		method: 'POST',
 		body: { userId: user.id },
 	})
+	// Сервис может вернуть уже существующий диалог вместе с ошибкой повторного
+	// создания: тело с диалогом важнее кода статуса. Иначе «Написать» другу
+	// закрывает модалку и ничего не происходит.
+	const offered = response.data?.conversation ?? response.data
+	if (offered?.id) {
+		const conv = mapConversation(offered as LooseRecord)
+		if (conv?.dm) {
+			if (offered.peer) rememberUser(offered.peer)
+			rememberDm(conv)
+			if (!state.conversations.some((entry) => entry.id === conv.id))
+				state.conversations.unshift(conv)
+			return conv
+		}
+	}
 	if (!response.ok) {
 		// Диалог мог уже существовать, а сервис отказал в повторном
 		// создании: проверяем свежие списки, прежде чем ругаться.
 		await loadLists()
 		const existing = dmWith(user.id)
 		if (existing) return existing
+		// Последняя надежда: диалог однажды встречался — спрашиваем его у
+		// сервиса напрямую, в списках его может не быть (например, скрыт).
+		const remembered = dmIdsByUser.get(user.id)
+		if (remembered) {
+			const direct = await serviceRequest(`/conversations/${enc(remembered)}`)
+			if (direct.ok) {
+				const raw = direct.data?.conversation ?? direct.data
+				const conv = mapConversation(raw as LooseRecord)
+				if (conv?.dm) {
+					if (raw?.peer) rememberUser(raw.peer)
+					rememberDm(conv)
+					if (!state.conversations.some((entry) => entry.id === conv.id))
+						state.conversations.unshift(conv)
+					return conv
+				}
+			}
+		}
 		fail(response)
 		return null
 	}
@@ -1052,6 +1098,7 @@ export async function startDm(user: {
 		await loadLists()
 		return dmWith(user.id)
 	}
+	rememberDm(conv)
 	if (raw?.peer) rememberUser(raw.peer)
 	if (!state.conversations.some((entry) => entry.id === conv.id)) state.conversations.unshift(conv)
 	return state.conversations.find((entry) => entry.id === conv.id) ?? conv

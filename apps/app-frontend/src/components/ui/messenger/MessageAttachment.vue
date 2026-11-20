@@ -8,7 +8,7 @@ import {
 	PlayIcon,
 } from '@modrinth/assets'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { installBuild, isBuildFile } from './builds'
 import { useMessengerT } from './i18n'

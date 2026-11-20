@@ -7,6 +7,8 @@ import {
 	UPROJECTS_BASE,
 } from '@/helpers/uprojects-service'
 
+import { mediaBlobUrl, viaProxy } from './media'
+
 export type StickerKind = 'lottie' | 'image' | 'video'
 
 export type Sticker = { id: number; pack: string; emoji: string; url: string; kind: StickerKind }
@@ -160,6 +162,36 @@ export async function loadPacks(): Promise<boolean> {
 		}
 	})
 	return true
+}
+
+let preloaded = false
+
+/**
+ * Тихий прогрев до открытия меню стикеров: списки подтягиваются заранее, а
+ * медиа своих стикеров качаются строго по одному, чтобы не занимать сеть.
+ */
+export async function preloadStickers(): Promise<void> {
+	if (preloaded) return
+	preloaded = true
+	await loadStickers().catch(() => undefined)
+	await loadPacks().catch(() => false)
+	const proxied = await viaProxy().catch(() => false)
+	for (const sticker of [...stickers.mine]) {
+		try {
+			if (sticker.kind === 'lottie') await loadStickerJson(sticker.url)
+			else if (sticker.kind === 'video') await mediaBlobUrl(sticker.url, 'video/webm')
+			else if (proxied) await mediaBlobUrl(sticker.url, '')
+			else
+				await new Promise<void>((resolve, reject) => {
+					const image = new Image()
+					image.onload = () => resolve()
+					image.onerror = () => reject(new Error('image'))
+					image.src = sticker.url
+				})
+		} catch {
+			/* один стикер не прогрелся — при открытии он загрузится как раньше */
+		}
+	}
 }
 
 export async function setPackOwned(pack: string, add: boolean): Promise<boolean> {

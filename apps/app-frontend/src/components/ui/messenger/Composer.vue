@@ -12,7 +12,7 @@ import {
 	XIcon,
 } from '@modrinth/assets'
 import { convertFileSrc } from '@tauri-apps/api/core'
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { list as listInstances } from '@/helpers/instance'
 import type { GameInstance } from '@/helpers/types'
@@ -32,7 +32,7 @@ import {
 	readFileBase64,
 } from './model'
 import StickerPicker from './StickerPicker.vue'
-import { type OwnSticker, ownStickerFile, PLAYER_STICKER_MARK } from './stickers'
+import { type OwnSticker, ownStickerFile, PLAYER_STICKER_MARK, preloadStickers } from './stickers'
 import {
 	activeConversation,
 	activeKey,
@@ -455,6 +455,10 @@ async function finishRecording(): Promise<void> {
 onBeforeUnmount(() => {
 	if (recorder.value) stopRecording(true)
 	clearAttachment()
+})
+
+onMounted(() => {
+	void preloadStickers()
 })
 
 defineExpose({ addFile, focus, insertText: (value: string) => (text.value += value) })

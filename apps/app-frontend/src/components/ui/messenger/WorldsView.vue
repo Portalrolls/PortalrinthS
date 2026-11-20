@@ -2,7 +2,7 @@
 import { CopyIcon, GlobeIcon, MessageIcon, PlayIcon } from '@modrinth/assets'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-import { hostedAddress, type HostedServerView,hosting_list } from '@/helpers/hosting'
+import { hostedAddress, type HostedServerView, hosting_list } from '@/helpers/hosting'
 import { list } from '@/helpers/instance'
 import type { GameInstance } from '@/helpers/types'
 import { start_join_server } from '@/helpers/worlds'
@@ -67,19 +67,37 @@ async function copyAddress(host: string): Promise<void> {
 const joinTarget = ref<{ host: string; version: string; label: string } | null>(null)
 const builds = ref<GameInstance[]>([])
 const buildsLoading = ref(false)
+const buildsError = ref(false)
 const launchingId = ref('')
 
 async function openJoin(host: string, version: string, label: string): Promise<void> {
 	joinTarget.value = { host, version, label }
 	builds.value = []
+	buildsError.value = false
 	buildsLoading.value = true
 	try {
 		builds.value = await list()
 	} catch {
 		builds.value = []
+		buildsError.value = true
 	} finally {
 		buildsLoading.value = false
 	}
+}
+
+function retryBuilds(): void {
+	const target = joinTarget.value
+	if (target) void openJoin(target.host, target.version, target.label)
+}
+
+/** Tauri отдаёт дату ISO-строкой, хотя тип объявляет Date — приводим оба варианта. */
+function playedAt(value: unknown): number {
+	if (value instanceof Date) return value.getTime()
+	if (typeof value === 'string' || typeof value === 'number') {
+		const parsed = new Date(value).getTime()
+		if (!Number.isNaN(parsed)) return parsed
+	}
+	return 0
 }
 
 function closeJoin(): void {
@@ -97,7 +115,7 @@ const sortedBuilds = computed(() => {
 				const fitB = b.game_version === target.version ? 0 : 1
 				if (fitA !== fitB) return fitA - fitB
 			}
-			return (b.last_played?.getTime() ?? 0) - (a.last_played?.getTime() ?? 0)
+			return playedAt(b.last_played) - playedAt(a.last_played)
 		})
 })
 
@@ -267,6 +285,12 @@ async function joinWith(build: GameInstance): Promise<void> {
 					<div class="msgr-worlds__builds">
 						<p v-if="buildsLoading" class="msgr-worlds__builds-note">
 							{{ t('app.messenger.worlds.loadingBuilds', 'Загружаем сборки…') }}
+						</p>
+						<p v-else-if="buildsError" class="msgr-worlds__builds-note">
+							{{ t('app.messenger.worlds.buildsFailed', 'Не удалось загрузить список сборок') }}
+							<button type="button" class="msgr-worlds__retry" @click="retryBuilds">
+								{{ t('app.messenger.worlds.retry', 'Повторить') }}
+							</button>
 						</p>
 						<p v-else-if="!sortedBuilds.length" class="msgr-worlds__builds-note">
 							{{
@@ -531,6 +555,24 @@ async function joinWith(build: GameInstance): Promise<void> {
 	color: var(--color-secondary);
 	font-size: 0.85rem;
 	text-align: center;
+}
+
+.msgr-worlds__retry {
+	display: inline-block;
+	margin-left: 0.4rem;
+	padding: 0.25rem 0.7rem;
+	border: 0;
+	border-radius: 6px;
+	background: #2b2d31;
+	color: var(--color-contrast);
+	font: inherit;
+	font-size: 0.8rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.msgr-worlds__retry:hover {
+	background: #35373c;
 }
 
 .msgr-worlds__build {

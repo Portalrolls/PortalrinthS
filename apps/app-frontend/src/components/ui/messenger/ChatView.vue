@@ -12,7 +12,7 @@ import {
 	UsersIcon,
 	XIcon,
 } from '@modrinth/assets'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import { getCallState, startDmCall } from '@/helpers/messenger-call'
 
@@ -190,6 +190,9 @@ watch(activeKey, async () => {
 	window.setTimeout(() => {
 		if (activeKey.value === key) scrollToBottom()
 	}, 350)
+	window.setTimeout(() => {
+		if (activeKey.value === key) scrollToBottom()
+	}, 800)
 })
 
 watch(
@@ -198,8 +201,17 @@ watch(
 		if (!loaded) return
 		await nextTick()
 		scrollToBottom()
+		window.setTimeout(scrollToBottom, 200)
+		window.setTimeout(scrollToBottom, 500)
 	},
 )
+
+// Первый открытый чат: активный ключ уже выставлен, смена не срабатывает —
+// прыгаем вниз при монтировании, как только лента отрисуется.
+onMounted(() => {
+	void nextTick().then(() => scrollToBottom())
+	window.setTimeout(scrollToBottom, 350)
+})
 
 watch(
 	() => messages.value.length,

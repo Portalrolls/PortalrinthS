@@ -20,8 +20,7 @@
  * the page underneath is, which during startup it is.
  */
 import { injectLoadingState } from '@modrinth/ui'
-import { getVersion } from '@tauri-apps/api/app'
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 
 import { useAppBusy } from '@/composables/use-app-busy'
 
@@ -31,15 +30,6 @@ const MINIMUM_VISIBLE_MS = 1200
 const loading = injectLoadingState()
 const working = useAppBusy()
 const active = ref(false)
-
-/** The launcher's own version, said out loud in the title bar. */
-const version = ref('')
-
-onMounted(() => {
-	void getVersion()
-		.then((value) => (version.value = value || ''))
-		.catch(() => undefined)
-})
 
 let startedAt = 0
 let stopTimer: number | undefined
@@ -85,7 +75,6 @@ onBeforeUnmount(clearStopTimer)
 	<span class="portalrinth-logo" :class="{ 'is-active': active || working }">
 		<span class="portalrinth-logo__mark" aria-hidden="true" />
 		<span class="portalrinth-logo__name">Portalrinth</span>
-		<span v-if="version" class="portalrinth-logo__version">{{ version }}</span>
 	</span>
 </template>
 
@@ -130,17 +119,6 @@ html.portalrinth-icons-accent .portalrinth-logo__mark {
 	line-height: 1;
 	letter-spacing: 0.01em;
 	color: var(--color-contrast);
-}
-
-.portalrinth-logo__version {
-	padding: 0.1rem 0.4rem;
-	border-radius: 6px;
-	background: rgba(255, 255, 255, 0.08);
-	color: var(--color-secondary);
-	font-size: 0.7rem;
-	font-weight: 600;
-	line-height: 1;
-	user-select: text;
 }
 
 /*

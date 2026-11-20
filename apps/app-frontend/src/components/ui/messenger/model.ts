@@ -393,6 +393,13 @@ const LOADER_NAMES: Record<string, string> = {
 	quilt: 'Quilt',
 }
 
+/** «Fabric»/«Forge»/«NeoForge»/«Quilt» или исходная строка; без ядра и vanilla — «Vanilla». */
+export function loaderName(loader: string | undefined | null): string {
+	const key = (loader || '').toLowerCase()
+	if (!key || key === 'vanilla') return 'Vanilla'
+	return LOADER_NAMES[key] ?? loader!
+}
+
 /** Как в Undefined Client: «Сборка · 1.21.1 · Fabric» вместо безликого «Играет в Minecraft». */
 export function buildLine(activity: Activity | null | undefined): string {
 	if (!activity?.buildName) return ''

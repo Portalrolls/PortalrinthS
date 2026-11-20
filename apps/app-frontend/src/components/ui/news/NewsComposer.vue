@@ -285,8 +285,8 @@ defineExpose({ focus })
 }
 
 .nf-composer.is-open {
-	border-color: rgba(176, 0, 255, 0.35);
-	box-shadow: 0 0 0 3px rgba(176, 0, 255, 0.08);
+	border-color: color-mix(in srgb, var(--color-brand) 35%, transparent);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 8%, transparent);
 }
 
 .nf-composer.is-banned p {
@@ -362,7 +362,7 @@ defineExpose({ focus })
 
 .nf-composer__mentions button.is-active,
 .nf-composer__mentions button:hover {
-	background: rgba(176, 0, 255, 0.16);
+	background: color-mix(in srgb, var(--color-brand) 16%, transparent);
 }
 
 .nf-composer__icon,

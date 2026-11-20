@@ -248,6 +248,12 @@ onBeforeUnmount(() => observer?.disconnect())
 			</TeleportOverflowMenu>
 		</header>
 
+		<NewsCarousel
+			v-if="post.attachments?.length"
+			class="nf-post__media"
+			:items="post.attachments"
+		/>
+
 		<p v-if="post.title" class="nf-post__title">{{ post.title }}</p>
 		<div v-if="text" class="nf-post__body" :class="{ 'is-clamped': long && !expanded }">
 			<NewsRichText
@@ -286,12 +292,6 @@ onBeforeUnmount(() => observer?.disconnect())
 			</div>
 			<NewsCarousel v-if="quote.attachments?.length" :items="quote.attachments.slice(0, 1)" />
 		</div>
-
-		<NewsCarousel
-			v-if="post.attachments?.length"
-			class="nf-post__media"
-			:items="post.attachments"
-		/>
 
 		<footer class="nf-post__foot">
 			<button
@@ -384,7 +384,7 @@ onBeforeUnmount(() => observer?.disconnect())
 }
 
 .nf-post:not(.is-detached):hover {
-	border-color: rgba(176, 0, 255, 0.28);
+	border-color: color-mix(in srgb, var(--color-brand) 30%, transparent);
 	box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
 }
 
@@ -398,7 +398,7 @@ onBeforeUnmount(() => observer?.disconnect())
 }
 
 .nf-post.is-pinned {
-	border-color: rgba(176, 0, 255, 0.35);
+	border-color: color-mix(in srgb, var(--color-brand) 35%, transparent);
 }
 
 .nf-post__head {

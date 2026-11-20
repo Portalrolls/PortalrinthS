@@ -174,6 +174,9 @@ function scrollToBottom(smooth = false): void {
 	el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
 }
 
+// Вход в чат всегда переносит на последние сообщения — маркер «новых»
+// положение больше не выбирает, а повторный прыжок догоняет вложения,
+// которые меняют высоту ленты уже после рендера.
 watch(activeKey, async () => {
 	replyTo.value = null
 	editingId.value = ''
@@ -181,8 +184,12 @@ watch(activeKey, async () => {
 	tool.value = 'none'
 	searchResults.value = null
 	searchText.value = ''
+	const key = activeKey.value
 	await nextTick()
-	scrollToNewOrBottom()
+	scrollToBottom()
+	window.setTimeout(() => {
+		if (activeKey.value === key) scrollToBottom()
+	}, 350)
 })
 
 watch(
@@ -190,22 +197,9 @@ watch(
 	async (loaded) => {
 		if (!loaded) return
 		await nextTick()
-		scrollToNewOrBottom()
+		scrollToBottom()
 	},
 )
-
-function scrollToNewOrBottom(): void {
-	const el = scroller.value
-	const id = thread.value?.firstNewId
-	if (el && id) {
-		const target = el.querySelector(`[data-new-marker]`) as HTMLElement | null
-		if (target) {
-			el.scrollTop = Math.max(0, target.offsetTop - 80)
-			return
-		}
-	}
-	scrollToBottom()
-}
 
 watch(
 	() => messages.value.length,

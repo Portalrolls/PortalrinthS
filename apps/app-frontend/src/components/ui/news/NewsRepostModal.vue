@@ -332,7 +332,7 @@ defineExpose({ show })
 }
 
 .nf-rp__area:focus {
-	border-color: rgba(176, 0, 255, 0.5);
+	border-color: color-mix(in srgb, var(--color-brand) 50%, transparent);
 }
 
 .nf-rp__search {
@@ -393,7 +393,7 @@ defineExpose({ show })
 }
 
 .nf-rp__chat.is-on {
-	background: rgba(176, 0, 255, 0.14);
+	background: color-mix(in srgb, var(--color-brand) 14%, transparent);
 }
 
 .nf-rp__chat-name {

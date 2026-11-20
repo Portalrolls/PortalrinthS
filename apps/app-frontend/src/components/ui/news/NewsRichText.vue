@@ -129,7 +129,7 @@ function onClick(event: MouseEvent) {
 	padding: 6px 12px;
 	border-left: 3px solid var(--color-brand);
 	border-radius: 0 8px 8px 0;
-	background: rgba(176, 0, 255, 0.08);
+	background: color-mix(in srgb, var(--color-brand) 8%, transparent);
 	color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
 }
 

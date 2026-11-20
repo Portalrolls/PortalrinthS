@@ -429,8 +429,8 @@ defineExpose({ show, hide })
 	gap: 6px;
 	padding: 3px 4px 3px 10px;
 	border-radius: 999px;
-	background: rgba(176, 0, 255, 0.14);
-	color: #e2b6ff;
+	background: color-mix(in srgb, var(--color-brand) 14%, transparent);
+	color: var(--color-brand);
 	font-size: 12px;
 	font-weight: 600;
 }
@@ -469,7 +469,7 @@ defineExpose({ show, hide })
 }
 
 .nf-pm__input:focus-within {
-	border-color: rgba(176, 0, 255, 0.5);
+	border-color: color-mix(in srgb, var(--color-brand) 50%, transparent);
 }
 
 .nf-pm__input textarea {

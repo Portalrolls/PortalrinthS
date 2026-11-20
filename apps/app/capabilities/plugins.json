@@ -233,6 +233,7 @@
 		"portalrinth-archiver:default",
 		"portalrinth-gradle:default",
 		"portalrinth-bridge:default",
-		"portalrinth-fonts:default"
+		"portalrinth-fonts:default",
+		"notification:default"
 	]
 }

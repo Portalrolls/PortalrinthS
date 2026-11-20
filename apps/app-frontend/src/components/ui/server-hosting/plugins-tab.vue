@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { BoxIcon, FolderOpenIcon, TrashIcon, UploadIcon } from '@modrinth/assets'
 import {
+	Admonition,
 	Button,
 	defineMessages,
 	EmptyState,
@@ -19,6 +20,7 @@ import {
 	hosting_plugin_remove,
 	hosting_plugin_toggle,
 	hosting_plugins,
+	hosting_restore_mods,
 } from '@/helpers/hosting'
 import { openPath } from '@/helpers/utils.js'
 
@@ -43,7 +45,37 @@ const messages = defineMessages({
 		id: 'app.server-hosting.content.restart-hint',
 		defaultMessage: 'Changes take effect after the server restarts.',
 	},
+	modsOffTitle: {
+		id: 'app.server-hosting.content.mods-off-title',
+		defaultMessage: 'Mods are set aside',
+	},
+	modsOffHint: {
+		id: 'app.server-hosting.content.mods-off-hint',
+		defaultMessage:
+			'The mods folder is parked as mods.disabled, so the server starts without them. Bring them back when the problem is fixed.',
+	},
+	modsRestore: {
+		id: 'app.server-hosting.content.mods-restore',
+		defaultMessage: 'Restore mods',
+	},
 })
+
+/** Моды сняты после «запустить без модов» — вернём их одной кнопкой. */
+const modsDisabled = computed(() => props.server.mods_disabled)
+const modsBusy = ref(false)
+
+async function restoreMods() {
+	if (modsBusy.value) return
+	modsBusy.value = true
+	try {
+		await hosting_restore_mods(props.server.id)
+		await queryClient.invalidateQueries({ queryKey: ['server-hosting'] })
+	} catch (error) {
+		handleError(error as Error)
+	} finally {
+		modsBusy.value = false
+	}
+}
 
 const kind = computed(() => contentKind(props.server))
 const queryKey = computed(() => ['server-hosting', 'plugins', props.server.id] as const)
@@ -94,6 +126,12 @@ function openFolder() {
 
 <template>
 	<div class="flex flex-col gap-4">
+		<Admonition v-if="modsDisabled" type="warning" :header="formatMessage(messages.modsOffTitle)">
+			{{ formatMessage(messages.modsOffHint) }}
+			<Button class="mt-2" type="outlined" :loading="modsBusy" @click="restoreMods">
+				{{ formatMessage(messages.modsRestore) }}
+			</Button>
+		</Admonition>
 		<section class="hosting-panel flex flex-col gap-3">
 			<div class="flex flex-wrap items-center justify-between gap-2">
 				<h2 class="m-0 flex items-center gap-2 text-lg font-bold text-contrast">

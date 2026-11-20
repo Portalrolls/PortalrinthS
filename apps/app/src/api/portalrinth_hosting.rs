@@ -103,6 +103,16 @@ pub async fn hosting_command(id: String, command: String) -> Result<()> {
 }
 
 #[tauri::command]
+pub async fn hosting_disable_mods(id: String) -> Result<HostedServerView> {
+    Ok(hosted_servers::set_mods_disabled(&id, true).await?)
+}
+
+#[tauri::command]
+pub async fn hosting_restore_mods(id: String) -> Result<HostedServerView> {
+    Ok(hosted_servers::set_mods_disabled(&id, false).await?)
+}
+
+#[tauri::command]
 pub async fn hosting_log(id: String) -> Result<Vec<String>> {
     Ok(hosted_servers::log(&id))
 }

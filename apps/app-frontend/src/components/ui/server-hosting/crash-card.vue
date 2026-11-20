@@ -27,6 +27,7 @@ const emit = defineEmits<{
 	console: []
 	settings: []
 	resetJava: []
+	safeStart: []
 }>()
 
 const { formatMessage } = useVIntl()
@@ -60,6 +61,9 @@ const wantsSettings = computed(() =>
 const canResetJava = computed(
 	() => reason.value === 'java_version' && props.server.java_path.trim() !== '',
 )
+
+/** Modded servers that died on their mods get a way around them. */
+const canSafeStart = computed(() => reason.value === 'mods' && !props.server.mods_disabled)
 
 const copied = ref(false)
 async function copyLine() {
@@ -121,6 +125,10 @@ async function copyLine() {
 				<Button type="outlined" @click="emit('console')">
 					<TerminalSquareIcon />
 					{{ formatMessage(crashMessages.openConsole) }}
+				</Button>
+				<Button v-if="canSafeStart" type="outlined" :disabled="busy" @click="emit('safeStart')">
+					<PlugIcon />
+					{{ formatMessage(crashMessages.startWithoutMods) }}
 				</Button>
 				<Button
 					v-if="wantsSettings || reason === 'java_version'"

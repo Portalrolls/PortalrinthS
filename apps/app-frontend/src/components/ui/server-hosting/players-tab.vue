@@ -45,7 +45,9 @@ const busy = ref<string | null>(null)
 const whitelistName = ref('')
 
 function headOf(player: string) {
-	resolvePlayerHead(player, null)
+	// On an offline-mode server the names usually live on Ely.by, on a
+	// licensed one Mojang is the better first guess.
+	resolvePlayerHead(player, null, props.server.online_mode ? undefined : ['ely_by', 'microsoft'])
 	return playerHead(player)
 }
 

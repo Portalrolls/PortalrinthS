@@ -470,7 +470,7 @@ function onDrop(event: DragEvent): void {
 			</template>
 			<div class="msgr-chat__actions">
 				<button
-					v-if="conv.dm && peer && !peer.bot"
+					v-if="conv.dm && peer && !peer.bot && relationOf(peer.id) === 'friend'"
 					v-tip:bottom="t('app.messenger.call.start', 'Начать голосовой звонок')"
 					type="button"
 					class="msgr-chat__action"

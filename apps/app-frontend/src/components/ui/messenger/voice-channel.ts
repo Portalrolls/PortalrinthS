@@ -26,7 +26,16 @@ export const voice = reactive({
 })
 
 const FALLBACK_ICE: RTCConfiguration = {
-	iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+	iceServers: [
+		{
+			urls: [
+				'stun:stun.l.google.com:19302',
+				'stun:stun1.l.google.com:19302',
+				'stun:stun.cloudflare.com:3478',
+				'stun:stun.yandex.ru:3478',
+			],
+		},
+	],
 }
 
 /** Сколько ждём соединения с участником, прежде чем предложить его заново. */

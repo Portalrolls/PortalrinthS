@@ -2,6 +2,11 @@
 import './messenger.css'
 
 import { XIcon } from '@modrinth/assets'
+import {
+	isPermissionGranted,
+	requestPermission,
+	sendNotification,
+} from '@tauri-apps/plugin-notification'
 import { computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -24,9 +29,11 @@ import {
 	me,
 	myId,
 	onIncomingMessage,
+	openChannel,
 	openDm,
 	openServer,
 	resetState,
+	sendMessage,
 	setActivity,
 	setFailText,
 	showToast,
@@ -177,12 +184,58 @@ type PushToast = {
 	id: string
 	convId: string
 	dm: boolean
+	/** Канал сервера: переход по клику открывает именно его. */
+	channelId: string
 	senderId: string
 	name: string
 	text: string
 	media: Attachment | null
 	expanded: boolean
+	reply: string
+	sending: boolean
 	timer: ReturnType<typeof setTimeout> | null
+}
+
+/** Нативное уведомление, по которому окно ещё не открывали. */
+type PendingJump = { convId: string; dm: boolean; channelId: string; at: number }
+
+let pendingJump: PendingJump | null = null
+
+const JUMP_WINDOW_MS = 30_000
+
+/** Нативный пуш — когда лаунчер свёрнут или в другом окне. */
+async function notifyNative(title: string, body: string): Promise<void> {
+	try {
+		if (document.hasFocus()) return
+		let granted = await isPermissionGranted()
+		if (!granted) granted = (await requestPermission()) === 'granted'
+		if (granted) sendNotification({ title, body })
+	} catch {
+		/* без нативных уведомлений остаются тосты */
+	}
+}
+
+function jumpTo(target: { convId: string; dm: boolean; channelId: string }): void {
+	void (async () => {
+		await router.push('/messenger')
+		if (target.dm) await openDm(target.convId)
+		else {
+			await openServer(target.convId)
+			if (target.channelId) await openChannel(target.convId, target.channelId)
+		}
+	})()
+}
+
+/** Клик по пушу Windows сам выводит окно на передний план — за ним доскакиваем до чата. */
+function onWindowFocus(): void {
+	if (!pendingJump) return
+	if (Date.now() - pendingJump.at > JUMP_WINDOW_MS) {
+		pendingJump = null
+		return
+	}
+	const target = pendingJump
+	pendingJump = null
+	jumpTo(target)
 }
 
 /** Сколько висит уведомление, если с ним ничего не делали. */
@@ -246,7 +299,14 @@ const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
 	const existing = toasts.find((entry) => entry.convId === conv.id)
 	const name = displayName(msg.senderId, msg.senderName) || conv.title
 	const title = conv.dm ? name : `${name} · ${conv.title}`
+	const channelId = conv.dm ? '' : msg.channelId || ''
+	// Окно свёрнуто — ин-app тост не виден: дублируем нативным пушем.
+	if (!document.hasFocus()) {
+		pendingJump = { convId: conv.id, dm: conv.dm, channelId, at: Date.now() }
+		void notifyNative(title, previewText(msg) || 'MC Messenger')
+	}
 	if (existing) {
+		existing.channelId = channelId
 		existing.text = previewText(msg)
 		existing.media = mediaOf(msg)
 		existing.senderId = msg.senderId
@@ -258,11 +318,14 @@ const stopIncoming = onIncomingMessage((msg: Msg, conv: Conversation) => {
 		id: msg.id,
 		convId: conv.id,
 		dm: conv.dm,
+		channelId,
 		senderId: msg.senderId,
 		name: title,
 		text: previewText(msg),
 		media: mediaOf(msg),
 		expanded: false,
+		reply: '',
+		sending: false,
 		timer: null,
 	}
 	toasts.unshift(toast)
@@ -277,19 +340,42 @@ async function openToast(toast: PushToast): Promise<void> {
 	closeToast(toast.id)
 	await router.push('/messenger')
 	if (toast.dm) await openDm(toast.convId)
-	else await openServer(toast.convId)
+	else {
+		await openServer(toast.convId)
+		if (toast.channelId) await openChannel(toast.convId, toast.channelId)
+	}
+}
+
+/** Ответ прямо из пуша, не открывая чат. */
+async function replyFromToast(toast: PushToast): Promise<void> {
+	const body = toast.reply.trim()
+	if (!body || toast.sending) return
+	toast.sending = true
+	try {
+		const ok = await sendMessage({
+			body,
+			convId: toast.convId,
+			channelId: toast.channelId || undefined,
+		})
+		if (ok) closeToast(toast.id)
+		else toast.reply = body
+	} finally {
+		toast.sending = false
+	}
 }
 
 const toastKey = computed(() => state.toast.id)
 
 onMounted(() => {
 	if (!state.session && !state.loading) void connect()
+	window.addEventListener('focus', onWindowFocus)
 })
 
 onUnmounted(() => {
 	stopAccountWatch()
 	stopIncoming()
 	clearInterval(activityPoll)
+	window.removeEventListener('focus', onWindowFocus)
 	for (const toast of toasts) if (toast.timer) clearTimeout(toast.timer)
 })
 </script>
@@ -345,6 +431,27 @@ onUnmounted(() => {
 						>
 							{{ t('app.messenger.push.more', 'Показать ещё') }}
 						</button>
+						<form
+							class="msgr-push__reply"
+							@submit.prevent="replyFromToast(toast)"
+							@click.stop
+							@keydown.stop
+						>
+							<input
+								v-model="toast.reply"
+								type="text"
+								:placeholder="t('app.messenger.push.reply', 'Ответить…')"
+								autocomplete="off"
+								spellcheck="false"
+							/>
+							<button
+								type="submit"
+								:disabled="!toast.reply.trim() || toast.sending"
+								:aria-label="t('app.messenger.push.replySend', 'Отправить')"
+							>
+								{{ t('app.messenger.push.replySend', 'Отправить') }}
+							</button>
+						</form>
 					</div>
 				</article>
 			</TransitionGroup>
@@ -483,6 +590,46 @@ onUnmounted(() => {
 
 .msgr-push__more:hover {
 	text-decoration: underline;
+}
+
+.msgr-push__reply {
+	display: flex;
+	gap: 0.35rem;
+	margin-top: 0.4rem;
+}
+
+.msgr-push__reply input {
+	min-width: 0;
+	flex: 1;
+	padding: 0.3rem 0.55rem;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 8px;
+	background: #0e0f12;
+	color: #f2f3f5;
+	font: inherit;
+	font-size: 0.82rem;
+}
+
+.msgr-push__reply input:focus {
+	outline: none;
+	border-color: color-mix(in srgb, var(--color-brand) 55%, transparent);
+}
+
+.msgr-push__reply button {
+	padding: 0.3rem 0.6rem;
+	border: 0;
+	border-radius: 8px;
+	background: var(--color-brand);
+	color: white;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.msgr-push__reply button:disabled {
+	opacity: 0.5;
+	cursor: default;
 }
 
 .msgr-push__close {

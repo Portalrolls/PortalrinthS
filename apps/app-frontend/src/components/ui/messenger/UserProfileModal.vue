@@ -29,7 +29,7 @@ import { buildLine, formatDate, isInGame, type Peer } from './model'
 import PhoneIcon from './PhoneIcon.vue'
 import { formatPlaytime, playStatsOf } from './profile-activity'
 import { cardOf, profileEditor, requestCard } from './profile-card'
-import { callUser, presenceFor, rememberUser, showToast, state, userOf } from './store'
+import { callUser, presenceFor, relationOf, rememberUser, showToast, state, userOf } from './store'
 import { vTip } from './tooltip'
 import UserAvatar from './UserAvatar.vue'
 
@@ -544,7 +544,7 @@ function edit(): void {
 											{{ t('app.messenger.profile.write', 'Написать') }}
 										</button>
 										<button
-											v-if="canWrite"
+											v-if="canWrite && relationOf(userId) === 'friend'"
 											v-tip="t('app.messenger.call.start', 'Позвонить')"
 											type="button"
 											class="upm__btn is-icon"

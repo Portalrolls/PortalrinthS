@@ -128,6 +128,8 @@ pub struct HostedServerView {
     /// 1 core, 2 Java, 3 world, 4 done; 0 while it is not starting.
     pub boot_step: u8,
     pub boot_progress: Option<u8>,
+    /// The mod folder is currently set aside as `mods.disabled`.
+    pub mods_disabled: bool,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -354,6 +356,7 @@ async fn view_of(server: HostedServer) -> crate::Result<HostedServerView> {
         crash_line: None,
         boot_step: 0,
         boot_progress: None,
+        mods_disabled: dir.join("mods.disabled").exists(),
         server,
     };
     if let Some(run) = RUNTIME.get(&view.server.id) {
@@ -1013,6 +1016,42 @@ fn split_args(text: &str) -> Vec<String> {
         out.push(current);
     }
     out
+}
+
+/// Sets the mod folder aside (or puts it back) so a broken set of mods can
+/// be started around without deleting anything. Only while the server is off.
+pub async fn set_mods_disabled(id: &str, disable: bool) -> crate::Result<HostedServerView> {
+    if is_active(id) {
+        return Err(input_error("stop the server before changing its mods"));
+    }
+    let dir = server_dir(id).await?;
+    let (from, to, note) = if disable {
+        (
+            dir.join("mods"),
+            dir.join("mods.disabled"),
+            "Mods set aside as mods.disabled - start without them",
+        )
+    } else {
+        (
+            dir.join("mods.disabled"),
+            dir.join("mods"),
+            "Mods restored from mods.disabled",
+        )
+    };
+    if !from.exists() {
+        return Err(input_error(if disable {
+            "there is no mods folder to set aside"
+        } else {
+            "there is no mods.disabled folder to restore"
+        }));
+    }
+    if to.exists() {
+        return Err(input_error("the destination folder already exists"));
+    }
+    tokio::fs::rename(&from, &to).await?;
+    push_log(id, note);
+    let server = find(id).await?;
+    view_of(server).await
 }
 
 pub async fn start(id: &str) -> crate::Result<HostedServerView> {

@@ -77,7 +77,16 @@ export type CallParticipant = {
 }
 
 const ICE_FALLBACK: RTCConfiguration = {
-	iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+	iceServers: [
+		{
+			urls: [
+				'stun:stun.l.google.com:19302',
+				'stun:stun1.l.google.com:19302',
+				'stun:stun.cloudflare.com:3478',
+				'stun:stun.yandex.ru:3478',
+			],
+		},
+	],
 }
 
 const RING_TIMEOUT = 45_000
@@ -288,6 +297,15 @@ function stopRemote(userId: string): void {
 	if (!el) return
 	el.srcObject = null
 	el.remove()
+}
+
+/** Реле имеет смысл просить, только если TURN вообще есть в конфиге. */
+function hasTurn(): boolean {
+	return (ice.iceServers ?? []).some((server) =>
+		(Array.isArray(server.urls) ? server.urls : [server.urls ?? '']).some((url) =>
+			url.toLowerCase().startsWith('turn'),
+		),
+	)
 }
 
 /** TURN-пароль живёт около часа, поэтому конфиг берём свежий на каждый звонок. */
@@ -590,10 +608,12 @@ function onLinkState(leg: Leg, pc: RTCPeerConnection): void {
 		return
 	}
 	if (state === 'failed' || iceState === 'failed') {
-		if (leg.caller && !leg.relayTried) {
+		// Реле пробуют обе стороны, не только звонящий: за симметричным
+		// NAT у отвечающего шансы на прямой путь такие же нулевые.
+		if (!leg.relayTried) {
 			leg.relayTried = true
 			leg.restarting = false
-			void restartIce(leg, leg.state !== 'active')
+			void restartIce(leg, leg.state !== 'active' && hasTurn())
 			armConnectTimeout(leg)
 			return
 		}

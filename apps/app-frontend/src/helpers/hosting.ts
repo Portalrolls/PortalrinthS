@@ -63,6 +63,7 @@ export interface HostedServerView extends HostedServer {
 	crash_line: string | null
 	boot_step: number
 	boot_progress: number | null
+	mods_disabled: boolean
 }
 
 export type HostedCrashReason =
@@ -150,6 +151,10 @@ export const hosting_republish = (id: string) =>
 	invoke<HostedServerView>(plugin('hosting_republish'), { id })
 export const hosting_command = (id: string, command: string) =>
 	invoke<void>(plugin('hosting_command'), { id, command })
+export const hosting_disable_mods = (id: string) =>
+	invoke<HostedServerView>(plugin('hosting_disable_mods'), { id })
+export const hosting_restore_mods = (id: string) =>
+	invoke<HostedServerView>(plugin('hosting_restore_mods'), { id })
 export const hosting_log = (id: string) => invoke<string[]>(plugin('hosting_log'), { id })
 export const hosting_versions = (software: HostedSoftware) =>
 	invoke<string[]>(plugin('hosting_versions'), { software })

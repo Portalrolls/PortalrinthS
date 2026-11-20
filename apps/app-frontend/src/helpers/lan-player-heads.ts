@@ -13,9 +13,9 @@
 import { ref } from 'vue'
 
 import { users } from './auth'
-import { ely_get_users,type ElyCredentials } from './ely_auth'
+import { ely_get_users, type ElyCredentials } from './ely_auth'
 import { getElyHeadUrl } from './ely_skins'
-import { mojang_player_skin, offline_users,type OfflineCredentials } from './offline_auth'
+import { mojang_player_skin, offline_users, type OfflineCredentials } from './offline_auth'
 import { generatePlayerHeadBlob } from './rendering/player-head'
 import { relayImageUrl } from './uprojects-service'
 
@@ -64,15 +64,23 @@ export function playerHead(player: string): string {
 }
 
 /** Works out whose face `player` is, once per name. */
-export function resolvePlayerHead(player: string, hostName: string | null): void {
+export function resolvePlayerHead(
+	player: string,
+	hostName: string | null,
+	prefer?: Provider[],
+): void {
 	if (heads.value[player] || inFlight.has(player)) return
 	inFlight.add(player)
-	void resolve(player, hostName)
+	void resolve(player, hostName, prefer)
 		.catch(() => {})
 		.finally(() => inFlight.delete(player))
 }
 
-async function resolve(player: string, hostName: string | null): Promise<void> {
+async function resolve(
+	player: string,
+	hostName: string | null,
+	prefer?: Provider[],
+): Promise<void> {
 	const accounts = await knownAccounts()
 	const own = accounts.find((account) => account.name === player)
 	if (own) {
@@ -88,9 +96,11 @@ async function resolve(player: string, hostName: string | null): Promise<void> {
 	}
 
 	// Everyone else is asked where names live, the host's own platform first.
+	// A hosted server knows its own mode better than any host account: an
+	// offline-mode server is usually a room full of Ely.by names.
 	const host = accounts.find((account) => account.name === hostName)
 	const order: Provider[] =
-		host?.provider === 'ely_by' ? ['ely_by', 'microsoft'] : ['microsoft', 'ely_by']
+		prefer ?? (host?.provider === 'ely_by' ? ['ely_by', 'microsoft'] : ['microsoft', 'ely_by'])
 	for (const provider of order) {
 		const face = provider === 'ely_by' ? await elyHead(player) : await mojangHead(player)
 		if (face) {

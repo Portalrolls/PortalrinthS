@@ -123,11 +123,13 @@ function formatTime(time: number) {
 	})
 }
 
-const ramPercent = computed(() =>
-	isHostedActive(props.server.status) && props.server.memory_mb > 0
-		? (props.server.ram_used_mb / props.server.memory_mb) * 100
-		: null,
-)
+const ramPercent = computed(() => {
+	if (!isHostedActive(props.server.status) || props.server.memory_mb <= 0) return null
+	// RAM — это вся память процесса JVM, а лимит — только куча (Xmx):
+	// вне-кучная память легко выталкивает процент за сотню.
+	const total = Math.max(props.server.memory_mb, props.server.ram_used_mb)
+	return Math.min(100, (props.server.ram_used_mb / total) * 100)
+})
 const cpuPercent = computed(() =>
 	isHostedActive(props.server.status) ? props.server.cpu_percent : null,
 )

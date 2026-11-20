@@ -27,7 +27,12 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed, ref, toRef, useTemplateRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { hostedAddress, isHostedActive, toHostedServer } from '@/helpers/hosting'
+import {
+	hostedAddress,
+	hosting_disable_mods,
+	isHostedActive,
+	toHostedServer,
+} from '@/helpers/hosting'
 
 import BootProgress from './boot-progress.vue'
 import ConsoleTab from './console-tab.vue'
@@ -102,6 +107,18 @@ const shownAddress = computed(() => {
 function power() {
 	if (!server.value) return
 	void actions.power(server.value, () => eulaModal.value?.ask() ?? Promise.resolve(false))
+}
+
+/** Краш из-за модов: убираем их в сторону и поднимаем сервер без них. */
+async function startWithoutMods() {
+	if (!server.value) return
+	try {
+		await hosting_disable_mods(server.value.id)
+		await serverQuery.refetch()
+	} catch (error) {
+		console.warn('disable mods failed', error)
+	}
+	power()
 }
 
 async function useRightJava() {
@@ -237,6 +254,7 @@ function back() {
 					@console="tab = 'console'"
 					@settings="tab = 'settings'"
 					@reset-java="useRightJava"
+					@safe-start="startWithoutMods"
 				/>
 				<Admonition
 					v-else-if="server.relay_error && server.public_relay"

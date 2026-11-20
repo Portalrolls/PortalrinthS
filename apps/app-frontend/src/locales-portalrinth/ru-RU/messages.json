@@ -4167,6 +4167,15 @@
 	"app.server-hosting.content.import": {
 		"message": "Добавить из файла"
 	},
+	"app.server-hosting.content.mods-off-hint": {
+		"message": "Папка модов убрана в mods.disabled, поэтому сервер стартует без них. Вернуть можно, когда проблема решена."
+	},
+	"app.server-hosting.content.mods-off-title": {
+		"message": "Моды отложены"
+	},
+	"app.server-hosting.content.mods-restore": {
+		"message": "Вернуть моды"
+	},
 	"app.server-hosting.content.mods": {
 		"message": "Моды"
 	},
@@ -4646,6 +4655,9 @@
 	},
 	"app.server-hosting.crash.reset-java": {
 		"message": "Подобрать нужную Java"
+	},
+	"app.server-hosting.crash.start-without-mods": {
+		"message": "Запустить без модов"
 	},
 	"app.server-hosting.crash.copy-line": {
 		"message": "Копировать"

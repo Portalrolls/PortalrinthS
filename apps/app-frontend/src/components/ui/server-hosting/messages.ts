@@ -48,6 +48,10 @@ export const hostingMessages = defineMessages({
 })
 
 export const crashMessages = defineMessages({
+	startWithoutMods: {
+		id: 'app.server-hosting.crash.start-without-mods',
+		defaultMessage: 'Start without mods',
+	},
 	bad_optionTitle: {
 		id: 'app.server-hosting.crash.bad-option.title',
 		defaultMessage: 'The core did not understand a launch option',

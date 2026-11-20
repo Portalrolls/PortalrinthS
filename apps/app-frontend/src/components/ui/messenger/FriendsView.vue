@@ -132,6 +132,14 @@ const sectionTitle = computed(() => {
 	}
 })
 
+/** Через какой аккаунт друг сидит в мессенджере — подпись у статуса. */
+function platformOf(peer: Peer): string {
+	const provider = (peer.provider || '').toLowerCase()
+	if (provider === 'ely') return 'Ely.by'
+	if (provider === 'msa') return 'Microsoft'
+	return ''
+}
+
 function statusText(row: Row): string {
 	if (row.kind === 'incoming') return t('app.messenger.friends.incoming', 'Входящий запрос дружбы')
 	if (row.kind === 'outgoing') return t('app.messenger.friends.outgoing', 'Исходящий запрос дружбы')
@@ -348,7 +356,14 @@ async function block(peer: Peer): Promise<void> {
 							/>
 							<span>
 								<b>{{ displayName(row.peer.id, row.peer.username) }}</b>
-								<small>{{ statusText(row) }}</small>
+								<small>
+									{{ statusText(row) }}
+									<em
+										v-if="row.kind === 'friend' && platformOf(row.peer)"
+										class="msgr-friends__plat"
+										>{{ platformOf(row.peer) }}</em
+									>
+								</small>
 							</span>
 						</div>
 						<div class="msgr-friends__actions" @click.stop>

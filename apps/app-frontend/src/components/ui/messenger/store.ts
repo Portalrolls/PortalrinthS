@@ -373,7 +373,17 @@ export function sharedServers(userId: string): Conversation[] {
 }
 
 export function dmWith(userId: string): Conversation | null {
-	return dms.value.find((conv) => conv.peer?.id === userId) ?? null
+	const direct = dms.value.find((conv) => conv.peer?.id === userId)
+	if (direct) return direct
+	// В списке бесед peer бывает пуст: тогда ищем по составу — собеседник
+	// один, и это не я. Иначе открытый диалог не находится, и «Написать» у
+	// друга упирается в повторный запрос вместо существующего чата.
+	return (
+		dms.value.find((conv) => {
+			const others = conv.members.filter((member) => member.id !== myId.value)
+			return others.length === 1 && others[0].id === userId
+		}) ?? null
+	)
 }
 
 function enc(value: string): string {
@@ -1028,6 +1038,11 @@ export async function startDm(user: {
 		body: { userId: user.id },
 	})
 	if (!response.ok) {
+		// Диалог мог уже существовать, а сервис отказал в повторном
+		// создании: проверяем свежие списки, прежде чем ругаться.
+		await loadLists()
+		const existing = dmWith(user.id)
+		if (existing) return existing
 		fail(response)
 		return null
 	}
@@ -1523,6 +1538,13 @@ function onLiveMessage(data: LooseRecord): void {
 	sortConversations()
 }
 
+/** Событие говорит, через какой аккаунт оно пришло: чужой не трогаем. */
+function providerMatches(userId: string, provider: unknown): boolean {
+	if (!provider) return true
+	const known = state.users[userId]?.provider
+	return !known || String(known).toLowerCase() === String(provider).toLowerCase()
+}
+
 function setPresenceOf(userId: string, patch: Partial<Peer>): void {
 	const user = state.users[userId]
 	if (user) state.users[userId] = { ...user, ...patch }
@@ -1569,7 +1591,7 @@ export function handleLive(name: string, data: LooseRecord): void {
 			}
 			return
 		case 'presence':
-			if (data.userId) {
+			if (data.userId && providerMatches(String(data.userId), data.provider)) {
 				setPresenceOf(String(data.userId), {
 					lastSeenAt: Number(data.lastSeenAt) || Date.now(),
 					presenceStatus: String(data.presenceStatus || ''),
@@ -1577,7 +1599,7 @@ export function handleLive(name: string, data: LooseRecord): void {
 			}
 			return
 		case 'activity':
-			if (data.userId) {
+			if (data.userId && providerMatches(String(data.userId), data.provider)) {
 				setPresenceOf(String(data.userId), {
 					activity: mapActivity(data.activity),
 					lastSeenAt: Date.now(),

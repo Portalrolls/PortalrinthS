@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
 	BanIcon,
+	CheckIcon,
 	CopyIcon,
 	EditIcon,
 	MessageIcon,
@@ -8,7 +9,7 @@ import {
 	UserPlusIcon,
 	UserXIcon,
 } from '@modrinth/assets'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import { promptAlias } from './aliases'
 import FloatingMenu from './FloatingMenu.vue'
@@ -27,6 +28,7 @@ import {
 	relationOf,
 	requestFriend,
 	showToast,
+	toggleMemberRole,
 	userOf,
 	writeTo,
 } from './store'
@@ -46,6 +48,30 @@ const roles = computed(() => {
 	if (!server || !member.value) return []
 	return server.roles.filter((role) => member.value!.roleIds.includes(role.id))
 })
+
+function hasRole(roleId: string): boolean {
+	return Boolean(member.value?.roleIds.includes(roleId))
+}
+
+/** Созданные роли сервера, которые можно выдать прямо отсюда. */
+const assignable = computed(() => {
+	if (!canManage.value || self.value || !member.value) return []
+	if (member.value.role === 'owner') return []
+	return activeServer.value?.roles ?? []
+})
+
+const roleBusy = ref<string | null>(null)
+
+async function toggleRole(role: { id: string }): Promise<void> {
+	const server = activeServer.value
+	if (!server || roleBusy.value) return
+	roleBusy.value = role.id
+	try {
+		await toggleMemberRole(server.id, popover.userId, role.id, !hasRole(role.id))
+	} finally {
+		roleBusy.value = null
+	}
+}
 
 const canKick = computed(() => {
 	const server = activeServer.value
@@ -160,10 +186,25 @@ async function kick(): Promise<void> {
 						<button type="button" @click="write">
 							<MessageIcon /> {{ t('app.messenger.write', 'Написать') }}
 						</button>
-						<button type="button" @click="call">
+						<button v-if="relation === 'friend'" type="button" @click="call">
 							<PhoneIcon /> {{ t('app.messenger.call.action', 'Позвонить') }}
 						</button>
 					</template>
+				</div>
+				<div v-if="assignable.length" class="msgr-pop__assign">
+					<span class="msgr-pop__assign-title">{{ t('app.messenger.roles.assign', 'Роли') }}</span>
+					<button
+						v-for="role in assignable"
+						:key="role.id"
+						type="button"
+						class="msgr-pop__assign-role"
+						:class="{ 'is-on': hasRole(role.id), 'is-busy': roleBusy === role.id }"
+						@click="toggleRole(role)"
+					>
+						<i :style="{ background: role.color || '#80848e' }" />
+						<span class="msgr-pop__assign-name">{{ role.name }}</span>
+						<CheckIcon v-if="hasRole(role.id)" />
+					</button>
 				</div>
 				<div class="msgr-pop__links">
 					<button
@@ -302,6 +343,69 @@ async function kick(): Promise<void> {
 .msgr-pop__actions svg {
 	width: 1rem;
 	height: 1rem;
+}
+
+.msgr-pop__assign {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem;
+	margin-top: 0.6rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.msgr-pop__assign-title {
+	flex-basis: 100%;
+	color: var(--color-secondary);
+	font-size: 0.72rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.msgr-pop__assign-role {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	max-width: 100%;
+	padding: 0.15rem 0.5rem;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.04);
+	color: var(--color-secondary);
+	font: inherit;
+	font-size: 0.74rem;
+	cursor: pointer;
+	transition:
+		background 0.12s ease,
+		color 0.12s ease;
+}
+
+.msgr-pop__assign-role:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: var(--color-contrast);
+}
+
+.msgr-pop__assign-role.is-on {
+	border-color: rgba(255, 255, 255, 0.18);
+	background: rgba(255, 255, 255, 0.09);
+	color: var(--color-contrast);
+}
+
+.msgr-pop__assign-role.is-busy {
+	opacity: 0.55;
+}
+
+.msgr-pop__assign-role svg {
+	width: 0.8rem;
+	height: 0.8rem;
+	flex-shrink: 0;
+}
+
+.msgr-pop__assign-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .msgr-pop__links {

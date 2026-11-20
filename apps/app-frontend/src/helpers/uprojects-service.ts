@@ -588,6 +588,46 @@ export function loadSkinTexture(user: {
 	return job
 }
 
+const AVATAR_STORE_KEY = 'portalrinth-uprojects-avatar-cache'
+
+/** Головы переживают перезапуск: сотни участников не качаются заново каждый день. */
+const AVATAR_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+type StoredAvatar = { url: string; at: number }
+
+/**
+ * Головы переживают перезапуск: сотни участников не качаются заново каждый
+ * день. Запись протухает через неделю — сменённый скин не залипает навсегда.
+ */
+function readStoredAvatar(key: string): string | null {
+	try {
+		const store: Record<string, StoredAvatar> = JSON.parse(
+			localStorage.getItem(AVATAR_STORE_KEY) ?? '{}',
+		)
+		const hit = store[key]
+		return hit && Date.now() - hit.at < AVATAR_TTL_MS ? hit.url : null
+	} catch {
+		return null
+	}
+}
+
+function storeAvatar(key: string, url: string): void {
+	if (!key || !url) return
+	try {
+		const store: Record<string, StoredAvatar> = JSON.parse(
+			localStorage.getItem(AVATAR_STORE_KEY) ?? '{}',
+		)
+		store[key] = { url, at: Date.now() }
+		const keys = Object.keys(store)
+		if (keys.length > 300) {
+			for (const drop of keys.slice(0, keys.length - 300)) Reflect.deleteProperty(store, drop)
+		}
+		localStorage.setItem(AVATAR_STORE_KEY, JSON.stringify(store))
+	} catch {
+		/* хранилище переполнено — живём без персистентного кэша */
+	}
+}
+
 export async function resolveAvatar(
 	user: {
 		skinUrl?: string | null
@@ -601,8 +641,16 @@ export async function resolveAvatar(
 	const key = String(user.uuid || user.username || user.name || '')
 	const inflight = avatarInflight.get(key)
 	if (inflight) return inflight
+	const stored = readStoredAvatar(key)
+	if (stored) {
+		avatarCache.set(key, stored)
+		return stored
+	}
 	const task = buildAvatar(user, key, size).then((url) => {
-		if (key && url) avatarCache.set(key, url)
+		if (key && url) {
+			avatarCache.set(key, url)
+			storeAvatar(key, url)
+		}
 		avatarInflight.delete(key)
 		return url
 	})

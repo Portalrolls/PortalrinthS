@@ -102,7 +102,7 @@ export type Msg = {
 }
 
 export const ONLINE_MS = 2 * 60 * 1000
-export const MAX_FILE_BYTES = 12 * 1024 * 1024
+export const MAX_FILE_BYTES = 1024 * 1024 * 1024
 
 export function isBotUser(row: LooseRecord | null | undefined): boolean {
 	if (!row) return false

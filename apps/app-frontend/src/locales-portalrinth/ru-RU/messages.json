@@ -6434,7 +6434,7 @@
 		"message": "Слишком часто. Подождите немного"
 	},
 	"app.messenger.error.tooLarge": {
-		"message": "Файл слишком большой (максимум 12 МБ)"
+		"message": "Файл слишком большой (максимум 1 ГБ)"
 	},
 	"app.messenger.file.download": {
 		"message": "Скачать"
@@ -6476,7 +6476,7 @@
 		"message": "Файл сохранён"
 	},
 	"app.messenger.file.tooBig": {
-		"message": "Файл больше 12 МБ — так нельзя"
+		"message": "Файл больше 1 ГБ — так нельзя"
 	},
 	"app.messenger.file.voice": {
 		"message": "Голосовое сообщение"

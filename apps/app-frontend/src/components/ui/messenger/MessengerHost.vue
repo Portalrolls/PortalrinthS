@@ -60,7 +60,7 @@ setFailText((code) => {
 		case 'too_large':
 		case 'payload_too_large':
 		case '413':
-			return t('app.messenger.error.tooLarge', 'Файл слишком большой (максимум 12 МБ)')
+			return t('app.messenger.error.tooLarge', 'Файл слишком большой (максимум 1 ГБ)')
 		case 'rate_limited':
 		case '429':
 			return t('app.messenger.error.rate', 'Слишком часто. Подождите немного')

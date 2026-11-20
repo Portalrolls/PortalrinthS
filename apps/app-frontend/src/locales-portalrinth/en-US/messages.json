@@ -3904,7 +3904,7 @@
 		"message": "Too many requests. Wait a moment"
 	},
 	"app.messenger.error.tooLarge": {
-		"message": "The file is too large (12 MB max)"
+		"message": "The file is too large (1 GB max)"
 	},
 	"app.messenger.file.download": {
 		"message": "Download"
@@ -3946,7 +3946,7 @@
 		"message": "File saved"
 	},
 	"app.messenger.file.tooBig": {
-		"message": "The file is larger than 12 MB"
+		"message": "The file is larger than 1 GB"
 	},
 	"app.messenger.file.voice": {
 		"message": "Voice message"

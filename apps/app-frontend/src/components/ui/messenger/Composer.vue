@@ -227,7 +227,7 @@ function clearAttachment(): void {
 async function addFile(file: File | Blob, name?: string): Promise<void> {
 	const fileName = name || (file instanceof File ? file.name : '') || `file_${Date.now()}`
 	if (file.size > MAX_FILE_BYTES) {
-		showToast(t('app.messenger.file.tooBig', 'Файл больше 12 МБ — так нельзя'))
+		showToast(t('app.messenger.file.tooBig', 'Файл больше 1 ГБ — так нельзя'))
 		return
 	}
 	if (!file.size) {
@@ -353,7 +353,7 @@ async function shareBuild(item: GameInstance): Promise<void> {
 				result === 'too_large'
 					? t(
 							'app.messenger.build.tooLarge',
-							'Сборка весит больше 12 МБ — отправить её не получится',
+							'Сборка весит больше 1 ГБ — отправить её не получится',
 						)
 					: t('app.messenger.build.failed', 'Не удалось упаковать сборку'),
 			)
@@ -431,7 +431,7 @@ async function finishRecording(): Promise<void> {
 	const blob = new Blob(recordChunks, { type: 'audio/webm' })
 	const name = `voice_${Date.now()}.webm`
 	if (blob.size > MAX_FILE_BYTES) {
-		showToast(t('app.messenger.file.tooBig', 'Файл больше 12 МБ — так нельзя'))
+		showToast(t('app.messenger.file.tooBig', 'Файл больше 1 ГБ — так нельзя'))
 		return
 	}
 	const conv = activeConversation.value
@@ -610,7 +610,7 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 			<button type="button" class="msgr-menu-item" @click="choose('file')">
 				<FileIcon />
 				<span>{{ t('app.messenger.plus.file', 'Загрузить файл') }}</span>
-				<span class="msgr-menu-item__hint">≤ 12 МБ</span>
+				<span class="msgr-menu-item__hint">≤ 1 ГБ</span>
 			</button>
 			<button type="button" class="msgr-menu-item" @click="choose('image')">
 				<ImageIcon /> {{ t('app.messenger.plus.image', 'Изображение или GIF') }}

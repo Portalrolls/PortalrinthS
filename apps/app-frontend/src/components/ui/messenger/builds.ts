@@ -3,6 +3,7 @@ import * as fs from '@tauri-apps/plugin-fs'
 
 import { install_create_modpack_instance, packLocationFromFile } from '@/helpers/install'
 import { export_instance_mrpack, get_pack_export_candidates } from '@/helpers/instance'
+import { proxiedFetch } from '@/helpers/proxy-fetch'
 import type { GameInstance } from '@/helpers/types'
 
 import { MAX_FILE_BYTES, readFileBase64 } from './model'
@@ -59,10 +60,15 @@ export async function packBuild(instance: GameInstance): Promise<PendingAttachme
 	}
 }
 
-/** Полученную сборку скачиваем во временную папку и ставим как новую установку. */
+/** Полученную сборку скачиваем во временную папку и ставим как новую установку.
+    Качаем тем же клиентом, что и весь API: голый fetch из вебвью режется CSP —
+    домена сервиса нет в connect-src, установка сборки всегда падала. */
 export async function installBuild(url: string, name: string): Promise<boolean> {
 	try {
-		const response = await fetch(url)
+		const response = await proxiedFetch(url, {
+			headers: { 'User-Agent': 'Undefined-Client' },
+			connectTimeout: 12000,
+		})
 		if (!response.ok) return false
 		const bytes = new Uint8Array(await response.arrayBuffer())
 		const { dir, sep } = await buildsDir('incoming')

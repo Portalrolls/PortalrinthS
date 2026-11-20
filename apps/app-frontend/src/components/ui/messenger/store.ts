@@ -35,6 +35,7 @@ import {
 	type PresenceStatus,
 	previewOf,
 } from './model'
+import { noteActivity } from './profile-activity'
 import { handleProfileSignal } from './profile-card'
 import { handleVoiceEvent, handleVoiceSignal, leaveVoice, resetVoice } from './voice-channel'
 
@@ -287,6 +288,7 @@ export function rememberUser(row: LooseRecord | null | undefined): Peer | null {
 	// перерисовывало бы всех участников сервера.
 	if (prev && samePeer(prev, merged)) return prev
 	state.users[id] = merged
+	noteActivity(id, merged.activity)
 	return merged
 }
 
@@ -1528,6 +1530,7 @@ function setPresenceOf(userId: string, patch: Partial<Peer>): void {
 		const index = list.findIndex((peer) => peer.id === userId)
 		if (index >= 0) list.splice(index, 1, { ...list[index], ...patch })
 	}
+	noteActivity(userId, state.users[userId]?.activity ?? null)
 	for (const conv of state.conversations) {
 		if (conv.peer?.id === userId) conv.peer = { ...conv.peer, ...patch }
 		const index = conv.members.findIndex((member) => member.id === userId)
@@ -1692,7 +1695,7 @@ async function pulse(): Promise<void> {
 	if (!state.session) return
 	pulseTick += 1
 	const live = state.liveOpen
-	if (pulseTick % (live ? 15 : 4) === 0) await loadLists()
+	if (pulseTick % (live ? 15 : 2) === 0) await loadLists()
 	if (live && pulseTick % 5 !== 0) return
 	await refreshActiveThread()
 }
@@ -1740,6 +1743,7 @@ async function postActivity(): Promise<void> {
 	await serviceRequest('/activity', { method: 'POST', body: activityPayload }).catch(() => null)
 	const id = myId.value
 	if (id && state.users[id]) {
+		noteActivity(id, activityPayload.playing ? mapActivity(activityPayload) : null)
 		state.users[id] = {
 			...state.users[id],
 			activity: activityPayload.playing ? mapActivity(activityPayload) : null,

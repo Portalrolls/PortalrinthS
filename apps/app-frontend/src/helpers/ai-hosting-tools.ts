@@ -184,6 +184,194 @@ function pickPlayer(server: HostedServerView, wanted: string): string {
 	return server.players.length === 1 ? server.players[0] : ''
 }
 
+/** Стиль дома: стартовый (малый), уютный (двускатная крыша) и современный. */
+const HOUSE_STYLES = new Set(['start', 'cozy', 'modern'])
+
+type Anchor = { x: number; y: number; z: number; yaw: number }
+
+/** Куда смотрит игрок: 0 — юг (+Z), 90 — запад (−X), 180 — север (−Z), −90 — восток (+X). */
+function facingFromYaw(yaw: number): { dx: number; dz: number; name: string } {
+	const sector = Math.round(yaw / 90) % 4
+	if (sector === 0) return { dx: 0, dz: 1, name: 'south' }
+	if (sector === 1 || sector === -3) return { dx: -1, dz: 0, name: 'west' }
+	if (Math.abs(sector) === 2) return { dx: 0, dz: -1, name: 'north' }
+	return { dx: 1, dz: 0, name: 'east' }
+}
+
+function axisName(dx: number, dz: number): string {
+	if (dx > 0) return 'east'
+	if (dx < 0) return 'west'
+	if (dz > 0) return 'south'
+	return 'north'
+}
+
+/** Где стоит игрок: Pos и Rotation из консоли (формат с суффиксами d/f). */
+async function playerAnchor(server: HostedServerView, player: string): Promise<Anchor | string> {
+	const answer = (
+		await runCommands(
+			server,
+			[`data get entity ${player} Pos`, `data get entity ${player} Rotation`],
+			80,
+		)
+	).map(stripHead)
+	const text = answer.join(' ')
+	const pos = /\[(-?[\d.]+)d?, (-?[\d.]+)d?, (-?[\d.]+)d?\]/.exec(text)
+	if (!pos) {
+		return (
+			`Не удалось узнать, где стоит ${player}: ${answer.slice(-4).join(' ') || 'сервер молчит'}. ` +
+			'Игрок в сети? Проверь <<hosting_status|' +
+			server.id +
+			'>>.'
+		)
+	}
+	const rot = /\[(-?[\d.]+)f?, (-?[\d.]+)f?\]/.exec(text)
+	return {
+		x: Number(pos[1]),
+		y: Number(pos[2]),
+		z: Number(pos[3]),
+		yaw: rot ? Number(rot[1]) : 0,
+	}
+}
+
+/**
+ * Готовый дом перед игроком, лицом к игроку. Считает сам: координаты берёт
+ * у игрока, сторону — из его взгляда, порядок блоков — от расчистки до
+ * мебели. Возвращает команды для hosting-консоли (setblock/fill).
+ */
+function houseCommands(style: string, anchor: Anchor): string[] {
+	const spec = {
+		start: {
+			w: 7,
+			d: 6,
+			h: 3,
+			walls: 'oak_planks',
+			corners: 'stripped_oak_log',
+			floor: 'cobblestone',
+			roof: 'oak_slab',
+			door: 'oak_door',
+			light: 'torch',
+		},
+		cozy: {
+			w: 9,
+			d: 8,
+			h: 4,
+			walls: 'spruce_planks',
+			corners: 'dark_oak_log',
+			floor: 'dark_oak_planks',
+			roof: 'spruce_stairs',
+			door: 'spruce_door',
+			light: 'lantern',
+		},
+		modern: {
+			w: 11,
+			d: 9,
+			h: 4,
+			walls: 'smooth_quartz',
+			corners: '',
+			floor: 'polished_andesite',
+			roof: 'smooth_stone_slab',
+			door: 'dark_oak_door',
+			light: 'sea_lantern',
+		},
+	}[style]
+	const dir = facingFromYaw(anchor.yaw)
+	const ground = Math.floor(anchor.y)
+	const cx = Math.floor(anchor.x) + dir.dx * 2
+	const cz = Math.floor(anchor.z) + dir.dz * 2
+	const px = dir.dz // перпендикуляр к взгляду: меняем компоненты местами
+	const pz = dir.dx
+	const half = Math.floor(spec.w / 2)
+	const x0 = cx - px * half
+	const z0 = cz - pz * half
+	const x1 = cx + px * half + dir.dx * (spec.d - 1)
+	const z1 = cz + pz * half + dir.dz * (spec.d - 1)
+	const minX = Math.min(x0, x1)
+	const maxX = Math.max(x0, x1)
+	const minZ = Math.min(z0, z1)
+	const maxZ = Math.max(z0, z1)
+	const top = ground + spec.h - 1
+	const box = (
+		block: string,
+		yA: number,
+		yB: number,
+		mx0 = minX,
+		mx1 = maxX,
+		mz0 = minZ,
+		mz1 = maxZ,
+	) =>
+		`fill ${Math.min(mx0, mx1)} ${yA} ${Math.min(mz0, mz1)} ${Math.max(mx0, mx1)} ${yB} ${Math.max(mz0, mz1)} ${block}`
+	const line = (block: string, y: number, x: number, z: number, x2: number, z2: number) =>
+		`fill ${Math.min(x, x2)} ${y} ${Math.min(z, z2)} ${Math.max(x, x2)} ${y} ${Math.max(z, z2)} ${block}`
+	const commands: string[] = []
+	// расчистка: объём дома, крыша и запас сверху
+	commands.push(box('air', ground, top + spec.h + 1))
+	// фундамент и пол
+	commands.push(box('cobblestone', ground - 1, ground - 1))
+	commands.push(box(spec.floor, ground, ground))
+	// стены: четыре полосы
+	commands.push(box(spec.walls, ground, top, minX, minX, minZ, maxZ))
+	commands.push(box(spec.walls, ground, top, maxX, maxX, minZ, maxZ))
+	commands.push(box(spec.walls, ground, top, minX, maxX, minZ, minZ))
+	commands.push(box(spec.walls, ground, top, minX, maxX, maxZ, maxZ))
+	// углы — брёвнами
+	if (spec.corners) {
+		for (const [ax, az] of [
+			[minX, minZ],
+			[minX, maxZ],
+			[maxX, minZ],
+			[maxX, maxZ],
+		]) {
+			commands.push(`fill ${ax} ${ground} ${az} ${ax} ${top} ${az} ${spec.corners}`)
+		}
+	}
+	// воздух внутри — после стен, до мебели
+	commands.push(box('air', ground + 1, top, minX + 1, maxX - 1, minZ + 1, maxZ - 1))
+	// окна: ленты на боковых стенах и напротив двери
+	const winY0 = ground + 1
+	const winY1 = Math.min(ground + 2, top - (style === 'start' ? 1 : 0))
+	if (winY1 > winY0) {
+		commands.push(box('glass', winY0, winY1, minX, minX, minZ + 2, maxZ - 2))
+		commands.push(box('glass', winY0, winY1, maxX, maxX, minZ + 2, maxZ - 2))
+		commands.push(box('glass', winY0, winY1, minX + 2, maxX - 2, maxZ, maxZ))
+	}
+	// дверь: по центру ближней стены, лицом к игроку
+	const back = axisName(-dir.dx, -dir.dz)
+	commands.push(`setblock ${cx} ${ground} ${cz} air`)
+	commands.push(`setblock ${cx} ${ground + 1} ${cz} air`)
+	commands.push(`setblock ${cx} ${ground} ${cz} ${spec.door}[facing=${back},half=lower]`)
+	commands.push(`setblock ${cx} ${ground + 1} ${cz} ${spec.door}[facing=${back},half=upper]`)
+	// крыша
+	if (style === 'cozy') {
+		const dirLine = (y: number, k: number, block: string) => {
+			const lx = cx + px * (k - half)
+			const lz = cz + pz * (k - half)
+			return line(block, y, lx, lz, lx + dir.dx * (spec.d - 1), lz + dir.dz * (spec.d - 1))
+		}
+		const up = axisName(px, pz)
+		const down = axisName(-px, -pz)
+		for (let i = 0; i < half; i++) {
+			commands.push(dirLine(ground + spec.h + i, i, `${spec.roof}[facing=${up}]`))
+			commands.push(dirLine(ground + spec.h + i, spec.w - 1 - i, `${spec.roof}[facing=${down}]`))
+		}
+		commands.push(dirLine(ground + spec.h + half, half, 'spruce_slab'))
+	} else {
+		commands.push(box(spec.roof, top + 1, top + 1))
+	}
+	// свет и мебель: у дальней стены, лицом внутрь
+	const fx = cx + dir.dx * (spec.d - 2)
+	const fz = cz + dir.dz * (spec.d - 2)
+	const inner = axisName(-dir.dx, -dir.dz)
+	commands.push(`setblock ${cx - px} ${ground + 1} ${cz - pz} ${spec.light}`)
+	commands.push(`setblock ${cx + px} ${ground + 1} ${cz + pz} ${spec.light}`)
+	commands.push(`setblock ${fx - px} ${ground} ${fz - pz} crafting_table`)
+	commands.push(`setblock ${fx} ${ground} ${fz} chest[facing=${inner}]`)
+	commands.push(`setblock ${fx + px} ${ground} ${fz + pz} furnace[facing=${inner}]`)
+	if (style !== 'start') {
+		commands.push(`setblock ${fx - px} ${ground + 1} ${fz - pz} bookshelf`)
+	}
+	return commands
+}
+
 registerAiToolHandler(async (tool, args) => {
 	switch (tool) {
 		case 'hosting_list': {
@@ -469,6 +657,122 @@ registerAiToolHandler(async (tool, args) => {
 			return tail.length
 				? `Последние строки консоли «${server.name}»:\n${tail.join('\n')}`
 				: 'Консоль пуста.'
+		}
+		case 'hosting_give': {
+			const [target, raw] = splitArgs(args)
+			const server = await resolveServer(target)
+			if (typeof server === 'string') return server
+			if (server.status !== 'running') return notRunning(server)
+			const parts = raw
+				.split('::')
+				.map((part) => part.trim())
+				.filter(Boolean)
+			const who = parts[0] ?? ''
+			const item = (parts[1] ?? '').replace(/^minecraft:/, '')
+			const count = Math.max(1, Math.min(2304, Number.parseInt(parts[2] ?? '1', 10) || 1))
+			if (!who || !item)
+				return 'Формат: <<hosting_give|сервер::ник::предмет::количество>>. Предмет — id (minecraft:diamond, create:wrench); вместо ника можно селектор @a (всем) или @p (ближайшему).'
+			const player = who.startsWith('@') ? who : pickPlayer(server, who)
+			if (!player)
+				return `«${who}» нет в онлайне (сейчас: ${server.players.join(', ') || 'никого'}). Селектор @a выдаёт всем.`
+			const answer = (await runCommands(server, [`give ${player} ${item} ${count}`], 60))
+				.map(stripHead)
+				.slice(-6)
+			return [
+				`Выдаю ${item} ×${count} → ${player} на «${server.name}»:`,
+				answer.length ? answer.join('\n') : '(сервер ничего не ответил)',
+				'«Unknown item» — неверный id; у модовых предметов не забывай префикс мода.',
+			].join('\n')
+		}
+		case 'hosting_config': {
+			const parts = args.split('::')
+			const server = await resolveServer(parts[0] ?? '')
+			if (typeof server === 'string') return server
+			const path = normalizeServerPath(parts[1] ?? '')
+			const changes = parts
+				.slice(2)
+				.join('::')
+				.split('\n')
+				.map((line) => line.trim())
+				.filter(Boolean)
+			if (!path || !changes.length)
+				return 'Формат: <<hosting_config|сервер::путь::ключ=значение;;ключ: значение>> — правит ТОЛЬКО перечисленные ключи (server.properties — «=», yml — «:»), остальной файл не трогает.'
+			const bytes = await hosting_file_read(server.id, path).catch(() => null)
+			if (bytes === null)
+				return `Не удалось прочитать «${path}». Список файлов: <<hosting_files|${server.id}::папка>>.`
+			const lines = new TextDecoder().decode(Uint8Array.from(bytes)).split(/\r?\n/)
+			const report: string[] = []
+			for (const change of changes) {
+				const eq = change.indexOf('=')
+				const colon = change.indexOf(':')
+				const isProps = eq >= 0 && (colon < 0 || eq < colon)
+				const key = (isProps ? change.slice(0, eq) : change.slice(0, colon)).trim()
+				const value = (isProps ? change.slice(eq + 1) : change.slice(colon + 1)).trim()
+				if (!key) return `«${change}» — не понял. Нужен вид «ключ=значение» или «ключ: значение».`
+				let done = false
+				for (let i = 0; i < lines.length; i++) {
+					const line = lines[i]
+					if (line.trimStart().startsWith('#')) continue
+					const lineEq = line.indexOf('=')
+					const lineColon = line.indexOf(':')
+					const lineIsProps = lineEq >= 0 && (lineColon < 0 || lineEq < lineColon)
+					const lineKey = (
+						lineIsProps ? line.slice(0, lineEq) : lineColon >= 0 ? line.slice(0, lineColon) : ''
+					).trim()
+					if (!lineKey || lineKey.toLowerCase() !== key.toLowerCase()) continue
+					const indent = line.slice(0, line.length - line.trimStart().length)
+					lines[i] = `${indent}${key}${isProps ? '=' : ': '}${value}`
+					report.push(`${key} → «${value}» (строка ${i + 1}, было «${line.trim()}»)`)
+					done = true
+					break
+				}
+				if (!done) {
+					lines.push(`${key}${isProps ? '=' : ': '}${value}`)
+					report.push(`${key} → «${value}» (ключа не было — дописан в конец)`)
+				}
+			}
+			await stopForChange(server)
+			try {
+				await hosting_file_write(server.id, path, new TextEncoder().encode(lines.join('\n')))
+				return [
+					`Конфиг «${path}» на «${server.name}» обновлён точечно:`,
+					...report,
+					'Сервер включится сам, когда задача будет закончена.',
+				].join('\n')
+			} catch (error) {
+				return `Не удалось записать: ${String(error).slice(0, 200)}`
+			}
+		}
+		case 'hosting_house': {
+			const [target, raw] = splitArgs(args)
+			const server = await resolveServer(target)
+			if (typeof server === 'string') return server
+			if (server.status !== 'running') return notRunning(server)
+			const parts = raw
+				.split('::')
+				.map((part) => part.trim())
+				.filter(Boolean)
+			const who = pickPlayer(server, parts[0] ?? '')
+			const style = (parts[1] ?? 'cozy').toLowerCase()
+			if (!who)
+				return server.players.length
+					? `У кого строить? Онлайн: ${server.players.join(', ')}. Формат: <<hosting_house|сервер::ник::cozy>>.`
+					: 'Дом строят рядом с игроком, а на сервере сейчас никого нет.'
+			if (!HOUSE_STYLES.has(style))
+				return 'Стиль: start (домик новичка), cozy (уютный, двускатная крыша) или modern (современный).'
+			noteAgentThought(`Строю «${style}» для ${who} на «${server.name}»`)
+			const anchor = await playerAnchor(server, who)
+			if (typeof anchor === 'string') return anchor
+			const commands = houseCommands(style, anchor)
+			const answer = (await runCommands(server, commands, commands.length > 60 ? 20 : 45)).map(
+				stripHead,
+			)
+			const errors = answer.filter((line) => COMMAND_ERROR_RE.test(line))
+			return [
+				`Дом (${style}) для ${who} на «${server.name}»: ${commands.length} команд, ошибок ${errors.length}.`,
+				...(errors.length ? ['Ошибки:', ...errors.slice(0, 10)] : []),
+				'Площадка вокруг игрока могла быть занята: при ошибках предложи другое место или расчисти его hosting_build.',
+			].join('\n')
 		}
 		default:
 			return null

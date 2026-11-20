@@ -84,7 +84,7 @@ export function openLiveStream(
 		onState(false)
 		if (closed) return
 		retries += 1
-		const delay = Math.min(30000, 1000 * 2 ** Math.min(retries - 1, 5))
+		const delay = Math.min(10000, 1000 * 2 ** Math.min(retries - 1, 4))
 		retryTimer = setTimeout(() => void run(), delay + Math.random() * 500)
 	}
 

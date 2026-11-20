@@ -439,6 +439,9 @@ function mention(name: string, el: HTMLElement): void {
 						{{ t('app.messenger.edited', '(изменено)') }}
 					</span>
 				</div>
+				<div v-else-if="!msg.attachment && !forwarded" class="msgr-msg__empty">
+					{{ t('app.messenger.message.empty', 'Пустое сообщение') }}
+				</div>
 
 				<MessageAttachment v-if="msg.attachment && !isSticker" :attachment="msg.attachment" />
 
@@ -639,6 +642,12 @@ function mention(name: string, el: HTMLElement): void {
 .msgr-msg.is-selected {
 	background: color-mix(in srgb, var(--color-brand) 16%, transparent);
 	box-shadow: inset 2px 0 0 var(--color-brand);
+}
+
+.msgr-msg__empty {
+	font-size: 0.85rem;
+	font-style: italic;
+	opacity: 0.55;
 }
 
 .msgr-msg__sticker {

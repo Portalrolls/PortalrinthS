@@ -14,6 +14,7 @@ import {
 } from '@modrinth/assets'
 import { SkinPreviewRenderer } from '@modrinth/ui'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
 import {
 	loadSkinTexture,
@@ -26,6 +27,7 @@ import { aliasOf, promptAlias } from './aliases'
 import { useMessengerT } from './i18n'
 import { buildLine, formatDate, isInGame, type Peer } from './model'
 import PhoneIcon from './PhoneIcon.vue'
+import { formatPlaytime, playStatsOf } from './profile-activity'
 import { cardOf, profileEditor, requestCard } from './profile-card'
 import { callUser, presenceFor, rememberUser, showToast, state, userOf } from './store'
 import { vTip } from './tooltip'
@@ -51,6 +53,7 @@ type Post = {
 }
 
 const t = useMessengerT()
+const router = useRouter()
 
 const emit = defineEmits<{
 	write: [user: ProfileTarget]
@@ -279,6 +282,7 @@ type InfoRow = {
 	value: string
 	sub?: string
 	color?: string
+	copy?: string
 }
 
 const rows = computed<InfoRow[]>(() => {
@@ -293,31 +297,40 @@ const rows = computed<InfoRow[]>(() => {
 			: null)
 	if (!p) return []
 	const noData = t('app.messenger.profile.empty', 'Пока-что ничего нет')
+	// Последняя сборка и сервер: живая активность точнее снимка профиля.
+	// Последний сервер сохраняется до захода на новый; «любимая» — сборка
+	// с наибольшим временем игры, которое лаунчер наблюдал у этого игрока.
+	const live = activity.value?.playing ? activity.value : null
+	const stats = playStatsOf(userId.value)
+	const host = peer.value?.activity?.serverHost ?? ''
+	const lastBuildValue = live?.build || stats?.lastBuild || ''
+	const lastBuildSub = live
+		? [live.version, live.loader].filter(Boolean).join(' · ') || stats?.lastBuildMeta || ''
+		: stats?.lastBuildMeta || ''
+	const lastServerValue = live?.server || stats?.lastServer || ''
+	const lastServerSub = host || stats?.lastServerMeta || ''
 	const out: InfoRow[] = [
 		{
 			key: 'lastBuild',
 			icon: BoxIcon,
 			label: t('app.messenger.profile.lastBuild', 'Последняя сборка'),
-			value: String(p.lastBuild ?? '') || noData,
-			sub: String(p.lastBuildMeta ?? '') || undefined,
+			value: lastBuildValue || noData,
+			sub: lastBuildSub || undefined,
 		},
 		{
 			key: 'lastServer',
 			icon: ServerIcon,
 			label: t('app.messenger.profile.lastServer', 'Последний сервер'),
-			value: String(p.lastServer ?? '') || noData,
-			sub: String(p.lastServerMeta ?? '') || undefined,
+			value: lastServerValue || noData,
+			sub: lastServerSub || undefined,
+			copy: lastServerValue ? host || stats?.lastServerMeta || '' : '',
 		},
 		{
 			key: 'favorite',
 			icon: HeartIcon,
 			label: t('app.messenger.profile.favoriteBuild', 'Любимая сборка'),
-			value: String(p.favoriteBuild ?? '') || noData,
-			sub: p.favoriteBuildCount
-				? t('app.messenger.profile.favoriteCount', '{n} запусков', {
-						n: String(p.favoriteBuildCount),
-					})
-				: undefined,
+			value: stats?.favoriteBuild || noData,
+			sub: stats?.favoriteSeconds ? formatPlaytime(stats.favoriteSeconds) : undefined,
 		},
 		{
 			key: 'account',
@@ -361,11 +374,10 @@ const rows = computed<InfoRow[]>(() => {
 })
 
 async function copyMarker(row: InfoRow): Promise<void> {
-	if (!row.color) return
-	await navigator.clipboard.writeText(row.color).catch(() => undefined)
-	showToast(
-		t('app.messenger.profile.markerCopied', 'Цвет {color} скопирован', { color: row.color }),
-	)
+	const text = row.color || row.copy
+	if (!text) return
+	await navigator.clipboard.writeText(text).catch(() => undefined)
+	showToast(t('app.messenger.profile.copied', 'Скопировано: {value}', { value: text }))
 }
 
 const statItems = computed(() => {
@@ -409,6 +421,12 @@ async function toggleFollow(): Promise<void> {
 	if (!response?.ok) stats.value = before
 	else if (response.data?.stats) stats.value = { ...stats.value, ...response.data.stats }
 	followBusy.value = false
+}
+
+/** Публикация целиком живёт в новостях: открываем её там, в модалке поста. */
+function openInNews(post: Post): void {
+	open.value = false
+	router.push({ path: '/news', query: { post: post.id } })
 }
 
 async function loadPosts(): Promise<void> {
@@ -630,13 +648,13 @@ function edit(): void {
 									</div>
 									<div class="upm__rows">
 										<component
-											:is="row.color ? 'button' : 'div'"
+											:is="row.color || row.copy ? 'button' : 'div'"
 											v-for="(row, index) in rows"
 											:key="row.key"
 											class="upm__row"
-											:class="{ 'is-click': row.color }"
+											:class="{ 'is-click': row.color || row.copy }"
 											:style="{ animationDelay: `${index * 35}ms` }"
-											:type="row.color ? 'button' : undefined"
+											:type="row.color || row.copy ? 'button' : undefined"
 											@click="copyMarker(row)"
 										>
 											<span
@@ -679,6 +697,9 @@ function edit(): void {
 											<footer>
 												<span><HeartIcon /> {{ postLikes(post) }}</span>
 												<span><MessageIcon /> {{ post.commentCount ?? 0 }}</span>
+												<button type="button" class="upm__post-open" @click="openInNews(post)">
+													{{ t('app.messenger.profile.postOpen', 'Открыть') }}
+												</button>
 											</footer>
 										</article>
 									</div>
@@ -1278,6 +1299,22 @@ function edit(): void {
 	font-style: normal;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.upm__post-open {
+	margin-left: auto;
+	padding: 0.2rem 0.6rem;
+	border: 0;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.08);
+	color: inherit;
+	font-size: 0.75rem;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.upm__post-open:hover {
+	background: rgba(255, 255, 255, 0.16);
 }
 
 .upm__posts {

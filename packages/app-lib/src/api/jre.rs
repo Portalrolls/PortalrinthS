@@ -458,12 +458,21 @@ async fn download_archive_parallel(
     reporter: Option<&InstallProgressReporter>,
 ) -> crate::Result<Option<bytes::Bytes>> {
     // The probe doubles as the range-support check: 206 Partial Content means
-    // the host speaks ranges; anything else falls back to one stream.
-    let probe = DOWNLOAD_REQWEST_CLIENT
+    // the host speaks ranges; anything else falls back to one stream. A probe
+    // that cannot even connect is the host saying "not today" — the fallback
+    // below still owns the download instead of failing the provider.
+    let probe = match DOWNLOAD_REQWEST_CLIENT
         .get(url)
         .header(reqwest::header::RANGE, "bytes=0-0")
         .send()
-        .await?;
+        .await
+    {
+        Ok(probe) => probe,
+        Err(error) => {
+            tracing::warn!("Java range probe failed, falling back to one stream: {error}");
+            return Ok(None);
+        }
+    };
     if probe.status().as_u16() != 206 {
         return Ok(None);
     }
@@ -482,88 +491,31 @@ async fn download_archive_parallel(
         .map(|start| {
             let received = received.clone();
             async move {
-                let end = (start + part - 1).min(total - 1);
-                let expected = end - start + 1;
-                let mut last_error: Option<crate::Error> = None;
-                for attempt in 0..JAVA_RANGE_ATTEMPTS {
-                    if attempt > 0 {
-                        tokio::time::sleep(Duration::from_millis(400 * attempt as u64)).await;
-                    }
-                    let _permit = crate::install::control::download_step(
-                        state.fetch_semaphore.0.acquire(),
-                    )
-                    .await??;
-                    let response = match DOWNLOAD_REQWEST_CLIENT
-                        .get(url)
-                        .header(reqwest::header::RANGE, format!("bytes={start}-{end}"))
-                        .send()
-                        .await
-                    {
-                        Ok(response) => response,
-                        Err(error) => {
-                            last_error = Some(error.into());
-                            continue;
-                        }
-                    };
-                    if let Err(error) = response.error_for_status_ref() {
-                        last_error = Some(error.into());
-                        continue;
-                    }
-                    let bytes = match response.bytes().await {
-                        Ok(bytes) => bytes,
-                        Err(error) => {
-                            last_error = Some(error.into());
-                            continue;
-                        }
-                    };
-                    if bytes.len() as u64 != expected {
-                        last_error = Some(
-                            std::io::Error::new(
-                                std::io::ErrorKind::UnexpectedEof,
-                                format!(
-                                    "range {start}-{end} returned {} of {expected} bytes",
-                                    bytes.len()
-                                ),
-                            )
-                            .into(),
-                        );
-                        continue;
-                    }
-                    let now = received.fetch_add(bytes.len() as u64, Ordering::SeqCst)
-                        + bytes.len() as u64;
-                    if let Some(reporter) = reporter {
-                        update_java_install_progress(
-                            Some(reporter),
-                            java_version,
-                            InstallJavaStep::Downloading,
-                            Some(InstallProgress {
-                                current: now,
-                                total,
-                                secondary: None,
-                            }),
-                        )
-                        .await?;
-                    } else if let Some(loading_bar) = loading_bar {
-                        emit_loading(
-                            loading_bar,
-                            (bytes.len() as f64 / total as f64) * 80.0,
-                            Some("Downloading Java"),
-                        )?;
-                    }
-                    return Ok(bytes);
-                }
-                Err(last_error.unwrap_or_else(|| {
-                    std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "range download failed")
-                        .into()
-                }))
+                let result = download_range(
+                    url,
+                    start,
+                    part,
+                    total,
+                    java_version,
+                    state,
+                    loading_bar,
+                    reporter,
+                    &received,
+                )
+                .await;
+                (start, result)
             }
         })
         .buffer_unordered(JAVA_PARALLEL_PARTS)
-        .collect::<Vec<crate::Result<bytes::Bytes>>>()
+        .collect::<Vec<(u64, crate::Result<bytes::Bytes>)>>()
         .await;
+    // Части приходят в порядке завершения, а не диапазонов: без сортировки
+    // архив собирался бы перемешанным и sha256 его отверг бы.
+    let mut parts = parts;
+    parts.sort_by_key(|(start, _)| *start);
 
     let mut assembled = bytes::BytesMut::with_capacity(total as usize);
-    for part in parts {
+    for (_start, part) in parts {
         match part {
             Ok(bytes) => assembled.extend_from_slice(&bytes),
             Err(error) => {
@@ -581,6 +533,98 @@ async fn download_archive_parallel(
     }
     Ok(Some(assembled.freeze()))
 }
+
+/// One byte range of the archive, with the install's progress reported as it
+/// arrives. Split from the stream above so the range keeps its own `?` while
+/// the stream collects `(offset, result)` pairs for ordered assembly.
+#[allow(clippy::too_many_arguments)]
+async fn download_range(
+    url: &str,
+    start: u64,
+    part: u64,
+    total: u64,
+    java_version: u32,
+    state: &State,
+    loading_bar: Option<&crate::event::LoadingBarId>,
+    reporter: Option<&InstallProgressReporter>,
+    received: &Arc<AtomicU64>,
+) -> crate::Result<bytes::Bytes> {
+    let end = (start + part - 1).min(total - 1);
+    let expected = end - start + 1;
+    let mut last_error: Option<crate::Error> = None;
+    for attempt in 0..JAVA_RANGE_ATTEMPTS {
+        if attempt > 0 {
+            tokio::time::sleep(Duration::from_millis(400 * attempt as u64)).await;
+        }
+        let _permit = crate::install::control::download_step(
+            state.fetch_semaphore.0.acquire(),
+        )
+        .await??;
+        let response = match DOWNLOAD_REQWEST_CLIENT
+            .get(url)
+            .header(reqwest::header::RANGE, format!("bytes={start}-{end}"))
+            .send()
+            .await
+        {
+            Ok(response) => response,
+            Err(error) => {
+                last_error = Some(error.into());
+                continue;
+            }
+        };
+        if let Err(error) = response.error_for_status_ref() {
+            last_error = Some(error.into());
+            continue;
+        }
+        let bytes = match response.bytes().await {
+            Ok(bytes) => bytes,
+            Err(error) => {
+                last_error = Some(error.into());
+                continue;
+            }
+        };
+        if bytes.len() as u64 != expected {
+            last_error = Some(
+                std::io::Error::new(
+                    std::io::ErrorKind::UnexpectedEof,
+                    format!(
+                        "range {start}-{end} returned {} of {expected} bytes",
+                        bytes.len()
+                    ),
+                )
+                .into(),
+            );
+            continue;
+        }
+        let now = received.fetch_add(bytes.len() as u64, Ordering::SeqCst)
+            + bytes.len() as u64;
+        if let Some(reporter) = reporter {
+            update_java_install_progress(
+                Some(reporter),
+                java_version,
+                InstallJavaStep::Downloading,
+                Some(InstallProgress {
+                    current: now,
+                    total,
+                    secondary: None,
+                }),
+            )
+            .await?;
+        } else if let Some(loading_bar) = loading_bar {
+            emit_loading(
+                loading_bar,
+                (bytes.len() as f64 / total as f64) * 80.0,
+                Some("Downloading Java"),
+            )?;
+        }
+        return Ok(bytes);
+    }
+    Err(last_error.unwrap_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "range download failed")
+            .into()
+    }))
+}
+
 
 /// One archive, with the install's progress reported as it arrives.
 async fn download_archive(

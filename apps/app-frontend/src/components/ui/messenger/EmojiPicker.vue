@@ -1,32 +1,67 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import { EMOJI_GROUPS } from './emoji'
 
 const emit = defineEmits<{ pick: [emoji: string] }>()
 
-const group = ref(EMOJI_GROUPS[0].id)
+const RECENT_KEY = 'portalrinth-messenger-recent-emoji'
+const RECENT_LIMIT = 24
+
+const group = ref('recent')
+const recents = ref<string[]>([])
+
+onMounted(() => {
+	try {
+		const parsed = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]')
+		recents.value = Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : []
+	} catch {
+		recents.value = []
+	}
+})
+
+watch(recents, (list) => {
+	try {
+		localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_LIMIT)))
+	} catch {
+		/* без хранилища недавние живут до перезапуска */
+	}
+})
+
+const groups = computed(() => [
+	{ id: 'recent', label: '🕐', items: recents.value },
+	...EMOJI_GROUPS,
+])
+
+function pick(emoji: string): void {
+	recents.value = [emoji, ...recents.value.filter((item) => item !== emoji)].slice(0, RECENT_LIMIT)
+	emit('pick', emoji)
+}
 </script>
 
 <template>
 	<div class="msgr-emoji">
 		<div class="msgr-emoji__tabs">
 			<button
-				v-for="entry in EMOJI_GROUPS"
+				v-for="entry in groups"
 				:key="entry.id"
 				type="button"
 				:class="{ 'is-active': group === entry.id }"
+				:title="entry.id === 'recent' ? 'Недавние' : undefined"
 				@click="group = entry.id"
 			>
 				{{ entry.label }}
 			</button>
 		</div>
-		<div class="msgr-emoji__grid">
+		<p v-if="group === 'recent' && !recents.length" class="msgr-emoji__empty">
+			Здесь появятся эмодзи, которыми ты пользуешься
+		</p>
+		<div v-else class="msgr-emoji__grid">
 			<button
-				v-for="emoji in EMOJI_GROUPS.find((entry) => entry.id === group)?.items ?? []"
+				v-for="emoji in groups.find((entry) => entry.id === group)?.items ?? []"
 				:key="emoji"
 				type="button"
-				@click="emit('pick', emoji)"
+				@click="pick(emoji)"
 			>
 				{{ emoji }}
 			</button>
@@ -66,6 +101,12 @@ const group = ref(EMOJI_GROUPS[0].id)
 .msgr-emoji__tabs button:hover {
 	background: rgba(255, 255, 255, 0.08);
 	opacity: 1;
+}
+
+.msgr-emoji__empty {
+	padding: 0.5rem 0.25rem;
+	font-size: 0.78rem;
+	opacity: 0.55;
 }
 
 .msgr-emoji__grid {

@@ -124,7 +124,6 @@ export const EMOJI_GROUPS: { id: string; label: string; items: string[] }[] = [
 			'🗡️',
 			'🛡️',
 			'🏹',
-			'🧱',
 			'🪵',
 			'💎',
 			'🪙',

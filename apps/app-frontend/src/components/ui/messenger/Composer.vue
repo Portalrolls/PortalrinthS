@@ -618,9 +618,6 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 			<button type="button" class="msgr-menu-item" @click="openBuilds">
 				<PackageIcon /> {{ t('app.messenger.plus.build', 'Отправить сборку') }}
 			</button>
-			<button type="button" class="msgr-menu-item" @click="startRecording">
-				<MicIcon /> {{ t('app.messenger.voice.record', 'Записать голосовое') }}
-			</button>
 		</FloatingMenu>
 		<FloatingMenu
 			:anchor="buildAnchor"

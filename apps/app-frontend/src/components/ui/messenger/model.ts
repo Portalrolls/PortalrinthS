@@ -308,7 +308,15 @@ export function mapMessage(
 	const id = String(row?.id ?? '')
 	if (!id) return null
 	const reply = row.replyTo as LooseRecord | null | undefined
-	const att = row.attachment as LooseRecord | null | undefined
+	// Старые сообщения несли вложения массивом attachments, новые — объектом
+	// attachment: без фолбэка такие сообщения рисуются пустыми пузырями.
+	const rawAtt =
+		(row.attachment as LooseRecord | null | undefined) ??
+		(Array.isArray(row.attachments)
+			? (row.attachments[0] as LooseRecord | undefined)
+			: undefined) ??
+		null
+	const att = rawAtt && typeof rawAtt === 'object' ? rawAtt : null
 	let attachment: Attachment | null = null
 	if (att && (att.name || att.url || att.mime)) {
 		const name = String(att.name || 'file')

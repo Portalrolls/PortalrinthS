@@ -335,6 +335,8 @@ function peekOf(step: AiStep): Peek | null {
 		case 'navigate':
 			return args ? { kind: 'route', path: args, label: routeLabel(args) } : null
 		case 'hosting_cmd':
+		case 'hosting_give':
+		case 'hosting_house':
 		case 'hosting_build': {
 			const commands = rest(args)
 				.split(/;;|\n/)

@@ -22,7 +22,7 @@ import {
 } from '@modrinth/ui'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import UserProfileModal from '@/components/ui/messenger/UserProfileModal.vue'
 import {
@@ -82,6 +82,7 @@ const { t, longDate, locale } = useNewsText()
 const { addNotification } = injectNotificationManager()
 const accounts = injectMinecraftAccounts()
 const router = useRouter()
+const route = useRoute()
 const { bookmarks, toggle: toggleBookmark, has: isBookmarked } = useBookmarks()
 
 const messages = defineMessages({
@@ -416,6 +417,16 @@ function openPost(post: FeedPost, focusComposer = false) {
 	void nextTick(() => postModal.value?.show(post, focusComposer))
 }
 
+/** Публикацию открыли из чужого профиля: подтягиваем её по ?post=<id>. */
+async function openFromQuery() {
+	const id = String(route.query.post || '')
+	if (!id) return
+	const response = await serviceRequest(`/social/posts/${encodeURIComponent(id)}`)
+	const post = (response.data?.post || response.data) as FeedPost | undefined
+	if (response.ok && post?.id) openPost(normalizePost(post))
+	else notify('error', t('app.news.postNotFound', 'Пост не найден'), response.error || '')
+}
+
 function bookmark(post: FeedPost) {
 	const on = toggleBookmark(post.id)
 	if (on && !postById(post.id)) extraPosts.value = [...extraPosts.value, post]
@@ -617,6 +628,7 @@ let unsubscribe: (() => void) | null = null
 
 onMounted(() => {
 	void loadFeed()
+	void openFromQuery()
 	unsubscribe = onServiceAccountChange(() => {
 		loading.value = true
 		posts.value = []
@@ -624,6 +636,13 @@ onMounted(() => {
 		void loadFeed(true)
 	})
 })
+
+watch(
+	() => String(route.query.post || ''),
+	(value) => {
+		if (value) void openFromQuery()
+	},
+)
 
 onBeforeUnmount(() => unsubscribe?.())
 

@@ -41,27 +41,35 @@ function toggleMute() {
 
 <style>
 /* A thin bar in the accent, filled up to where it is; shared by every audio
-   control. The input itself is a generous invisible grab area - the visible
-   bar is the gradient, squeezed into a thin centred strip by background-size. */
+   control (volume and seek). The thumb is a vertical stick as tall as the
+   input itself, so it cannot drift off the line vertically, and the fill is
+   lengthened by half the stick's width so the bar ends exactly under the
+   stick's centre - it never rides ahead of or behind it.
+
+   The accent layer must always be an image: when the theme has no accent
+   gradient the fallback wraps the solid colour in a gradient, because a bare
+   colour with `center / 100% 0.375rem` sizing invalidates the whole
+   declaration and the line disappears entirely. */
 .portalrinth-range {
-	/* The thumb travels half its own width short of each end, so the
-	   colour is filled to the thumb's centre, not to where the raw
-	   percent lands: the ball stays pinned to the tip of the line
-	   instead of drifting off it. */
 	--p: 0;
-	--progress: calc(0.4375rem + (100% - 0.875rem) * var(--p));
+	--thumb-w: 0.25rem;
+	--progress: calc(var(--thumb-w) / 2 + (100% - var(--thumb-w)) * var(--p));
 	appearance: none;
 	height: 1.1rem;
 	margin: 0;
 	border-radius: 999px;
-	background:
+	background-image:
 		linear-gradient(
-				to right,
-				transparent var(--progress),
-				var(--surface-5, rgb(255 255 255 / 15%)) var(--progress)
-			)
-			no-repeat center / 100% 0.375rem,
-		var(--portalrinth-accent-gradient, var(--color-brand)) no-repeat center / 100% 0.375rem;
+			to right,
+			transparent var(--progress),
+			var(--surface-5, rgb(255 255 255 / 25%)) var(--progress)
+		),
+		var(--portalrinth-accent-gradient, linear-gradient(var(--color-brand), var(--color-brand)));
+	background-size:
+		100% 0.375rem,
+		100% 0.375rem;
+	background-position: center;
+	background-repeat: no-repeat;
 	cursor: pointer;
 	outline: none;
 }
@@ -73,25 +81,42 @@ function toggleMute() {
 
 .portalrinth-range::-webkit-slider-thumb {
 	appearance: none;
-	width: 0.875rem;
-	height: 0.875rem;
+	width: var(--thumb-w);
+	height: 1.1rem;
 	border-radius: 999px;
 	background: var(--portalrinth-accent-gradient, var(--color-brand));
-	box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+	box-shadow:
+		0 0 0 1px rgb(0 0 0 / 25%),
+		0 1px 4px rgb(0 0 0 / 40%);
 	transition: transform 0.12s ease;
 }
 
 .portalrinth-range:hover::-webkit-slider-thumb,
 .portalrinth-range:focus-visible::-webkit-slider-thumb,
 .portalrinth-range:active::-webkit-slider-thumb {
-	transform: scale(1.25);
+	transform: scale(1.15);
 }
 
 .portalrinth-range::-moz-range-thumb {
-	width: 0.875rem;
-	height: 0.875rem;
+	width: var(--thumb-w);
+	height: 1.1rem;
 	border: 0;
 	border-radius: 999px;
 	background: var(--portalrinth-accent-gradient, var(--color-brand));
+}
+
+.portalrinth-range::-moz-range-track {
+	height: 0.375rem;
+	border-radius: 999px;
+	background-image:
+		linear-gradient(
+			to right,
+			transparent var(--progress),
+			var(--surface-5, rgb(255 255 255 / 25%)) var(--progress)
+		),
+		var(--portalrinth-accent-gradient, linear-gradient(var(--color-brand), var(--color-brand)));
+	background-size: 100% 0.375rem;
+	background-position: center;
+	background-repeat: no-repeat;
 }
 </style>

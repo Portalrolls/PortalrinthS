@@ -34,12 +34,42 @@ const playing = ref(false)
 const position = ref(0)
 const duration = ref(0)
 
+/** Длительность, узнанная до первого прослушивания: метаданные голосового
+    подтягиваются сразу при показе сообщения (файл кэширован на диске). */
+const metaDuration = ref(0)
+const totalDuration = computed(() => duration.value || metaDuration.value)
+
 const isVisual = computed(
 	() => props.attachment.kind === 'image' || props.attachment.kind === 'gif',
 )
 const isSound = computed(
 	() => props.attachment.kind === 'audio' || props.attachment.kind === 'voice',
 )
+
+onMounted(() => {
+	if (!isSound.value) return
+	void (async () => {
+		try {
+			const url = await mediaBlobUrl(props.attachment.url, props.attachment.mime)
+			const probe = new Audio()
+			probe.preload = 'metadata'
+			probe.src = url
+			probe.addEventListener(
+				'loadedmetadata',
+				() => {
+					if (Number.isFinite(probe.duration) && probe.duration > 0)
+						metaDuration.value = probe.duration
+					probe.removeAttribute('src')
+				},
+				{ once: true },
+			)
+			probe.addEventListener('error', () => probe.removeAttribute('src'), { once: true })
+		} catch {
+			/* не скачали — длительность появится после первого прослушивания, как раньше */
+		}
+	})()
+})
+
 const isBuild = computed(() => isBuildFile(props.attachment.name))
 const installing = ref(false)
 const installed = ref(false)
@@ -179,7 +209,8 @@ onBeforeUnmount(() => audio.value?.pause())
 					<span class="msgr-att__track-fill" :style="{ width: `${progress * 100}%` }" />
 				</div>
 				<div class="msgr-att__audio-time">
-					{{ formatDuration(position) }} / {{ duration ? formatDuration(duration) : '--:--' }}
+					{{ formatDuration(position) }} /
+					{{ totalDuration ? formatDuration(totalDuration) : '--:--' }}
 					<span v-if="mediaFailed" class="msgr-att__error">
 						{{ t('app.messenger.file.mediaFailedShort', 'ошибка загрузки') }}
 					</span>

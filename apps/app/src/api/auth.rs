@@ -39,7 +39,9 @@ pub async fn login<R: Runtime>(
         window.close()?;
     }
 
-    let window = tauri::WebviewWindowBuilder::new(
+    let (browser_args, signin_data_dir) = crate::api::signin_webview(&app)?;
+
+    let mut builder = tauri::WebviewWindowBuilder::new(
         &app,
         "signin",
         tauri::WebviewUrl::External(
@@ -54,8 +56,11 @@ pub async fn login<R: Runtime>(
     .inner_size(1000.0, 700.0)
     .focused(true)
     .center()
-    .additional_browser_args(crate::api::WEBVIEW_BROWSER_ARGS)
-    .build()?;
+    .additional_browser_args(&browser_args);
+    if let Some(dir) = signin_data_dir {
+        builder = builder.data_directory(dir);
+    }
+    let window = builder.build()?;
 
     window.request_user_attention(Some(UserAttentionType::Critical))?;
 

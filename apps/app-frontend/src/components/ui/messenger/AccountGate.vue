@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 
 import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import { injectSettingsActions } from '@/features/settings/settings-actions'
-import { type ServiceFailure,serviceHealth } from '@/helpers/uprojects-service'
+import { type ServiceFailure, serviceHealth } from '@/helpers/uprojects-service'
 
 import { useMessengerT } from './i18n'
 import { connect, state } from './store'
@@ -45,11 +45,18 @@ const healthLine = computed(() => {
 })
 
 const failedText = computed(() => {
-	if (props.reason === 'auth')
+	if (props.reason === 'auth') {
+		const provider = state.account.kind === 'ready' ? state.account.account.provider : null
+		if (provider === 'ely')
+			return t(
+				'app.messenger.gate.failedAuthEly',
+				'Сервис не принял аккаунт Ely.by — токен истёк или отозван. Войдите в аккаунт Ely.by заново.',
+			)
 		return t(
 			'app.messenger.gate.failedAuth',
-			'Сервис не принял аккаунт — токен истёк или отозван. Войдите в аккаунт заново.',
+			'Сервис не принял аккаунт — токен истёк или отозван. Войдите заново. Если вход Microsoft падает с ошибкой сети: Настройки → Управление ресурсами → Прокси (затем перезапуск лаунчера), или войдите через Ely.by — он работает без прокси.',
 		)
+	}
 	if (props.reason === 'rate_limited')
 		return t(
 			'app.messenger.gate.failedRate',

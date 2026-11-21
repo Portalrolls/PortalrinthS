@@ -54,10 +54,28 @@ const messages = defineMessages({
 	},
 	titleUnknown: { id: 'app.error-modal.title.unknown', defaultMessage: 'An error occurred' },
 	networkHeading: { id: 'app.error-modal.network.heading', defaultMessage: 'Network issues' },
+	rfBypassHeading: {
+		id: 'app.error-modal.rf-bypass.heading',
+		defaultMessage: 'Microsoft is unreachable from your network',
+	},
+	rfBypassBody: {
+		id: 'app.error-modal.rf-bypass.body',
+		defaultMessage:
+			'In Russia Microsoft sign-in servers often do not answer without a proxy — this is not a launcher bug. To bypass it: open Settings → Resource management → Proxy, enter an HTTP or SOCKS5 proxy address (or turn your VPN on) and restart the launcher — the Microsoft sign-in window will also go through the proxy. Alternatively, sign in with an Ely.by account: it works without a proxy.',
+	},
 	networkBody: {
 		id: 'app.error-modal.network.body',
 		defaultMessage:
 			"It looks like there were issues with Portalrinth connecting to Microsoft's servers. This is often the result of a poor connection, so we recommend trying again to see if it works. If issues continue to persist, follow the steps in <support-article>our support article</support-article> to troubleshoot.",
+	},
+	rfBypassHeading: {
+		id: 'app.error-modal.rf-bypass.heading',
+		defaultMessage: 'Microsoft is unreachable from your network',
+	},
+	rfBypassBody: {
+		id: 'app.error-modal.rf-bypass.body',
+		defaultMessage:
+			'In Russia Microsoft sign-in servers often do not answer without a proxy — this is not a launcher bug. To bypass it: open Settings → Resource management → Proxy, enter an HTTP or SOCKS5 proxy address (or turn your VPN on) and restart the launcher — the Microsoft sign-in window will also go through the proxy. Alternatively, sign in with an Ely.by account: it works without a proxy.',
 	},
 	hostsFileBody: {
 		id: 'app.error-modal.hosts-file.body',
@@ -326,6 +344,8 @@ async function copyToClipboard(text) {
 						<p>{{ formatMessage(messages.serviceOutageBody) }}</p>
 					</template>
 					<template v-else-if="metadata.network">
+						<h3>{{ formatMessage(messages.rfBypassHeading) }}</h3>
+						<p>{{ formatMessage(messages.rfBypassBody) }}</p>
 						<h3>{{ formatMessage(messages.networkHeading) }}</h3>
 						<p>
 							<IntlFormatted :message-id="messages.networkBody">

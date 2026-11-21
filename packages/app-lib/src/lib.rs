@@ -29,6 +29,7 @@ pub use event::{
 pub use logger::start_logger;
 pub use state::State;
 pub use util::fetch::DownloadReason;
+pub use util::fetch::effective_proxy_url;
 
 /// Installs `ring` as the process-wide rustls crypto provider.
 ///

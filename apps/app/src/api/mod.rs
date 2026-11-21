@@ -1,5 +1,6 @@
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
+use tauri::{Manager, Runtime};
 use theseus::error_code;
 
 /// Every WebView2 environment in the process must be created with the same
@@ -8,6 +9,46 @@ use theseus::error_code;
 /// tauri.conf.json, so every extra window (sign-in, built-in browser, Ely
 /// skin uploads) repeats exactly the same line here.
 pub const WEBVIEW_BROWSER_ARGS: &str = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,MediaSessionService";
+
+/// Аргументы и папка данных для окон входа (Microsoft, Ely.by).
+///
+/// WebView2 не пользуется прокси, заданным в настройках лаунчера, — он ходит
+/// в сеть напрямую. В России Microsoft без прокси часто отвечает ошибкой
+/// («fetch failed» от самой Microsoft), поэтому когда прокси включён, окну
+/// входа передаётся `--proxy-server` явно. Два окружения WebView2 с разными
+/// аргументами в одной папке данных не уживаются (HRESULT 0x8007139F), так
+/// что окну входа с прокси выдаётся и отдельная папка данных. Без прокси
+/// поведение прежнее: общие аргументы, общий профиль (Microsoft помнит
+/// прошлые входы).
+///
+/// Часть схем прокси Chromium не понимает (например, `socks5h://`) — она
+/// приводится к ближайшей понятной; неподдерживаемое вовсе оставляет окно
+/// входа без прокси, как раньше.
+pub fn signin_webview<R: Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> Result<(String, Option<std::path::PathBuf>)> {
+    let Some(proxy) = theseus::effective_proxy_url() else {
+        return Ok((WEBVIEW_BROWSER_ARGS.to_string(), None));
+    };
+    let proxy = proxy.trim();
+    let proxy = proxy
+        .strip_prefix("socks5h://")
+        .map(|rest| format!("socks5://{rest}"))
+        .unwrap_or_else(|| proxy.to_string());
+    let supported = proxy.starts_with("http://")
+        || proxy.starts_with("https://")
+        || proxy.starts_with("socks5://")
+        || proxy.starts_with("socks4://");
+    if !supported {
+        return Ok((WEBVIEW_BROWSER_ARGS.to_string(), None));
+    }
+
+    let data_dir = app.path().app_data_dir()?.join("signin-webview");
+    Ok((
+        format!("{WEBVIEW_BROWSER_ARGS} --proxy-server={proxy}"),
+        Some(data_dir),
+    ))
+}
 
 pub mod auth;
 pub mod ely_auth;

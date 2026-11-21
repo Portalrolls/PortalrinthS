@@ -5169,11 +5169,14 @@
 	"app.media-viewer.openBrowser": {
 		"message": "Open in browser"
 	},
-	"app.messenger.gate.failedAuth": "The service rejected your account — the token expired or was revoked. Sign in again.",
+	"app.messenger.gate.failedAuth": "The service rejected your account — the token expired or was revoked. Sign in again. If Microsoft sign-in fails with a network error: Settings → Resource management → Proxy (then restart the launcher), or use an Ely.by account — it works without a proxy.",
 	"app.messenger.gate.failedRate": "The service is rate-limiting — too many sign-in attempts. Wait a couple of minutes and retry.",
 	"app.messenger.gate.failedService": "The Undefined service returned an error — they might be updating. Try again later.",
 	"app.messenger.gate.diagBoth": "Diagnostics: both service entries respond, but the connection drops. Try again.",
 	"app.messenger.gate.diagEu": "Diagnostics: the main entry is unreachable, the European one responds — switching to it.",
 	"app.messenger.gate.diagMain": "Diagnostics: the main entry responds, the European one is silent.",
-	"app.messenger.gate.diagNone": "Diagnostics: both service entries are unreachable from your network. Your ISP is most likely blocking the service — use a VPN or set a proxy in Settings → Resource management."
+	"app.messenger.gate.diagNone": "Diagnostics: both service entries are unreachable from your network. Your ISP is most likely blocking the service — use a VPN or set a proxy in Settings → Resource management.",
+	"app.error-modal.rf-bypass.heading": "Microsoft is unreachable from your network",
+	"app.error-modal.rf-bypass.body": "In Russia Microsoft sign-in servers often do not answer without a proxy — this is not a launcher bug. To bypass it: open Settings → Resource management → Proxy, enter an HTTP or SOCKS5 proxy address (or turn your VPN on) and restart the launcher — the Microsoft sign-in window will also go through the proxy. Alternatively, sign in with an Ely.by account: it works without a proxy.",
+	"app.messenger.gate.failedAuthEly": "The service rejected your Ely.by account — the token expired or was revoked. Sign in to Ely.by again."
 }

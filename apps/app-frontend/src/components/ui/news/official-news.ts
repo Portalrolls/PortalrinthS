@@ -1,5 +1,4 @@
-import { proxiedFetch } from '@/helpers/proxy-fetch'
-import { UPROJECTS_BASE } from '@/helpers/uprojects-service'
+import { serviceFetchRaw } from '@/helpers/uprojects-service'
 
 import { resolveNewsAssetUrl } from './feed'
 
@@ -17,8 +16,6 @@ export type OfficialNews = {
 	views?: number
 }
 
-const NEWS_API = `${UPROJECTS_BASE}/api/news`
-
 const HEADERS = { 'User-Agent': 'Undefined-Client', Accept: 'application/json' }
 
 function newsLang(locale: string): 'ru' | 'en' {
@@ -26,7 +23,7 @@ function newsLang(locale: string): 'ru' | 'en' {
 }
 
 export async function fetchOfficialNews(locale: string): Promise<OfficialNews[]> {
-	const response = await proxiedFetch(`${NEWS_API}?lang=${newsLang(locale)}&limit=50`, {
+	const response = await serviceFetchRaw(`/api/news?lang=${newsLang(locale)}&limit=50`, {
 		headers: HEADERS,
 		connectTimeout: 12000,
 	})
@@ -39,9 +36,12 @@ export async function fetchOfficialNewsPost(
 	id: string,
 	locale: string,
 ): Promise<OfficialNews | null> {
-	const response = await proxiedFetch(
-		`${NEWS_API}/${encodeURIComponent(id)}?lang=${newsLang(locale)}`,
-		{ headers: HEADERS, connectTimeout: 12000 },
+	const response = await serviceFetchRaw(
+		`/api/news/${encodeURIComponent(id)}?lang=${newsLang(locale)}`,
+		{
+			headers: HEADERS,
+			connectTimeout: 12000,
+		},
 	)
 	if (!response.ok) return null
 	const data = (await response.json().catch(() => ({}))) as { post?: OfficialNews }
@@ -50,7 +50,7 @@ export async function fetchOfficialNewsPost(
 
 export async function noteOfficialNewsView(id: string): Promise<number | null> {
 	try {
-		const response = await proxiedFetch(`${NEWS_API}/${encodeURIComponent(id)}/view`, {
+		const response = await serviceFetchRaw(`/api/news/${encodeURIComponent(id)}/view`, {
 			method: 'POST',
 			headers: HEADERS,
 			connectTimeout: 8000,
@@ -65,7 +65,7 @@ export async function noteOfficialNewsView(id: string): Promise<number | null> {
 }
 
 export function officialNewsUrl(id: string): string {
-	return `${UPROJECTS_BASE}/news/${encodeURIComponent(id)}`
+	return `${serviceBase()}/news/${encodeURIComponent(id)}`
 }
 
 export function officialCover(item: OfficialNews): string {

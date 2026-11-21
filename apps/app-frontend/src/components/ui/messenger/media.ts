@@ -3,6 +3,7 @@ import { BaseDirectory, mkdir, readFile, writeFile } from '@tauri-apps/plugin-fs
 import { openUrl } from '@tauri-apps/plugin-opener'
 
 import { currentProxyUrl, proxiedFetch } from '@/helpers/proxy-fetch'
+import { rebaseServiceUrl } from '@/helpers/uprojects-service'
 
 const blobs = new Map<string, Promise<string>>()
 
@@ -89,7 +90,9 @@ export function mediaBlobUrl(url: string, mime: string): Promise<string> {
 		const controller = new AbortController()
 		const timer = setTimeout(() => controller.abort(), MEDIA_TIMEOUT)
 		try {
-			const response = await proxiedFetch(url, {
+			// Старые ссылки на основной домен (из кэша и сообщений) перекидываем
+			// на текущий рабочий вход — он может быть заблокирован.
+			const response = await proxiedFetch(rebaseServiceUrl(url), {
 				headers: { 'User-Agent': 'Undefined-Client' },
 				connectTimeout: 12000,
 				signal: controller.signal,
@@ -115,12 +118,14 @@ export async function downloadAttachment(
 	const target = await save({ defaultPath: name }).catch(() => null)
 	if (target === null) return 'cancel'
 	try {
-		const response = await proxiedFetch(url, { headers: { 'User-Agent': 'Undefined-Client' } })
+		const response = await proxiedFetch(rebaseServiceUrl(url), {
+			headers: { 'User-Agent': 'Undefined-Client' },
+		})
 		if (!response.ok) throw new Error(`download_${response.status}`)
 		await writeFile(target, new Uint8Array(await response.arrayBuffer()))
 		return 'saved'
 	} catch {
-		await openUrl(url)
+		await openUrl(rebaseServiceUrl(url))
 		return 'opened'
 	}
 }

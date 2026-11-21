@@ -3,8 +3,8 @@ import { reactive } from 'vue'
 import {
 	type LooseRecord,
 	resolveServiceMedia,
+	serviceBase,
 	serviceRequest,
-	UPROJECTS_BASE,
 } from '@/helpers/uprojects-service'
 
 export type StickerKind = 'lottie' | 'image' | 'video'
@@ -94,7 +94,7 @@ function kindOf(url: string, kind?: string): StickerKind {
 
 function stickerUrl(raw: string): string {
 	const value = raw.trim()
-	if (value.startsWith('/stickers/')) return `${UPROJECTS_BASE}/api/messenger${value}`
+	if (value.startsWith('/stickers/')) return `${serviceBase()}/api/messenger${value}`
 	return resolveServiceMedia(value)
 }
 

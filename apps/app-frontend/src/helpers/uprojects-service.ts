@@ -135,7 +135,51 @@ function accountKeyOf(account: ServiceAccount): string {
  * душат), пробуем европейский и запоминаем, какой ответил.
  */
 const MESSENGER_API_EU = `${UPROJECTS_BASE_EU}/api/messenger`
-let preferredApi = MESSENGER_API
+
+/** Рабочий вход запоминаем в localStorage: после перезапуска не начинаем
+    снова с домена, который у игрока не открывается (иначе каждый запрос
+    сначала висит 12–20 секунд на мёртвом адресе). */
+const BASE_STORAGE_KEY = 'portalrinth.serviceBase'
+
+function readStoredBase(): string | null {
+	try {
+		const value = localStorage.getItem(BASE_STORAGE_KEY)
+		return value === MESSENGER_API || value === MESSENGER_API_EU ? value : null
+	} catch {
+		return null
+	}
+}
+
+function rememberBase(base: string): void {
+	try {
+		localStorage.setItem(BASE_STORAGE_KEY, base)
+	} catch {
+		/* приватный режим — переживём без памяти */
+	}
+}
+
+let preferredApi = readStoredBase() ?? MESSENGER_API
+
+/** Базовый адрес текущего рабочего входа («…/client») — от него растут
+    вложения, стикеры, новости и прочие файлы сервиса. */
+export function serviceBase(): string {
+	const index = preferredApi.indexOf('/api/messenger')
+	return index > 0 ? preferredApi.slice(0, index) : UPROJECTS_BASE
+}
+
+/** Абсолютный URL сервиса перекидываем на текущий рабочий вход: в кэше и в
+    старых сообщениях могут лежать ссылки на основной домен, который у игрока
+    заблокирован. Чужие домены не трогаем. */
+export function rebaseServiceUrl(url: string | null | undefined): string {
+	const value = String(url || '')
+	if (!value) return value
+	const base = serviceBase()
+	if (value.startsWith(base)) return value
+	for (const known of [UPROJECTS_BASE, UPROJECTS_BASE_EU]) {
+		if (value.startsWith(known)) return base + value.slice(known.length)
+	}
+	return value
+}
 
 /** Запрос к сервису не висит дольше этого — иначе экраны навсегда застревают на «Загружаем…». */
 const REQUEST_TIMEOUT = 20000
@@ -152,8 +196,36 @@ async function serviceFetch(
 	if (writes && first.data.error === 'timeout') return first
 	const other = preferredApi === MESSENGER_API ? MESSENGER_API_EU : MESSENGER_API
 	const second = await serviceFetchOnce(path, opts, other)
-	if (second.status !== 0) preferredApi = other
-	return second.status !== 0 ? second : first
+	// Основной вход не ответил, запасной ответил — переходим на него (и
+	// запоминаем). Оба молчат — отдаём ошибку запасного, вход не меняем.
+	if (second.status === 0) return second
+	preferredApi = other
+	rememberBase(other)
+	return second
+}
+
+/** Сырой запрос к сервису с тем же фолбэком на рабочий вход: для новостей,
+    AI и прочих endpoints, которые разбирают Response сами. Путь ведётся от
+    базового адреса («/api/news…»). */
+export async function serviceFetchRaw(
+	path: string,
+	opts: {
+		method?: string
+		headers?: Record<string, string>
+		body?: string
+		connectTimeout?: number
+	} = {},
+): Promise<Response> {
+	try {
+		return await proxiedFetch(`${serviceBase()}${path}`, { ...opts })
+	} catch {
+		// Основной вход не отвечает — пробуем запасной и переходим на него.
+		const fallback = serviceBase() === UPROJECTS_BASE ? UPROJECTS_BASE_EU : UPROJECTS_BASE
+		const response = await proxiedFetch(`${fallback}${path}`, { ...opts })
+		preferredApi = `${fallback}/api/messenger`
+		rememberBase(preferredApi)
+		return response
+	}
 }
 
 async function serviceFetchOnce(
@@ -369,14 +441,17 @@ export function serviceStreamUrl(token: string): string {
 	return `${preferredApi}/stream?token=${encodeURIComponent(token)}`
 }
 
-/** Ссылка на файл из сервиса: относительные пути растут от базового адреса. */
+/** Ссылка на файл из сервиса: относительные пути растут от базового адреса
+    текущего рабочего входа (основной домен может быть заблокирован). */
 export function resolveServiceMedia(url: string | null | undefined): string {
 	const value = String(url || '').trim()
 	if (!value) return ''
-	if (/^(https?:|data:)/.test(value)) return value
-	if (value.startsWith('/api/messenger/')) return `${UPROJECTS_BASE}${value}`
-	if (value.startsWith('/client/')) return UPROJECTS_BASE.replace(/\/client$/, '') + value
-	if (value.startsWith('/')) return `${UPROJECTS_BASE}${value}`
+	if (/^(data:)/.test(value)) return value
+	if (/^https?:/.test(value)) return rebaseServiceUrl(value)
+	const base = serviceBase()
+	if (value.startsWith('/api/messenger/')) return `${base}${value}`
+	if (value.startsWith('/client/')) return base.replace(/\/client$/, '') + value
+	if (value.startsWith('/')) return `${base}${value}`
 	return value
 }
 
@@ -398,11 +473,11 @@ const SKIN_RELAY_HOSTS =
 const MODRINTH_CDN = /^https:\/\/cdn\.modrinth\.com\//i
 
 export function relayImageUrl(url: string): string {
-	if (!url || url.startsWith(UPROJECTS_BASE)) return url
+	if (!url || url.startsWith(serviceBase())) return url
 	if (SKIN_RELAY_HOSTS.test(url))
-		return `${UPROJECTS_BASE}/api/skin/image?url=${encodeURIComponent(url)}`
+		return `${serviceBase()}/api/skin/image?url=${encodeURIComponent(url)}`
 	if (MODRINTH_CDN.test(url))
-		return `${UPROJECTS_BASE}/api/catalog/image?url=${encodeURIComponent(url)}`
+		return `${serviceBase()}/api/catalog/image?url=${encodeURIComponent(url)}`
 	return url
 }
 

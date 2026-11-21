@@ -2,7 +2,7 @@ import { useVIntl } from '@modrinth/ui'
 import { renderString } from '@modrinth/utils'
 import { ref } from 'vue'
 
-import { resolveServiceMedia, UPROJECTS_BASE } from '@/helpers/uprojects-service'
+import { resolveServiceMedia, serviceBase } from '@/helpers/uprojects-service'
 
 export type FeedUser = {
 	id: string
@@ -238,13 +238,14 @@ export function renderRich(md: string): string {
 		.replace(/\uE000T|\uE000M|\uE001/g, '')
 }
 
-/** Адреса из статей сайта: относительные пути растут от домена uprojects.site. */
+/** Адреса из статей сайта: относительные пути растут от рабочего домена сервиса
+    (основной может быть заблокирован — тогда всё уходит на европейский). */
 export function resolveNewsAssetUrl(url: string | null | undefined): string {
 	const value = String(url || '').trim()
 	if (!value) return ''
 	if (/^(https?:|data:)/i.test(value)) return value
-	if (value.startsWith('/')) return `${new URL(UPROJECTS_BASE).origin}${value}`
-	return `${UPROJECTS_BASE}/${value.replace(/^\.?\//, '')}`
+	if (value.startsWith('/')) return `${new URL(serviceBase()).origin}${value}`
+	return `${serviceBase()}/${value.replace(/^\.?\//, '')}`
 }
 
 export function renderArticle(md: string): string {

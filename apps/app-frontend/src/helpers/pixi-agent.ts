@@ -14,7 +14,8 @@ import {
 	forgetServiceSession,
 	onServiceAccountChange,
 	readAccountState,
-	UPROJECTS_BASE,
+	serviceBase,
+	serviceFetchRaw,
 	UPROJECTS_BASE_EU,
 } from './uprojects-service'
 
@@ -118,7 +119,9 @@ interface PixiStatusResponse {
 }
 
 function baseFor(model: PixiModel | undefined): string {
-	return model?.edge === 'eu' ? UPROJECTS_BASE_EU : UPROJECTS_BASE
+	// Не-EU модели ходят через текущий рабочий вход сервиса: если основной
+	// домен заблокирован и клиент уже перешёл на европейский, AI идёт туда же.
+	return model?.edge === 'eu' ? UPROJECTS_BASE_EU : serviceBase()
 }
 
 function pixiHeaders(token: string | null, accept: string): Record<string, string> {
@@ -151,7 +154,7 @@ export async function refreshPixiAccess(): Promise<PixiAccess> {
 		return pixiAccess.value
 	}
 	try {
-		const response = await proxiedFetch(`${UPROJECTS_BASE}/api/ai/status`, {
+		const response = await serviceFetchRaw('/api/ai/status', {
 			headers: pixiHeaders(session.token, 'application/json'),
 			connectTimeout: 12000,
 		})
@@ -186,7 +189,7 @@ export async function applyForPixi(reason: string): Promise<{ ok: boolean; messa
 		return { ok: false, message: 'Нужен вход в аккаунт Undefined (Microsoft или Ely.by)' }
 	}
 	try {
-		const response = await proxiedFetch(`${UPROJECTS_BASE}/api/ai/apply`, {
+		const response = await serviceFetchRaw('/api/ai/apply', {
 			method: 'POST',
 			headers: pixiHeaders(session.token, 'application/json'),
 			body: JSON.stringify({ reason: reason.slice(0, 1000) }),

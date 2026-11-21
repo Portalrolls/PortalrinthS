@@ -1,4 +1,4 @@
-import { type LooseRecord, resolveServiceMedia, UPROJECTS_BASE } from '@/helpers/uprojects-service'
+import { type LooseRecord, resolveServiceMedia, serviceBase } from '@/helpers/uprojects-service'
 
 import type { Translate } from './i18n'
 
@@ -277,7 +277,7 @@ export function attachmentKind(name: string, mime: string): Attachment['kind'] {
 }
 
 export function attachmentUrl(messageId: string, token: string): string {
-	return `${UPROJECTS_BASE}/api/messenger/messages/${encodeURIComponent(messageId)}/attachment?token=${encodeURIComponent(token)}`
+	return `${serviceBase()}/api/messenger/messages/${encodeURIComponent(messageId)}/attachment?token=${encodeURIComponent(token)}`
 }
 
 export function mapReactions(raw: unknown, myId: string): Reaction[] {

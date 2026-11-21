@@ -5,6 +5,7 @@ import { install_create_modpack_instance, packLocationFromFile } from '@/helpers
 import { export_instance_mrpack, get_pack_export_candidates } from '@/helpers/instance'
 import { proxiedFetch } from '@/helpers/proxy-fetch'
 import type { GameInstance } from '@/helpers/types'
+import { rebaseServiceUrl } from '@/helpers/uprojects-service'
 
 import { MAX_FILE_BYTES, readFileBase64 } from './model'
 import type { PendingAttachment } from './store'
@@ -65,7 +66,7 @@ export async function packBuild(instance: GameInstance): Promise<PendingAttachme
     домена сервиса нет в connect-src, установка сборки всегда падала. */
 export async function installBuild(url: string, name: string): Promise<boolean> {
 	try {
-		const response = await proxiedFetch(url, {
+		const response = await proxiedFetch(rebaseServiceUrl(url), {
 			headers: { 'User-Agent': 'Undefined-Client' },
 			connectTimeout: 12000,
 		})

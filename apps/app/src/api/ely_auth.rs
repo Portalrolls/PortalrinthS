@@ -67,28 +67,31 @@ pub async fn ely_device_login<R: Runtime>(
 
     let (browser_args, signin_data_dir) = crate::api::signin_webview(&app)?;
 
-    let mut builder = tauri::WebviewWindowBuilder::new(
-        &app,
-        ELY_SIGN_IN_WINDOW_LABEL,
-        tauri::WebviewUrl::External(flow.verification_url.parse().map_err(
-            |_| {
-                anyhow::anyhow!(
-                    "Could not build the Ely.by sign-in address".to_string(),
-                )
-            },
-        )?),
-    )
-    .title("Sign in with Ely.by")
-    .always_on_top(true)
-    .min_inner_size(500.0, 500.0)
-    .inner_size(1000.0, 700.0)
-    .focused(true)
-    .center()
-    .additional_browser_args(&browser_args);
-    if let Some(dir) = signin_data_dir {
-        builder = builder.data_directory(dir);
-    }
-    let window = builder.build()?;
+    // The builder is not Send: it must not live across the awaits below.
+    let window = {
+        let mut builder = tauri::WebviewWindowBuilder::new(
+            &app,
+            ELY_SIGN_IN_WINDOW_LABEL,
+            tauri::WebviewUrl::External(flow.verification_url.parse().map_err(
+                |_| {
+                    anyhow::anyhow!(
+                        "Could not build the Ely.by sign-in address".to_string(),
+                    )
+                },
+            )?),
+        )
+        .title("Sign in with Ely.by")
+        .always_on_top(true)
+        .min_inner_size(500.0, 500.0)
+        .inner_size(1000.0, 700.0)
+        .focused(true)
+        .center()
+        .additional_browser_args(&browser_args);
+        if let Some(dir) = signin_data_dir {
+            builder = builder.data_directory(dir);
+        }
+        builder.build()?
+    };
 
     window.request_user_attention(Some(tauri::UserAttentionType::Critical))?;
 
@@ -162,26 +165,29 @@ pub async fn ely_oauth_login<R: Runtime>(
 
     let (browser_args, signin_data_dir) = crate::api::signin_webview(&app)?;
 
-    let mut builder = tauri::WebviewWindowBuilder::new(
-        &app,
-        ELY_SIGN_IN_WINDOW_LABEL,
-        tauri::WebviewUrl::External(request.url.parse().map_err(|_| {
-            anyhow::anyhow!(
-                "Could not build the Ely.by sign-in address".to_string(),
-            )
-        })?),
-    )
-    .title("Sign in with Ely.by")
-    .always_on_top(true)
-    .min_inner_size(500.0, 500.0)
-    .inner_size(1000.0, 700.0)
-    .focused(true)
-    .center()
-    .additional_browser_args(&browser_args);
-    if let Some(dir) = signin_data_dir {
-        builder = builder.data_directory(dir);
-    }
-    let window = builder.build()?;
+    // The builder is not Send: it must not live across the awaits below.
+    let window = {
+        let mut builder = tauri::WebviewWindowBuilder::new(
+            &app,
+            ELY_SIGN_IN_WINDOW_LABEL,
+            tauri::WebviewUrl::External(request.url.parse().map_err(|_| {
+                anyhow::anyhow!(
+                    "Could not build the Ely.by sign-in address".to_string(),
+                )
+            })?),
+        )
+        .title("Sign in with Ely.by")
+        .always_on_top(true)
+        .min_inner_size(500.0, 500.0)
+        .inner_size(1000.0, 700.0)
+        .focused(true)
+        .center()
+        .additional_browser_args(&browser_args);
+        if let Some(dir) = signin_data_dir {
+            builder = builder.data_directory(dir);
+        }
+        builder.build()?
+    };
 
     window.request_user_attention(Some(tauri::UserAttentionType::Critical))?;
 

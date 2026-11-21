@@ -41,26 +41,30 @@ pub async fn login<R: Runtime>(
 
     let (browser_args, signin_data_dir) = crate::api::signin_webview(&app)?;
 
-    let mut builder = tauri::WebviewWindowBuilder::new(
-        &app,
-        "signin",
-        tauri::WebviewUrl::External(
-            flow.auth_request_uri
-                .parse()
-                .context("error parsing auth redirect URL")?,
-        ),
-    )
-    .title("Sign in with Microsoft")
-    .always_on_top(true)
-    .min_inner_size(500.0, 500.0)
-    .inner_size(1000.0, 700.0)
-    .focused(true)
-    .center()
-    .additional_browser_args(&browser_args);
-    if let Some(dir) = signin_data_dir {
-        builder = builder.data_directory(dir);
-    }
-    let window = builder.build()?;
+    // The builder is confined to this block: it is not Send, and the async
+    // command below must be, so it must never live across an await point.
+    let window = {
+        let mut builder = tauri::WebviewWindowBuilder::new(
+            &app,
+            "signin",
+            tauri::WebviewUrl::External(
+                flow.auth_request_uri
+                    .parse()
+                    .context("error parsing auth redirect URL")?,
+            ),
+        )
+        .title("Sign in with Microsoft")
+        .always_on_top(true)
+        .min_inner_size(500.0, 500.0)
+        .inner_size(1000.0, 700.0)
+        .focused(true)
+        .center()
+        .additional_browser_args(&browser_args);
+        if let Some(dir) = signin_data_dir {
+            builder = builder.data_directory(dir);
+        }
+        builder.build()?
+    };
 
     window.request_user_attention(Some(UserAttentionType::Critical))?;
 

@@ -6,6 +6,7 @@ import { computed, ref } from 'vue'
 import HeadphonesIcon from './HeadphonesIcon.vue'
 import { useMessengerT } from './i18n'
 import type { Channel } from './model'
+import { CHANNEL_ICON_PRESETS, channelIcon, setChannelIcon } from './channel-icons'
 import { deleteChannel, saveChannel, state } from './store'
 import { askConfirm } from './ui-bus'
 
@@ -18,6 +19,7 @@ const name = ref('')
 const topic = ref('')
 const kind = ref<'text' | 'voice'>('text')
 const categoryId = ref('')
+const iconEmoji = ref('')
 const busy = ref(false)
 
 const categories = computed(() => state.structures[convId.value]?.categories ?? [])
@@ -44,6 +46,7 @@ function show(
 	topic.value = channel?.topic ?? ''
 	kind.value = channel?.kind ?? nextKind
 	categoryId.value = channel ? (channel.categoryId ?? '') : category
+	iconEmoji.value = channel ? channelIcon(channel.id) : ''
 	modal.value?.show()
 }
 
@@ -57,7 +60,14 @@ async function save(): Promise<void> {
 		categoryId: categoryId.value || null,
 	})
 	busy.value = false
-	if (ok) modal.value?.hide()
+	if (ok) {
+		// Иконка — локальная: канал только что сохранён, он уже в структуре.
+		const created = state.structures[convId.value]?.channels.find(
+			(channel) => channel.name === cleanName.value,
+		)
+		if (created) setChannelIcon(created.id, iconEmoji.value.trim())
+		modal.value?.hide()
+	}
 }
 
 async function remove(): Promise<void> {
@@ -137,6 +147,30 @@ defineExpose({ show })
 					@keydown.enter="save"
 				/>
 			</label>
+			<div class="msgr-field">
+				<span>{{ t('app.messenger.channel.icon', 'Иконка (эмодзи вместо решётки)') }}</span>
+				<div class="msgr-icon-picker">
+					<input
+						v-model="iconEmoji"
+						type="text"
+						maxlength="4"
+						class="msgr-icon-picker__input"
+						placeholder="#"
+					/>
+					<div class="msgr-icon-picker__presets">
+						<button
+							v-for="emoji in CHANNEL_ICON_PRESETS"
+							:key="emoji"
+							type="button"
+							class="msgr-icon-picker__preset"
+							:class="{ 'is-on': iconEmoji === emoji }"
+							@click="iconEmoji = iconEmoji === emoji ? '' : emoji"
+						>
+							{{ emoji }}
+						</button>
+					</div>
+				</div>
+			</div>
 			<label v-if="kind === 'text'" class="msgr-field">
 				<span>{{ t('app.messenger.channel.topic', 'Тема канала') }}</span>
 				<input v-model="topic" type="text" maxlength="200" />
@@ -169,3 +203,46 @@ defineExpose({ show })
 		</div>
 	</NewModal>
 </template>
+
+<style scoped>
+.msgr-icon-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+}
+
+.msgr-icon-picker__input {
+	width: 4rem;
+	padding: 0.35rem 0.5rem;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.3);
+	color: var(--color-base);
+	font-size: 1.1rem;
+	text-align: center;
+}
+
+.msgr-icon-picker__presets {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.msgr-icon-picker__preset {
+	padding: 0.15rem 0.3rem;
+	border: 0;
+	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.05);
+	font-size: 1rem;
+	cursor: pointer;
+	transition: background 0.12s ease;
+}
+
+.msgr-icon-picker__preset:hover {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.msgr-icon-picker__preset.is-on {
+	background: color-mix(in srgb, var(--color-brand) 35%, transparent);
+}
+</style>

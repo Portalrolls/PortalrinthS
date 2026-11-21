@@ -144,6 +144,30 @@ onUnmounted(() => {
 	unlistenDrop?.()
 	clearTimeout(saveDimTimer)
 })
+
+/** Зона drag & drop прямо на превью: перетаскивание ОС уже ловит всё окно,
+    а это принимает и «веб-перетаскивание» (например, картинка из браузера) —
+    пишем файл во временную папку и ставим фоном. */
+const htmlDragging = ref(false)
+
+async function onHtmlDrop(event: DragEvent): Promise<void> {
+	htmlDragging.value = false
+	const file = event.dataTransfer?.files?.[0]
+	if (!file || !isBackgroundFile(file.name)) return
+	try {
+		const { appDataDir } = await import('@tauri-apps/api/path')
+		const { BaseDirectory, writeFile } = await import('@tauri-apps/plugin-fs')
+		const extension = file.name.match(/(\.[a-z0-9]+)$/i)?.[1]?.toLowerCase() ?? '.png'
+		await writeFile(`dropped-background${extension}`, new Uint8Array(await file.arrayBuffer()), {
+			baseDir: BaseDirectory.AppData,
+		})
+		const base = (await appDataDir()).replace(/[\\/]+$/, '')
+		const separator = base.includes('\\') ? '\\' : '/'
+		await run(() => setBackgroundFromPath(`${base}${separator}dropped-background${extension}`))
+	} catch (error) {
+		handleError(error as Error)
+	}
+}
 </script>
 
 <template>
@@ -156,14 +180,19 @@ onUnmounted(() => {
 			<div
 				class="relative aspect-video w-48 shrink-0 overflow-hidden rounded-xl border border-solid bg-surface-2 bg-cover bg-center transition-colors"
 				:class="[
-					dragging ? 'border-brand' : 'border-surface-5',
-					{ 'grid place-items-center text-secondary': !backgroundUrl || dragging },
+					dragging || htmlDragging ? 'border-brand' : 'border-surface-5',
+					{
+						'grid place-items-center text-secondary': !backgroundUrl || dragging || htmlDragging,
+					},
 				]"
 				:style="
 					backgroundUrl && !backgroundIsVideo
 						? { backgroundImage: `url(${backgroundUrl})` }
 						: undefined
 				"
+				@dragover.prevent="htmlDragging = true"
+				@dragleave.prevent="htmlDragging = false"
+				@drop.prevent="onHtmlDrop($event)"
 			>
 				<!-- A video is shown by playing it, not by a still of it. -->
 				<video
@@ -176,7 +205,7 @@ onUnmounted(() => {
 					playsinline
 				/>
 				<span
-					v-if="dragging"
+					v-if="dragging || htmlDragging"
 					class="absolute inset-0 grid place-items-center bg-black/60 text-sm font-semibold text-contrast"
 				>
 					{{ formatMessage(messages.dropHere) }}

@@ -361,6 +361,8 @@ export function mapMessage(
 export function previewOf(row: LooseRecord): string {
 	const body = String(row.body || '').trim()
 	if (/^\[\[(?:sticker:\d+|psticker)\]\]$/.test(body)) return '✦ Стикер'
+	if (/^\[\[(?:profile|user):[^\]]+\]\]$/.test(body)) return '👤 Профиль'
+	if (/^\[\[group:[^\]]+\]\]$/.test(body)) return '👥 Группа'
 	if (body) return body
 	const name = String(row.attachment?.name || '')
 	return name ? `📎 ${name}` : ''
@@ -452,7 +454,8 @@ export function formatSize(bytes: number): string {
 	if (!bytes || bytes < 0) return ''
 	if (bytes < 1024) return `${bytes} Б`
 	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`
-	return `${(bytes / 1024 / 1024).toFixed(1)} МБ`
+	if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} МБ`
+	return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} ГБ`
 }
 
 export function formatTime(ms: number): string {

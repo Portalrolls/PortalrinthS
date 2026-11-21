@@ -24,6 +24,7 @@ import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import MessageAttachment from './MessageAttachment.vue'
 import MessageText from './MessageText.vue'
+import ProfileCard from './ProfileCard.vue'
 import { formatDate, formatTime, type Msg } from './model'
 import { isOnlyEmoji } from './rich-text'
 import { isPlayerSticker, saveStickerFromUrl, stickerById, stickerIdOf } from './stickers'
@@ -94,6 +95,16 @@ const playerSticker = computed(() =>
 		: null,
 )
 const isSticker = computed(() => Boolean(serverSticker.value || playerSticker.value))
+
+/** Вложение-визитка: [[profile:id]] — профиль игрока, [[group:id]] — группа. */
+const userCard = computed(() => {
+	const match = /^\[\[(?:profile|user):([^\]]+)\]\]$/.exec(props.msg.body.trim())
+	return match ? match[1] : ''
+})
+const groupCard = computed(() => {
+	const match = /^\[\[group:([^\]]+)\]\]$/.exec(props.msg.body.trim())
+	return match ? match[1] : ''
+})
 
 /** Пересланное сообщение приходит текстом «↪ автор: текст» — разбираем его обратно. */
 const forwarded = computed(() => {
@@ -421,6 +432,9 @@ function mention(name: string, el: HTMLElement): void {
 				>
 					<img :src="playerSticker.url" alt="" draggable="false" />
 				</button>
+				<div v-else-if="userCard || groupCard" class="msgr-msg__card">
+					<ProfileCard :kind="userCard ? 'user' : 'group'" :id="(userCard || groupCard)!" />
+				</div>
 				<div v-else-if="forwarded" class="msgr-msg__forward">
 					<span class="msgr-msg__forward-head">
 						<ShareIcon />

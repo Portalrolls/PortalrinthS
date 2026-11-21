@@ -5,6 +5,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { hostedAddress, type HostedServerView, hosting_list } from '@/helpers/hosting'
 import { list } from '@/helpers/instance'
 import type { GameInstance } from '@/helpers/types'
+import type { Peer } from './model'
 import { start_join_server } from '@/helpers/worlds'
 
 import { useMessengerT } from './i18n'
@@ -14,14 +15,35 @@ import UserAvatar from './UserAvatar.vue'
 
 const t = useMessengerT()
 
+/** Друзья с открытым миром идут первыми, просто играющие — следом: в «Мирах
+    по сети» видно всех, кто сейчас в игре, а не только расшаривших мир. */
 const worlds = computed(() => {
 	void state.presenceClock
+	const rank = (peer: Peer): number =>
+		peer.activity?.hosting || peer.activity?.serverHost ? 0 : peer.activity?.worldShare ? 1 : 2
 	return state.friends
 		.map((peer) => userOf(peer.id) ?? peer)
 		.filter(
-			(peer) => peer.activity?.worldShare || peer.activity?.hosting || peer.activity?.serverHost,
+			(peer) =>
+				peer.activity?.worldShare ||
+				peer.activity?.hosting ||
+				peer.activity?.serverHost ||
+				peer.activity?.playing,
 		)
+		.sort((a, b) => rank(a) - rank(b))
 })
+
+/** Бейдж карточки: у кого свой сервер, у кого открытый мир, кто просто в игре. */
+function worldBadge(peer: Peer): { text: string; kind: 'self' | 'lan' | 'game' } | null {
+	const activity = peer.activity
+	if (!activity) return null
+	if (activity.hosting || activity.serverHost)
+		return { text: t('app.messenger.worlds.badgeSelf', 'Self-Hosted'), kind: 'self' }
+	if (activity.worldShare) return { text: t('app.messenger.worlds.badgeLan', 'LAN'), kind: 'lan' }
+	if (activity.playing)
+		return { text: t('app.messenger.worlds.badgePlaying', 'В игре'), kind: 'game' }
+	return null
+}
 
 const CORE_NAMES: Record<string, string> = {
 	paper: 'Paper',
@@ -168,7 +190,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 					<div class="msgr-worlds__top">
 						<span class="msgr-worlds__own-icon"><GlobeIcon /></span>
 						<div>
-							<b>{{ server.name }}</b>
+							<b>{{ server.name }} <span class="msgr-worlds__badge is-self">Self-Hosted</span></b>
 							<small>{{ t('app.messenger.worlds.ownServer', 'Ваш сервер запущен') }}</small>
 						</div>
 					</div>
@@ -203,7 +225,15 @@ async function joinWith(build: GameInstance): Promise<void> {
 					<div class="msgr-worlds__top">
 						<UserAvatar :user-id="peer.id" :name="peer.username" :size="40" status ring="#1b1c20" />
 						<div>
-							<b>{{ displayName(peer.id, peer.username) }}</b>
+							<b>
+								{{ displayName(peer.id, peer.username) }}
+								<span
+									v-if="worldBadge(peer)"
+									class="msgr-worlds__badge"
+									:class="`is-${worldBadge(peer)!.kind}`"
+									>{{ worldBadge(peer)!.text }}</span
+								>
+							</b>
 							<small>{{
 								buildLine(peer.activity) ||
 								(peer.activity?.hosting || peer.activity?.worldShare
@@ -410,6 +440,34 @@ async function joinWith(build: GameInstance): Promise<void> {
 .msgr-worlds__own-icon svg {
 	width: 1.3rem;
 	height: 1.3rem;
+}
+
+.msgr-worlds__badge {
+	padding: 0.08rem 0.4rem;
+	margin-left: 0.3rem;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.1);
+	font-size: 0.62rem;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	vertical-align: middle;
+	opacity: 0.9;
+}
+
+.msgr-worlds__badge.is-self {
+	background: color-mix(in srgb, var(--color-brand) 30%, transparent);
+	color: var(--color-brand);
+}
+
+.msgr-worlds__badge.is-lan {
+	background: rgba(35, 165, 90, 0.25);
+	color: #57f287;
+}
+
+.msgr-worlds__badge.is-game {
+	background: rgba(255, 255, 255, 0.08);
+	opacity: 0.7;
 }
 
 .msgr-worlds__top {

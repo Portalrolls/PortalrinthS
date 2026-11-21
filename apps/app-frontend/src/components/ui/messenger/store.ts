@@ -1275,6 +1275,18 @@ export async function addMembers(convId: string, ids: string[]): Promise<boolean
 	return response.ok
 }
 
+/** Вступить в группу/сервер по карточке из чата: сервер добавляет нас самих. */
+export async function joinGroupServer(convId: string): Promise<boolean> {
+	const response = await serviceRequest(`/conversations/${enc(convId)}/members`, {
+		method: 'POST',
+		body: { memberIds: [myId.value] },
+	})
+	if (!response.ok) fail(response)
+	await loadLists()
+	if (response.ok) await loadConversation(convId)
+	return response.ok
+}
+
 export async function kickMember(convId: string, userId: string): Promise<boolean> {
 	const response = await serviceRequest(`/conversations/${enc(convId)}/members/${enc(userId)}`, {
 		method: 'DELETE',

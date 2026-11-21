@@ -17,6 +17,7 @@ import {
 import { computed, ref } from 'vue'
 
 import FloatingMenu from './FloatingMenu.vue'
+import { channelIcon } from './channel-icons'
 import { useMessengerT } from './i18n'
 import MicOffIcon from './MicOffIcon.vue'
 import type { Category, Channel, Conversation } from './model'
@@ -245,6 +246,9 @@ function voiceMembers(channelId: string) {
 						"
 					>
 						<Volume2Icon v-if="channel.kind === 'voice'" />
+						<span v-else-if="channelIcon(channel.id)" class="msgr-side__channel-emoji">{{
+							channelIcon(channel.id)
+						}}</span>
 						<HashIcon v-else />
 						<span class="msgr-side__channel-name">{{ channel.name }}</span>
 						<b v-if="importantIn(server.id, channel.id)" class="msgr-side__badge">{{
@@ -397,3 +401,10 @@ function voiceMembers(channelId: string) {
 		</FloatingMenu>
 	</div>
 </template>
+
+<style scoped>
+.msgr-side__channel-emoji {
+	font-size: 0.95rem;
+	line-height: 1;
+}
+</style>

@@ -1,5 +1,6 @@
 <script setup>
 import '@/helpers/ai-launcher-tools'
+import '@/helpers/ai-messenger-tools'
 import '@/helpers/ai-portalus-tools'
 import '@/helpers/ai-super-tools'
 

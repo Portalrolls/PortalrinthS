@@ -14,7 +14,7 @@ import { installBuild, isBuildFile } from './builds'
 import { useMessengerT } from './i18n'
 import { downloadAttachment, mediaBlobUrl } from './media'
 import MicIcon from './MicIcon.vue'
-import { type Attachment, formatDuration, formatSize } from './model'
+import { type Attachment, extensionOf, formatDuration, formatSize } from './model'
 import ServiceImage from './ServiceImage.vue'
 import { showToast } from './store'
 import { openLightbox } from './ui-bus'
@@ -71,6 +71,7 @@ onMounted(() => {
 })
 
 const isBuild = computed(() => isBuildFile(props.attachment.name))
+const fileExt = computed(() => extensionOf(props.attachment.name).toUpperCase())
 const installing = ref(false)
 const installed = ref(false)
 
@@ -147,20 +148,30 @@ onBeforeUnmount(() => audio.value?.pause())
 
 <template>
 	<div class="msgr-att" @click.stop>
-		<button
-			v-if="isVisual && !imageFailed"
-			type="button"
-			class="msgr-att__image"
-			@click="openLightbox(attachment.url, attachment.name, attachment.mime)"
-		>
-			<ServiceImage
-				:src="attachment.url"
-				:mime="attachment.mime"
-				:lazy="attachment.kind !== 'gif'"
-				@failed="imageFailed = true"
-			/>
-			<span v-if="attachment.kind === 'gif'" class="msgr-att__badge">GIF</span>
-		</button>
+		<div v-if="isVisual && !imageFailed" class="msgr-att__vis">
+			<button
+				type="button"
+				class="msgr-att__image"
+				@click="openLightbox(attachment.url, attachment.name, attachment.mime)"
+			>
+				<ServiceImage
+					:src="attachment.url"
+					:mime="attachment.mime"
+					:lazy="attachment.kind !== 'gif'"
+					@failed="imageFailed = true"
+				/>
+				<span v-if="attachment.kind === 'gif'" class="msgr-att__badge">GIF</span>
+			</button>
+			<button
+				type="button"
+				class="msgr-att__dl"
+				:title="t('app.messenger.file.download', 'Скачать')"
+				:disabled="downloading"
+				@click="download"
+			>
+				<DownloadIcon />
+			</button>
+		</div>
 
 		<div v-else-if="attachment.kind === 'video'" class="msgr-att__video">
 			<video v-if="mediaUrl" :src="mediaUrl" controls autoplay preload="metadata" />
@@ -253,9 +264,12 @@ onBeforeUnmount(() => audio.value?.pause())
 				>
 					{{ attachment.name }}
 				</button>
-				<span class="msgr-att__file-size">{{
-					attachment.size ? formatSize(attachment.size) : attachment.mime
-				}}</span>
+				<span class="msgr-att__file-meta">
+					<span v-if="fileExt" class="msgr-att__file-ext">{{ fileExt }}</span>
+					<span class="msgr-att__file-size">{{
+						attachment.size ? formatSize(attachment.size) : attachment.mime
+					}}</span>
+				</span>
 			</div>
 			<button
 				type="button"
@@ -326,6 +340,60 @@ onBeforeUnmount(() => audio.value?.pause())
 
 .msgr-att__image:hover img {
 	transform: scale(1.015);
+}
+
+.msgr-att__dl {
+	position: absolute;
+	right: 0.45rem;
+	bottom: 0.45rem;
+	display: grid;
+	width: 2rem;
+	height: 2rem;
+	place-items: center;
+	border: 0;
+	border-radius: 8px;
+	background: rgba(0, 0, 0, 0.62);
+	color: white;
+	cursor: pointer;
+	opacity: 0;
+	transition:
+		opacity 0.15s ease,
+		background 0.15s ease;
+}
+
+.msgr-att__vis:hover .msgr-att__dl {
+	opacity: 1;
+}
+
+.msgr-att__dl:hover {
+	background: var(--color-brand);
+}
+
+.msgr-att__dl svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+.msgr-att__file-ext {
+	padding: 0.05rem 0.3rem;
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.09);
+	font-size: 0.62rem;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	opacity: 0.85;
+}
+
+.msgr-att__file-meta {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.msgr-att__file-meta .msgr-att__file-size {
+	font-size: 0.72rem;
+	opacity: 0.6;
 }
 
 .msgr-att__badge {
@@ -507,8 +575,8 @@ onBeforeUnmount(() => audio.value?.pause())
 	flex-shrink: 0;
 	place-items: center;
 	border-radius: 8px;
-	background: color-mix(in srgb, var(--color-brand) 18%, transparent);
-	color: color-mix(in srgb, var(--color-brand) 60%, white);
+	background: rgba(255, 255, 255, 0.07);
+	color: #ffffff;
 }
 
 .msgr-att__file-name {
@@ -586,6 +654,10 @@ onBeforeUnmount(() => audio.value?.pause())
 
 .msgr-att__download.is-install {
 	background: #23a55a;
+}
+
+.msgr-att__download.is-install:hover {
+	background: var(--color-brand);
 }
 
 .msgr-att__download:hover {

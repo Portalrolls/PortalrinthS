@@ -5,12 +5,20 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { hostedAddress, type HostedServerView, hosting_list } from '@/helpers/hosting'
 import { list } from '@/helpers/instance'
 import type { GameInstance } from '@/helpers/types'
-import type { Peer } from './model'
 import { start_join_server } from '@/helpers/worlds'
 
 import { useMessengerT } from './i18n'
+import type { Peer } from './model'
 import { buildLine, loaderName } from './model'
-import { displayName, showToast, state, userOf, writeTo } from './store'
+import {
+	displayName,
+	loadLists,
+	requestWorldShares,
+	showToast,
+	state,
+	userOf,
+	writeTo,
+} from './store'
 import UserAvatar from './UserAvatar.vue'
 
 const t = useMessengerT()
@@ -57,6 +65,7 @@ const CORE_NAMES: Record<string, string> = {
 /** Запущенные собственные серверы (Self-Hosted) — обновляются раз в 10 секунд. */
 const hosted = ref<HostedServerView[]>([])
 let hostedTimer: number | undefined
+let worldTimer: number | undefined
 
 async function loadHosted(): Promise<void> {
 	try {
@@ -69,10 +78,16 @@ async function loadHosted(): Promise<void> {
 onMounted(() => {
 	void loadHosted()
 	hostedTimer = window.setInterval(() => void loadHosted(), 10000)
+	// Свежие миры друзей: подписываемся на списки (там статусы активностей) и
+	// просим друзей прислать их миры личным сигналом — ответ приходит моментально.
+	void loadLists()
+	void requestWorldShares()
+	worldTimer = window.setInterval(() => void requestWorldShares(), 25000)
 })
 
 onBeforeUnmount(() => {
 	if (hostedTimer !== undefined) window.clearInterval(hostedTimer)
+	if (worldTimer !== undefined) window.clearInterval(worldTimer)
 })
 
 function hostedAddressOf(server: HostedServerView): string {

@@ -11,6 +11,7 @@ import { computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useAppEvent } from '@/composables/use-app-event'
+import { hostedAddress, type HostedServerView, hosting_list } from '@/helpers/hosting'
 import { get as getInstance } from '@/helpers/instance'
 import { list_lan_relays } from '@/helpers/lan'
 import { initMessengerCall } from '@/helpers/messenger-call'
@@ -119,18 +120,16 @@ const playing = new Map<string, string>()
 
 let activityJson = ''
 
-/** Друзья видят «Играет в …», только пока мы сами сообщаем серверу, что игра запущена. */
+/** Друзья видят «Играет в …», только пока мы сами сообщаем серверу, что игра запущена.
+    Делимся и своими мирами: открытый мир по сети (LAN-relay с адресом релея) и
+    запущенный свой сервер Self-Hosted (публичный relay-адрес, если он есть).
+    Пока что-то из этого живо — игра или сервер — статус не снимается. */
 async function syncActivity(): Promise<void> {
 	const rows = ((await runningProcesses().catch(() => [])) || []) as ProcessRow[]
 	playing.clear()
 	for (const row of rows) playing.set(row.uuid, row.instance_id)
 	const instanceId = [...playing.values()].pop()
-	if (!instanceId) {
-		if (activityJson) setActivity(null)
-		activityJson = ''
-		return
-	}
-	const instance = await getInstance(instanceId).catch(() => null)
+	const instance = instanceId ? await getInstance(instanceId).catch(() => null) : null
 	// Открытый мир по сети делим с друзьями: их «Миры по сети» показывают
 	// карточку мира, а у опубликованного мира — ещё и адрес для подключения.
 	const relays = (await list_lan_relays().catch(() => [])) || []
@@ -141,22 +140,44 @@ async function syncActivity(): Promise<void> {
 		) ??
 		relays.find((relay) => relay.state === 'ready' || relay.state === 'live') ??
 		null
-	const address =
+	const lanAddress =
 		open && open.state === 'live' && open.public_host && open.public_port
 			? `${open.public_host}:${open.public_port}`
 			: ''
-	const payload = {
-		playing: true,
-		buildName: instance?.name || '',
-		gameVersion: instance?.game_version || '',
-		loader: instance?.loader || '',
-		...(open
+	// Запущенный свой сервер — тоже мир для друзей: бейдж Self-Hosted в их «Мирах»,
+	// с адресом (если публиковался через релей) и кнопкой «Присоединиться».
+	const hostedList = (await hosting_list().catch(() => [])) || []
+	const hosted: HostedServerView | null =
+		hostedList.find((server) => server.status === 'running') ?? null
+	const hostedPublic = hosted ? (hostedAddress(hosted) ?? '') : ''
+	const share = open
+		? {
+				worldShare: true,
+				serverName: open.instance_name || instance?.name || hosted?.name || '',
+				serverHost: lanAddress,
+			}
+		: hosted
 			? {
-					worldShare: true,
-					serverName: open.instance_name || instance?.name || '',
-					serverHost: address,
+					hosting: true,
+					serverName: hosted.name,
+					...(hostedPublic ? { serverHost: hostedPublic } : {}),
+				}
+			: {}
+	const payload = {
+		playing: Boolean(instanceId || hosted),
+		...(instanceId || hosted
+			? {
+					buildName: instance?.name || hosted?.name || '',
+					gameVersion: instance?.game_version || hosted?.game_version || '',
+					loader: instance?.loader || '',
 				}
 			: {}),
+		...share,
+	}
+	if (!payload.playing) {
+		if (activityJson) setActivity(null)
+		activityJson = ''
+		return
 	}
 	const json = JSON.stringify(payload)
 	if (json === activityJson) return
@@ -167,7 +188,7 @@ async function syncActivity(): Promise<void> {
 /** Мир по сети открывают кнопкой в самой игре — без опроса лаунчер его не заметит. */
 const activityPoll = setInterval(() => {
 	if (state.session) void syncActivity()
-}, 20000)
+}, 10000)
 
 useAppEvent('process', (event) => {
 	if (event.event === 'launched' || event.event === 'finished') void syncActivity()

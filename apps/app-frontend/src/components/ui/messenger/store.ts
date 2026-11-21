@@ -1687,6 +1687,7 @@ export function handleLive(name: string, data: LooseRecord): void {
 			}
 			return
 		case 'signal':
+			if (handleWorldShareSignal(data)) return
 			if (handleProfileSignal(data)) return
 			if (String(data.type || '').startsWith('vc_')) {
 				void handleVoiceSignal(data)
@@ -1803,16 +1804,20 @@ async function refreshActiveThread(): Promise<void> {
 let activityPayload: LooseRecord = { playing: false }
 let activityTimer: ReturnType<typeof setInterval> | null = null
 
-/** Что видят друзья: «Играет в …» держится, пока лаунчер шлёт это раз в 45 секунд. */
+/** Что видят друзья: «Играет в …» держится, пока лаунчер шлёт это раз в 45 секунд.
+    Поля шаринга мира не обнуляются, когда игра закрыта: запущенный свой сервер
+    (Self-Hosted) должен оставаться видимым, пока лаунчер работает. */
 export function setActivity(payload: LooseRecord | null): void {
-	activityPayload = payload?.playing
-		? {
-				...payload,
-				playing: true,
-				hosting: false,
-				worldShare: Boolean(payload.worldShare),
-			}
-		: { playing: false, hosting: false, worldShare: false }
+	const sharing = Boolean(payload && (payload.worldShare || payload.hosting))
+	activityPayload =
+		payload?.playing || sharing
+			? {
+					...payload,
+					playing: Boolean(payload?.playing),
+					hosting: Boolean(payload?.hosting),
+					worldShare: Boolean(payload?.worldShare),
+				}
+			: { playing: false, hosting: false, worldShare: false }
 	if (activityTimer) clearInterval(activityTimer)
 	activityTimer = null
 	void postActivity()
@@ -1830,10 +1835,122 @@ async function postActivity(): Promise<void> {
 			activity: activityPayload.playing ? mapActivity(activityPayload) : null,
 		}
 	}
+	broadcastWorldShare()
+}
+
+/* ─── Миры по сети: гарантированная доставка через сигналы ───
+    Канал activity сервиса может отбрасывать наши поля (worldShare/serverHost),
+    поэтому состояние мира дублируется личным сигналом «call_ice» — тем же
+    способом, каким ходят карточки профилей и звонки: сервис передаёт его
+    дословно и не знает о наших полях. Раздача отправляется друзьям при её
+    изменении, а свежая — по запросу (кто открыл «Миры по сети», тот и просит). */
+
+const WORLD_FRIENDS_LIMIT = 40
+const WORLD_REPLY_GAP = 15000
+
+let lastShareSent: string | null = null
+let lastWorldRequest = 0
+const shareReplied = new Map<string, number>()
+
+function shareKey(): string {
+	const payload = activityPayload || {}
+	return JSON.stringify([
+		Boolean(payload.playing),
+		Boolean(payload.hosting),
+		Boolean(payload.worldShare),
+		String(payload.serverName || ''),
+		String(payload.serverHost || ''),
+		String(payload.buildName || ''),
+		String(payload.gameVersion || ''),
+		String(payload.loader || ''),
+	])
+}
+
+async function worldSignal(friendId: string, candidate: LooseRecord): Promise<void> {
+	const conv = dmWith(friendId)
+	if (!conv) return
+	await serviceRequest(`/conversations/${enc(conv.id)}/signals`, {
+		method: 'POST',
+		body: {
+			type: 'call_ice',
+			channelId: null,
+			sdp: null,
+			toUserId: friendId,
+			candidate,
+		},
+	}).catch(() => null)
+}
+
+/** Друзьям с личным чатом уходит текущее состояние мира — при каждом изменении. */
+function broadcastWorldShare(): void {
+	if (!state.session) return
+	const key = shareKey()
+	if (key === lastShareSent) return
+	lastShareSent = key
+	const friendIds = state.friends
+		.filter((friend) => dmWith(friend.id))
+		.slice(0, WORLD_FRIENDS_LIMIT)
+		.map((friend) => friend.id)
+	for (const friendId of friendIds) {
+		void worldSignal(friendId, { portalrinth: 'world_share', activity: activityPayload })
+	}
+}
+
+/** Открыли «Миры по сети» — просим друзей прислать их свежие миры (раз в 20с). */
+export function requestWorldShares(): void {
+	if (!state.session) return
+	const now = Date.now()
+	if (now - lastWorldRequest < 20000) return
+	lastWorldRequest = now
+	const friendIds = state.friends
+		.filter((friend) => dmWith(friend.id))
+		.slice(0, WORLD_FRIENDS_LIMIT)
+		.map((friend) => friend.id)
+	for (const friendId of friendIds) {
+		void worldSignal(friendId, { portalrinth: 'world_share_req' })
+	}
+}
+
+/** true — пакет наш и обработан, дальше по цепочке звонков его не передаём. */
+export function handleWorldShareSignal(data: LooseRecord): boolean {
+	if (data.type !== 'call_ice') return false
+	const raw = data.candidate
+	const candidate: LooseRecord | null = (() => {
+		if (raw && typeof raw === 'object') return raw as LooseRecord
+		if (typeof raw !== 'string' || !raw.startsWith('{')) return null
+		try {
+			return JSON.parse(raw) as LooseRecord
+		} catch {
+			return null
+		}
+	})()
+	const kind = String(candidate?.portalrinth ?? '')
+	if (kind !== 'world_share' && kind !== 'world_share_req') return false
+	const from = String(data.fromUserId ?? '')
+	if (!from || from === myId.value) return true
+	if (kind === 'world_share') {
+		const activity = candidate?.activity
+		setPresenceOf(from, {
+			activity: activity && typeof activity === 'object' ? mapActivity(activity) : null,
+			lastSeenAt: Date.now(),
+		})
+		return true
+	}
+	// Просьба прислать мир: отвечаем только с актуальной раздачей и не чаще
+	// раза в 15 секунд на друга, чтобы открытые у всех «Миры» не плодили трафик.
+	if (!activityPayload?.playing || (!activityPayload.worldShare && !activityPayload.hosting)) {
+		return true
+	}
+	const now = Date.now()
+	if (now - (shareReplied.get(from) ?? 0) < WORLD_REPLY_GAP) return true
+	shareReplied.set(from, now)
+	void worldSignal(from, { portalrinth: 'world_share', activity: activityPayload })
+	return true
 }
 
 export function resetState(): void {
 	stopLive()
+	lastShareSent = null
 	state.session = null
 	state.conversations = []
 	state.friends = []

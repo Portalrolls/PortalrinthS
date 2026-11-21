@@ -44,7 +44,7 @@ const PROXY_RE = /^(https?|socks5h?):\/\/[^\s/]+/i
 
 const TARGETS = [
 	{ name: 'Modrinth', url: 'https://api.modrinth.com/v2/tag/loader' },
-	{ name: 'Undefined', url: 'https://uprojects.site/client/api/messenger/health' },
+	{ name: 'Undefined', url: 'https://uprojects.site/client/api/messenger/me' },
 	{ name: 'mc-heads', url: 'https://mc-heads.net/avatar/MHF_Steve/8' },
 ]
 

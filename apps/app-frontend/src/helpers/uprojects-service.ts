@@ -182,7 +182,71 @@ export function rebaseServiceUrl(url: string | null | undefined): string {
 }
 
 /** Запрос к сервису не висит дольше этого — иначе экраны навсегда застревают на «Загружаем…». */
-const REQUEST_TIMEOUT = 20000
+const REQUEST_TIMEOUT = 15000
+
+/** Что именно сломалось при последнем входе в сервис: показываем игроку
+    честную причину вместо «не ответил». */
+export type ServiceFailure = 'no_account' | 'network' | 'auth' | 'rate_limited' | 'service'
+
+let lastFailure: ServiceFailure | null = null
+
+/** Причина провала последнего ensureServiceSession (null — провала не было). */
+export function lastServiceFailure(): ServiceFailure | null {
+	return lastFailure
+}
+
+/** Забыть причину провала: следующий вход считается чистым. */
+export function resetServiceFailure(): void {
+	lastFailure = null
+}
+
+/** Результат диагностики: какие входы сервиса отвечают из сети игрока. */
+export type ServiceHealth = { main: boolean; eu: boolean; checkedAt: number }
+
+let lastHealth: ServiceHealth | null = null
+
+/** Диагностика последней проверки входов (null — ещё не проверяли). */
+export function serviceHealth(): ServiceHealth | null {
+	return lastHealth
+}
+
+const HEALTH_TTL = 60000
+
+/** Транспорт жив? Любой HTTP-ответ (хоть 401) значит «домен доступен»;
+    ошибка сети или таймаут значит «нет». */
+async function probeEntry(base: string): Promise<boolean> {
+	try {
+		const controller = new AbortController()
+		const timer = setTimeout(() => controller.abort(), 8000)
+		const response = await proxiedFetch(`${base}/api/messenger/me`, {
+			headers: { 'User-Agent': 'Undefined-Client' },
+			connectTimeout: 5000,
+			signal: controller.signal,
+		})
+		clearTimeout(timer)
+		return response.status !== 0
+	} catch {
+		return false
+	}
+}
+
+/** Параллельная проба обоих входов (короткий таймаут) и переключение на
+    живой. Не чаще раза в минуту — чтобы не долбить сервис при каждом
+    запросе. Вызывается перед входом в аккаунт, чтобы не висеть 12–20 секунд
+    на входе, который из сети игрока всё равно не отвечает. */
+export async function ensureBestEntry(): Promise<ServiceHealth> {
+	if (lastHealth && Date.now() - lastHealth.checkedAt < HEALTH_TTL) return lastHealth
+	const [main, eu] = await Promise.all([probeEntry(UPROJECTS_BASE), probeEntry(UPROJECTS_BASE_EU)])
+	lastHealth = { main, eu, checkedAt: Date.now() }
+	if (!main && eu && preferredApi !== MESSENGER_API_EU) {
+		preferredApi = MESSENGER_API_EU
+		rememberBase(preferredApi)
+	} else if (main && !eu && preferredApi !== MESSENGER_API) {
+		preferredApi = MESSENGER_API
+		rememberBase(preferredApi)
+	}
+	return lastHealth
+}
 
 async function serviceFetch(
 	path: string,
@@ -310,7 +374,17 @@ async function createSession(account: ServiceAccount): Promise<ServiceSession | 
 			skinUrl: await accountSkinUrl(account),
 		},
 	})
-	if (!response.ok || !response.data?.token) return null
+	if (!response.ok || !response.data?.token) {
+		lastFailure =
+			response.status === 0
+				? 'network'
+				: response.status === 429
+					? 'rate_limited'
+					: response.status === 401 || response.status === 403
+						? 'auth'
+						: 'service'
+		return null
+	}
 	return {
 		token: String(response.data.token),
 		user: response.data.user || {},
@@ -325,9 +399,14 @@ async function createSession(account: ServiceAccount): Promise<ServiceSession | 
  */
 export async function ensureServiceSession(force = false): Promise<ServiceSession | null> {
 	if (!force && sessionPromise) return sessionPromise
-	sessionPromise = (async () => {
+	const attempt = (async () => {
+		lastFailure = null
+		await ensureBestEntry()
 		const account = await readServiceAccount()
-		if (!account) return null
+		if (!account) {
+			lastFailure = 'no_account'
+			return null
+		}
 		const key = accountKeyOf(account)
 		if (!force) {
 			try {
@@ -363,7 +442,18 @@ export async function ensureServiceSession(force = false): Promise<ServiceSessio
 		}
 		return created
 	})()
-	return sessionPromise
+	sessionPromise = attempt
+	// Провалившийся вход не оставляем в кэше: иначе после краткого сбоя
+	// сети мессенджер до перезапуска молча возвращал бы старый null, даже
+	// когда связь уже вернулась.
+	void attempt
+		.then((result) => {
+			if (sessionPromise === attempt && !result) sessionPromise = null
+		})
+		.catch(() => {
+			if (sessionPromise === attempt) sessionPromise = null
+		})
+	return attempt
 }
 
 const sessionListeners = new Set<() => void>()

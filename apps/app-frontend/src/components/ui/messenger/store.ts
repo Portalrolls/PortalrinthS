@@ -5,10 +5,13 @@ import {
 	type AccountState,
 	ensureServiceSession,
 	forgetServiceSession,
+	lastServiceFailure,
 	type LooseRecord,
 	readAccountState,
+	resetServiceFailure,
 	resolveAvatar,
 	resolveServiceMedia,
+	type ServiceFailure,
 	serviceRequest,
 	type ServiceSession,
 	serviceStreamUrl,
@@ -75,6 +78,8 @@ export const state = reactive({
 	session: null as ServiceSession | null,
 	loading: true,
 	failed: false,
+	/** Почему не удалось подключиться — от этого зависит текст в окне ошибки. */
+	failureReason: null as ServiceFailure | null,
 	liveOpen: false,
 
 	conversations: [] as Conversation[],
@@ -1980,6 +1985,8 @@ export async function connect(force = false): Promise<void> {
 	const seq = ++connectSeq
 	state.loading = true
 	state.failed = false
+	state.failureReason = null
+	resetServiceFailure()
 	try {
 		const account = await readAccountState()
 		if (seq !== connectSeq) return
@@ -1993,6 +2000,7 @@ export async function connect(force = false): Promise<void> {
 		if (!session) {
 			resetState()
 			state.failed = true
+			state.failureReason = lastServiceFailure() ?? 'network'
 			return
 		}
 		if (state.session && state.session.accountKey !== session.accountKey) resetState()
@@ -2015,6 +2023,7 @@ export async function connect(force = false): Promise<void> {
 		else if (state.homePage === 'dm' && state.activeDmId) await openDm(state.activeDmId)
 	} catch {
 		state.failed = true
+		state.failureReason = lastServiceFailure() ?? 'network'
 	} finally {
 		if (seq === connectSeq) state.loading = false
 	}

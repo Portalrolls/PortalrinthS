@@ -168,7 +168,7 @@ onUnmounted(() => {
 			<p>{{ t('app.messenger.loading', 'Подключаемся к мессенджеру…') }}</p>
 		</div>
 		<AccountGate v-else-if="showGate" />
-		<AccountGate v-else-if="showFailed" failed />
+		<AccountGate v-else-if="showFailed" failed :reason="state.failureReason" />
 		<div v-else-if="state.session" class="msgr-page__layout">
 			<ServerRail @create="createModal?.show()" @settings="openSettings" @leave="confirmLeave" />
 			<aside class="msgr-page__side">

@@ -4,11 +4,12 @@ import { computed, ref } from 'vue'
 
 import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import { injectSettingsActions } from '@/features/settings/settings-actions'
+import { type ServiceFailure,serviceHealth } from '@/helpers/uprojects-service'
 
 import { useMessengerT } from './i18n'
 import { connect, state } from './store'
 
-const props = defineProps<{ failed?: boolean }>()
+const props = defineProps<{ failed?: boolean; reason?: ServiceFailure | null }>()
 
 const t = useMessengerT()
 const accounts = injectMinecraftAccounts(null)
@@ -17,6 +18,55 @@ const busy = ref(false)
 const actions = computed(() => accounts?.value ?? null)
 
 const offlineName = computed(() => (state.account.kind === 'offline' ? state.account.name : ''))
+
+/** Честная диагностика: какие входы сервиса отвечают из сети игрока. */
+const healthLine = computed(() => {
+	const health = serviceHealth()
+	if (!health) return ''
+	if (health.main && health.eu)
+		return t(
+			'app.messenger.gate.diagBoth',
+			'Диагностика: оба входа сервиса отвечают, но соединение рвётся. Попробуйте ещё раз.',
+		)
+	if (health.eu)
+		return t(
+			'app.messenger.gate.diagEu',
+			'Диагностика: основной вход недоступен, европейский отвечает — переключаемся на него.',
+		)
+	if (health.main)
+		return t(
+			'app.messenger.gate.diagMain',
+			'Диагностика: основной вход отвечает, европейский молчит.',
+		)
+	return t(
+		'app.messenger.gate.diagNone',
+		'Диагностика: оба входа сервиса недоступны из вашей сети. Скорее всего, провайдер блокирует сервис — включите VPN или укажите прокси в Настройках → Управление ресурсами.',
+	)
+})
+
+const failedText = computed(() => {
+	if (props.reason === 'auth')
+		return t(
+			'app.messenger.gate.failedAuth',
+			'Сервис не принял аккаунт — токен истёк или отозван. Войдите в аккаунт заново.',
+		)
+	if (props.reason === 'rate_limited')
+		return t(
+			'app.messenger.gate.failedRate',
+			'Сервис ограничил частоту запросов — попыток входа было слишком много. Подождите пару минут и повторите.',
+		)
+	if (props.reason === 'service')
+		return t(
+			'app.messenger.gate.failedService',
+			'Сервис Undefined вернул ошибку — возможно, у них обновление. Попробуйте позже.',
+		)
+	return t(
+		'app.messenger.gate.failedText',
+		'Сервер Undefined не ответил. Проверьте интернет и попробуйте ещё раз.',
+	)
+})
+
+const showLogin = computed(() => props.failed && props.reason === 'auth' && Boolean(actions.value))
 
 async function run(action: () => unknown): Promise<void> {
 	busy.value = true
@@ -45,15 +95,27 @@ function ely(): void {
 			<div class="msgr-gate__icon"><MessageIcon /></div>
 			<template v-if="props.failed">
 				<h2>{{ t('app.messenger.gate.failedTitle', 'Не удалось подключиться') }}</h2>
-				<p>
-					{{
-						t(
-							'app.messenger.gate.failedText',
-							'Сервер Undefined не ответил. Проверьте интернет и попробуйте ещё раз.',
-						)
-					}}
-				</p>
+				<p>{{ failedText }}</p>
+				<p v-if="healthLine" class="msgr-gate__diag">{{ healthLine }}</p>
 				<div class="msgr-gate__actions">
+					<button
+						v-if="showLogin"
+						type="button"
+						class="msgr-btn"
+						:disabled="busy"
+						@click="microsoft"
+					>
+						<LogInIcon /> {{ t('app.messenger.gate.microsoft', 'Войти через Microsoft') }}
+					</button>
+					<button
+						v-if="showLogin"
+						type="button"
+						class="msgr-btn is-secondary"
+						:disabled="busy"
+						@click="ely"
+					>
+						<LogInIcon /> {{ t('app.messenger.gate.ely', 'Войти через Ely.by') }}
+					</button>
 					<button type="button" class="msgr-btn" :disabled="state.loading" @click="connect(true)">
 						<RefreshCwIcon /> {{ t('app.messenger.gate.retry', 'Повторить') }}
 					</button>
@@ -166,6 +228,13 @@ function ely(): void {
 	color: var(--color-secondary);
 	font-size: 0.9rem;
 	line-height: 1.45;
+}
+
+.msgr-gate__diag {
+	color: var(--color-contrast);
+	font-size: 0.8rem;
+	line-height: 1.4;
+	opacity: 0.75;
 }
 
 .msgr-gate__actions {

@@ -5168,5 +5168,12 @@
 	},
 	"app.media-viewer.openBrowser": {
 		"message": "Open in browser"
-	}
+	},
+	"app.messenger.gate.failedAuth": "The service rejected your account — the token expired or was revoked. Sign in again.",
+	"app.messenger.gate.failedRate": "The service is rate-limiting — too many sign-in attempts. Wait a couple of minutes and retry.",
+	"app.messenger.gate.failedService": "The Undefined service returned an error — they might be updating. Try again later.",
+	"app.messenger.gate.diagBoth": "Diagnostics: both service entries respond, but the connection drops. Try again.",
+	"app.messenger.gate.diagEu": "Diagnostics: the main entry is unreachable, the European one responds — switching to it.",
+	"app.messenger.gate.diagMain": "Diagnostics: the main entry responds, the European one is silent.",
+	"app.messenger.gate.diagNone": "Diagnostics: both service entries are unreachable from your network. Your ISP is most likely blocking the service — use a VPN or set a proxy in Settings → Resource management."
 }

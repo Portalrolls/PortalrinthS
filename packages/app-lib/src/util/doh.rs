@@ -173,7 +173,7 @@ pub async fn send_with_doh_fallback_from(
     base_client: Client,
     make_request: impl Fn(Client) -> RequestBuilder,
 ) -> Result<reqwest::Response, reqwest::Error> {
-    match make_request(base_client).await {
+    match make_request(base_client).send().await {
         Ok(response) => Ok(response),
         Err(error) => {
             if error.is_body() || error.is_decode() {
@@ -188,7 +188,7 @@ pub async fn send_with_doh_fallback_from(
             if url.scheme() != "https" {
                 return Err(error);
             }
-            let Some(host) = url.host_str().map(str::to_owned) else {
+            let Some(host) = url.host_str().map(|h| h.to_owned()) else {
                 return Err(error);
             };
 
@@ -200,7 +200,7 @@ pub async fn send_with_doh_fallback_from(
             tracing::info!(
                 "Direct request to {host} failed ({error}); retrying through DoH-resolved addresses"
             );
-            make_request(client).await
+            make_request(client).send().await
         }
     }
 }

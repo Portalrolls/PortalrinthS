@@ -75,7 +75,7 @@ pub async fn net_fetch(
         }
         if let Some(headers) = &headers {
             for (name, value) in headers {
-                request = request.header(name, value);
+                request = request.header(name.as_str(), value.as_str());
             }
         }
         if let Some(bytes) = &body {

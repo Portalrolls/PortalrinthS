@@ -1,6 +1,6 @@
 <script setup>
 import { BoxIcon, CheckIcon, FolderSearchIcon } from '@modrinth/assets'
-import { defineMessages, IconButton, Input, Slider, useVIntl } from '@modrinth/ui'
+import { defineMessages, IconButton, Input, Slider, Toggle, useVIntl } from '@modrinth/ui'
 import { open } from '@tauri-apps/plugin-dialog'
 import { ref, watch } from 'vue'
 
@@ -90,6 +90,19 @@ const messages = defineMessages({
 		defaultMessage:
 			'Draws a flat full-body picture straight from the texture hash on its own host - a fallback that keeps working when laby.net is throttled.',
 	},
+	dohTitle: {
+		id: 'app.settings.resource-management.doh.title',
+		defaultMessage: 'Block bypass (DNS-over-HTTPS)',
+	},
+	dohDescription: {
+		id: 'app.settings.resource-management.doh.description',
+		defaultMessage:
+			"When a request fails to connect — a Microsoft sign-in, the Undefined messenger or another site hangs — the launcher looks the server's address up over DNS-over-HTTPS (Quad9, Cloudflare, Google) and retries straight to that address. The same trick as switching your system DNS to Quad9, without touching the computer's settings: requests still go direct, no proxy or VPN, and credentials only ever travel to the same servers they already do. Off by default: turn it on if sign-ins and the messenger don't work for you directly.",
+	},
+	dohToggle: {
+		id: 'app.settings.resource-management.doh.toggle',
+		defaultMessage: 'Look addresses up via Quad9/Cloudflare/Google when a connection fails',
+	},
 })
 
 const skinService = useSkinRenderService()
@@ -167,6 +180,21 @@ async function findLauncherDir() {
 		</div>
 
 		<ProxySettings />
+
+		<div class="flex flex-col gap-2.5">
+			<h2 class="m-0 text-lg font-semibold text-contrast">
+				{{ formatMessage(messages.dohTitle) }}
+			</h2>
+			<div class="flex items-center justify-between gap-4">
+				<label for="doh-fallback" class="min-w-0 flex-1 text-sm font-semibold text-contrast">
+					{{ formatMessage(messages.dohToggle) }}
+				</label>
+				<Toggle id="doh-fallback" v-model="settings.doh_fallback" />
+			</div>
+			<p class="m-0 leading-tight text-secondary">
+				{{ formatMessage(messages.dohDescription) }}
+			</p>
+		</div>
 
 		<div class="flex flex-col gap-2.5">
 			<h2 class="m-0 text-lg font-semibold text-contrast mt-4">

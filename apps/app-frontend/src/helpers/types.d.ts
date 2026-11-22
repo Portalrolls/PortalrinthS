@@ -219,6 +219,7 @@ type ManifestLoaderVersion = {
 type AppSettings = {
 	max_concurrent_downloads: number
 	proxy_url?: string | null
+	doh_fallback?: boolean
 	max_concurrent_writes: number
 
 	theme: 'dark' | 'light' | 'oled' | 'retro' | 'system'

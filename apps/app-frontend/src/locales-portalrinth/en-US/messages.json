@@ -5180,5 +5180,14 @@
 	"app.error-modal.rf-bypass.body": "In Russia Microsoft sign-in servers often do not answer without a proxy — this is not a launcher bug. To bypass it: open Settings → Resource management → Proxy, enter an HTTP or SOCKS5 proxy address (or turn your VPN on) and restart the launcher — the Microsoft sign-in window will also go through the proxy. Alternatively, sign in with an Ely.by account: it works without a proxy.",
 	"app.messenger.gate.failedAuthEly": "The service rejected your Ely.by account — the token expired or was revoked. Sign in to Ely.by again.",
 	"app.messenger.gate.autoRetry": "We keep retrying in the background. Turn on a VPN or set a proxy in Settings → Resource management — the messenger will come back on its own, without restarting the launcher.",
-	"app.messenger.gate.autoRetryRate": "We keep retrying in the background, but no faster than the service allows — give it a couple of minutes."
+	"app.messenger.gate.autoRetryRate": "We keep retrying in the background, but no faster than the service allows — give it a couple of minutes.",
+	"app.settings.resource-management.doh.title": {
+		"message": "Block bypass (DNS-over-HTTPS)"
+	},
+	"app.settings.resource-management.doh.description": {
+		"message": "When a request fails to connect — a Microsoft sign-in, the Undefined messenger or another site hangs — the launcher looks the server's address up over DNS-over-HTTPS (Quad9, Cloudflare, Google) and retries straight to that address, with the right host name. The same trick as switching your system DNS to Quad9, without touching the computer's settings: requests still go direct, no proxy or VPN, and credentials only ever travel to the same servers they already do. Off by default — turn it on if sign-ins and the messenger don't work for you directly (for example, if switching your DNS to Quad9 used to help)."
+	},
+	"app.settings.resource-management.doh.toggle": {
+		"message": "On a failed connection, look the address up via Quad9/Cloudflare/Google"
+	}
 }

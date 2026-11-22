@@ -93,6 +93,15 @@ pub struct Settings {
     /// restart to take effect because reqwest clients are built once.
     pub proxy_url: Option<String>,
 
+    /// Whether the DNS-over-HTTPS fallback (Quad9/Cloudflare/Google address
+    /// lookup after a direct request already failed) is allowed. Off by
+    /// default — the network path stays exactly as it always was until the
+    /// player turns this on in Settings → Resource management. Takes effect
+    /// immediately: the fallback reads this at failure time, not client
+    /// build time.
+    #[serde(default)]
+    pub doh_fallback: bool,
+
     /// Whether the game looks a player's skin up by name when the server sent
     /// none — see [`crate::launcher::args::UNIVERSAL_SKINS_SOURCE`].
     pub universal_skins: bool,
@@ -185,6 +194,13 @@ impl Settings {
                 .fetch_one(exec)
                 .await?;
 
+        // Fork-only column, so it is read at runtime rather than through the
+        // sqlx offline cache, for the same reason as proxy_url above.
+        let doh_fallback: i64 =
+            sqlx::query_scalar("SELECT doh_fallback FROM settings")
+                .fetch_one(exec)
+                .await?;
+
 let accent_preset: Option<String> =
             sqlx::query_scalar("SELECT accent_preset FROM settings")
                 .fetch_one(exec)
@@ -248,19 +264,19 @@ let accent_preset: Option<String> =
                 hook_pre_launch, hook_wrapper, hook_post_exit,
                 custom_dir, prev_custom_dir, migrated, json(feature_flags) feature_flags, toggle_sidebar,
                 skipped_update, pending_update_toast_for_version, auto_download_updates,
-				sync_theme_across_devices, sync_behavior_across_devices, sync_features_across_devices,
-				show_files_tab_in_instances, show_worlds_tab_in_instances,
-				show_screenshots_tab_in_instances, show_skin_selector_in_sidebar,
-				refocus_on_game_close, compact_instance_cards, show_play_time, warn_on_unknown_modpacks, skip_non_essential_warnings,
-				show_jump_in,
-				always_show_copy_details,
-				hide_installed_modpacks,
-				advanced_filters_collapsed,
-				dismissed_photosensitivity_filter_warning,
-				friends_active_collapsed,
-				friends_online_collapsed,
-				friends_offline_collapsed,
-				friends_pending_collapsed,
+                                sync_theme_across_devices, sync_behavior_across_devices, sync_features_across_devices,
+                                show_files_tab_in_instances, show_worlds_tab_in_instances,
+                                show_screenshots_tab_in_instances, show_skin_selector_in_sidebar,
+                                refocus_on_game_close, compact_instance_cards, show_play_time, warn_on_unknown_modpacks, skip_non_essential_warnings,
+                                show_jump_in,
+                                always_show_copy_details,
+                                hide_installed_modpacks,
+                                advanced_filters_collapsed,
+                                dismissed_photosensitivity_filter_warning,
+                                friends_active_collapsed,
+                                friends_online_collapsed,
+                                friends_offline_collapsed,
+                                friends_pending_collapsed,
                 version
             FROM settings
             "
@@ -337,6 +353,7 @@ let accent_preset: Option<String> =
             auto_download_updates: res.auto_download_updates.map(|x| x == 1),
             proxy_url,
             universal_skins: universal_skins == 1,
+            doh_fallback: doh_fallback == 1,
             accent_preset: accent_preset
                 .unwrap_or_else(|| DEFAULT_ACCENT_PRESET.to_string()),
             accent_custom_color,
@@ -420,27 +437,27 @@ let accent_preset: Option<String> =
 
                 sync_theme_across_devices = $32,
                 sync_behavior_across_devices = $33,
-				sync_features_across_devices = $34,
-				show_files_tab_in_instances = $35,
-				show_worlds_tab_in_instances = $36,
-				show_screenshots_tab_in_instances = $37,
-				show_skin_selector_in_sidebar = $38,
+                                sync_features_across_devices = $34,
+                                show_files_tab_in_instances = $35,
+                                show_worlds_tab_in_instances = $36,
+                                show_screenshots_tab_in_instances = $37,
+                                show_skin_selector_in_sidebar = $38,
 
-				version = $39,
-				refocus_on_game_close = $40,
-				compact_instance_cards = $41,
-				show_play_time = $42,
-				warn_on_unknown_modpacks = $43,
-				skip_non_essential_warnings = $44,
-				show_jump_in = $45,
-				always_show_copy_details = $46,
-				hide_installed_modpacks = $47,
-				advanced_filters_collapsed = $48,
-				dismissed_photosensitivity_filter_warning = $49,
-				friends_active_collapsed = $50,
-				friends_online_collapsed = $51,
-				friends_offline_collapsed = $52,
-				friends_pending_collapsed = $53
+                                version = $39,
+                                refocus_on_game_close = $40,
+                                compact_instance_cards = $41,
+                                show_play_time = $42,
+                                warn_on_unknown_modpacks = $43,
+                                skip_non_essential_warnings = $44,
+                                show_jump_in = $45,
+                                always_show_copy_details = $46,
+                                hide_installed_modpacks = $47,
+                                advanced_filters_collapsed = $48,
+                                dismissed_photosensitivity_filter_warning = $49,
+                                friends_active_collapsed = $50,
+                                friends_online_collapsed = $51,
+                                friends_offline_collapsed = $52,
+                                friends_pending_collapsed = $53
             ",
             max_concurrent_writes,
             max_concurrent_downloads,
@@ -507,6 +524,11 @@ let accent_preset: Option<String> =
 
         sqlx::query("UPDATE settings SET universal_skins = $1")
             .bind(i64::from(self.universal_skins))
+            .execute(exec)
+            .await?;
+
+        sqlx::query("UPDATE settings SET doh_fallback = $1")
+            .bind(i64::from(self.doh_fallback))
             .execute(exec)
             .await?;
 

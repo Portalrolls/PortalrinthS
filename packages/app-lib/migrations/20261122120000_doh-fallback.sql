@@ -1,0 +1,2 @@
+ALTER TABLE settings
+ADD COLUMN doh_fallback INTEGER NOT NULL DEFAULT 0;

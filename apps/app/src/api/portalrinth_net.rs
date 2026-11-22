@@ -61,7 +61,7 @@ pub async fn net_fetch(
         return Err(format!("Unsupported method {method}"));
     }
 
-    let make_request = |client| {
+    let make_request = |client: reqwest::Client| {
         let mut request = match method.as_str() {
             "GET" => client.get(parsed_url.as_str()),
             "POST" => client.post(parsed_url.as_str()),

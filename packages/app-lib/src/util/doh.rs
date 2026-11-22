@@ -182,6 +182,16 @@ pub async fn send_with_doh_fallback_from(
             if crate::util::fetch::effective_proxy_url().is_some() {
                 return Err(error);
             }
+            // Обход включается явно: Настройки → Управление ресурсами. Выключен
+            // по умолчанию — пока игрок его не включил, сетевой путь ровно тот
+            // же, что был всегда. Читается в момент отказа, без перезапуска.
+            let doh_enabled = crate::api::settings::get()
+                .await
+                .map(|settings| settings.doh_fallback)
+                .unwrap_or(false);
+            if !doh_enabled {
+                return Err(error);
+            }
             let Some(url) = error.url().cloned() else {
                 return Err(error);
             };

@@ -6,6 +6,8 @@
  * лаунчере». Сервис обновят позже, наш клиент к этому готов: все адреса идут
  * от одного базового, а ответы разбираются мягко (неизвестные поля не ломают).
  */
+import { invoke } from '@tauri-apps/api/core'
+
 import { ACTIVE_ACCOUNT_EVENT, readActiveAccount, sameUuid } from './active-account'
 import { get_default_user, users } from './auth'
 import { ely_get_default_user, ely_get_users, type ElyCredentials } from './ely_auth'
@@ -196,6 +198,71 @@ function deadEntryStatus(status: number): boolean {
 	return status === 0 || DEAD_ENTRY_STATUSES.has(status)
 }
 
+/** Запасной транспорт: тот же запрос через HTTP-клиент лаунчера (Rust), где
+    работает DoH-фолбэк — при сетевом отказе адрес хоста уточняется через
+    Quad9/Cloudflare/Google, и запрос идёт прямо на полученные адреса, с
+    правильным SNI и Host. Тот же «Quad9-трюк», что чинит вход сменой
+    системного DNS, — только встроенный в лаунчер, без прокси и VPN.
+    Включается, только когда прямой путь уже отказал. */
+let launcherTransportCooldownUntil = 0
+
+function base64FromUtf8(text: string): string {
+	const bytes = new TextEncoder().encode(text)
+	let binary = ''
+	for (const byte of bytes) binary += String.fromCharCode(byte)
+	return btoa(binary)
+}
+
+function responseFromNet(raw: {
+	status: number
+	headers: [string, string][]
+	body: string
+}): Response {
+	const bytes = Uint8Array.from(atob(raw.body), (char) => char.charCodeAt(0))
+	const headers = new Headers()
+	for (const [name, value] of raw.headers) {
+		try {
+			headers.set(name, value)
+		} catch {
+			/* кривое имя заголовка не должно ломать ответ */
+		}
+	}
+	return new Response(bytes, { status: raw.status, headers })
+}
+
+/** Тот же запрос запасным транспортом лаунчера. null — транспорт тоже не
+    ответил: тогда он уходит в паузу на минуту, чтобы не дёргаться на каждый
+    запрос, пока и он не работает. */
+async function tryLauncherFetch(
+	url: string,
+	opts: {
+		method?: string
+		headers?: Record<string, string>
+		body?: string
+		timeoutMs?: number
+	},
+): Promise<Response | null> {
+	if (Date.now() < launcherTransportCooldownUntil) return null
+	try {
+		const response = await invoke<{
+			status: number
+			headers: [string, string][]
+			body: string
+		}>('plugin:portalrinth-net|net_fetch', {
+			method: opts.method || 'GET',
+			url,
+			headers: opts.headers || {},
+			bodyBase64: opts.body ? base64FromUtf8(opts.body) : null,
+			timeoutMs: opts.timeoutMs ?? null,
+		})
+		launcherTransportCooldownUntil = 0
+		return responseFromNet(response)
+	} catch {
+		launcherTransportCooldownUntil = Date.now() + 60000
+		return null
+	}
+}
+
 /** Что именно сломалось при последнем входе в сервис: показываем игроку
     честную причину вместо «не ответил». */
 export type ServiceFailure = 'no_account' | 'network' | 'auth' | 'rate_limited' | 'service'
@@ -238,7 +305,13 @@ async function probeEntry(base: string): Promise<boolean> {
 		clearTimeout(timer)
 		return !deadEntryStatus(response.status)
 	} catch {
-		return false
+		// Прямой путь отказал — пробуем запасной транспорт лаунчера,
+		// чтобы диагностика не хоронила вход, который ещё жив
+		const rescued = await tryLauncherFetch(`${base}/api/messenger/me`, {
+			headers: { 'User-Agent': 'Undefined-Client' },
+			timeoutMs: 8000,
+		})
+		return rescued ? !deadEntryStatus(rescued.status) : false
 	}
 }
 
@@ -301,7 +374,14 @@ export async function serviceFetchRaw(
 	try {
 		first = await proxiedFetch(`${serviceBase()}${path}`, { ...opts })
 	} catch {
-		/* сеть молчит — пробуем запасной вход ниже */
+		// Сеть молчит — тот же запрос через клиент лаунчера (DoH-фолбэк);
+		// если и он не ответил, дальше пробуется запасной вход
+		first = await tryLauncherFetch(`${serviceBase()}${path}`, {
+			method: opts.method,
+			headers: opts.headers,
+			body: opts.body,
+			timeoutMs: REQUEST_TIMEOUT,
+		})
 	}
 	if (first) {
 		const idempotent = !opts.method || ['GET', 'HEAD'].includes(opts.method.toUpperCase())
@@ -312,7 +392,23 @@ export async function serviceFetchRaw(
 	// Основной вход не отвечает или ответил чужим шлюзом — пробуем запасной
 	// и переходим на него, когда тот жив.
 	const fallback = serviceBase() === UPROJECTS_BASE ? UPROJECTS_BASE_EU : UPROJECTS_BASE
-	const response = await proxiedFetch(`${fallback}${path}`, { ...opts })
+	let response: Response
+	try {
+		response = await proxiedFetch(`${fallback}${path}`, { ...opts })
+	} catch (error) {
+		const rescued = await tryLauncherFetch(`${fallback}${path}`, {
+			method: opts.method,
+			headers: opts.headers,
+			body: opts.body,
+			timeoutMs: REQUEST_TIMEOUT,
+		})
+		if (rescued) {
+			preferredApi = `${fallback}/api/messenger`
+			rememberBase(preferredApi)
+			return rescued
+		}
+		throw error
+	}
 	if (!deadEntryStatus(response.status)) {
 		preferredApi = `${fallback}/api/messenger`
 		rememberBase(preferredApi)
@@ -348,6 +444,21 @@ async function serviceFetchOnce(
 		const data = (await response.json().catch(() => ({}))) as LooseRecord
 		return { ok: response.ok, status: response.status, data }
 	} catch (error) {
+		// Прямой путь отказал, и соединение даже не установилось — повтор
+		// безопасен даже для POST: запрос до сервиса не дошёл. Сначала
+		// запасной транспорт лаунчера (DoH-фолбэк), потом честный отказ.
+		if (!controller.signal.aborted) {
+			const rescued = await tryLauncherFetch(`${base}${path}`, {
+				method: opts.method || 'GET',
+				headers,
+				body: bodyText,
+				timeoutMs: REQUEST_TIMEOUT,
+			})
+			if (rescued) {
+				const data = (await rescued.json().catch(() => ({}))) as LooseRecord
+				return { ok: rescued.ok, status: rescued.status, data }
+			}
+		}
 		return {
 			ok: false,
 			status: 0,

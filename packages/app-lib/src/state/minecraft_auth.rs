@@ -1,5 +1,4 @@
 use crate::ErrorKind;
-use crate::util::fetch::INSECURE_REQWEST_CLIENT;
 use anyhow::Context;
 use base64::Engine;
 use base64::prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD};
@@ -13,7 +12,7 @@ use p256::pkcs8::{DecodePrivateKey, EncodePrivateKey, LineEnding};
 use rand::Rng;
 use rand::rngs::OsRng;
 use reqwest::header::HeaderMap;
-use reqwest::{Response, StatusCode};
+use reqwest::{Client, RequestBuilder, Response, StatusCode};
 use serde::de::DeserializeOwned;
 use serde::ser::SerializeStruct;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -1087,12 +1086,11 @@ async fn oauth_token(
     query.insert("redirect_uri", AUTH_REPLY_URL);
     query.insert("scope", REQUESTED_SCOPE);
 
-    let res = auth_retry(|| {
-        INSECURE_REQWEST_CLIENT
+    let res = msa_send(|client| {
+        client
             .post("https://login.live.com/oauth20_token.srf")
             .header("Accept", "application/json")
             .form(&query)
-            .send()
     })
     .await
     .map_err(|source| MinecraftAuthenticationError::Request {
@@ -1134,12 +1132,11 @@ pub async fn oauth_refresh(
     query.insert("redirect_uri", AUTH_REPLY_URL);
     query.insert("scope", REQUESTED_SCOPE);
 
-    let res = auth_retry(|| {
-        INSECURE_REQWEST_CLIENT
+    let res = msa_send(|client| {
+        client
             .post("https://login.live.com/oauth20_token.srf")
             .header("Accept", "application/json")
             .form(&query)
-            .send()
     })
     .await
     .map_err(|source| MinecraftAuthenticationError::Request {
@@ -1304,14 +1301,13 @@ async fn xbox_live_request(
         MinecraftAuthenticationError::SerializeBody { source, step }
     })?;
 
-    let res = auth_retry(|| {
-        INSECURE_REQWEST_CLIENT
+    let res = msa_send(|client| {
+        client
             .post(url)
             .header("Content-Type", "application/json; charset=utf-8")
             .header("Accept", "application/json")
             .header("x-xbl-contract-version", "1")
             .body(body.clone())
-            .send()
     })
     .await
     .map_err(|source| MinecraftAuthenticationError::Request { source, step })?;
@@ -1439,8 +1435,8 @@ async fn minecraft_token(
 
     let token = token.token;
 
-    let res = auth_retry(|| {
-        INSECURE_REQWEST_CLIENT
+    let res = msa_send(|client| {
+        client
             .post("https://api.minecraftservices.com/launcher/login")
             .header("Accept", "application/json")
             .header("User-Agent", MINECRAFT_SERVICES_USER_AGENT)
@@ -1448,7 +1444,6 @@ async fn minecraft_token(
                 "platform": "PC_LAUNCHER",
                 "xtoken": format!("XBL3.0 x={uhs};{token}"),
             }))
-            .send()
     })
     .await
     .map_err(|source| MinecraftAuthenticationError::Request {
@@ -1658,8 +1653,8 @@ impl Deref for MaybeOnlineMinecraftProfile<'_> {
 async fn minecraft_profile(
     token: &str,
 ) -> Result<MinecraftProfile, MinecraftAuthenticationError> {
-    let res = auth_retry(|| {
-        INSECURE_REQWEST_CLIENT
+    let res = msa_send(|client| {
+        client
             .get("https://api.minecraftservices.com/minecraft/profile")
             .header("Accept", "application/json")
             .header("User-Agent", MINECRAFT_SERVICES_USER_AGENT)
@@ -1667,7 +1662,6 @@ async fn minecraft_profile(
             // Profiles may be refreshed periodically in response to user actions,
             // so we want each refresh to be fast
             .timeout(std::time::Duration::from_secs(10))
-            .send()
     })
     .await
     .map_err(|source| MinecraftAuthenticationError::Request {
@@ -1706,14 +1700,13 @@ struct MinecraftEntitlements {}
 async fn minecraft_entitlements(
     token: &str,
 ) -> Result<MinecraftEntitlements, MinecraftAuthenticationError> {
-    let res = auth_retry(|| {
-		INSECURE_REQWEST_CLIENT
-			.get(format!("https://api.minecraftservices.com/entitlements/license?requestId={}", Uuid::new_v4()))
-			.header("Accept", "application/json")
-			.header("User-Agent", MINECRAFT_SERVICES_USER_AGENT)
-			.bearer_auth(token)
-			.send()
-	})
+    let res = msa_send(|client| {
+                client
+                        .get(format!("https://api.minecraftservices.com/entitlements/license?requestId={}", Uuid::new_v4()))
+                        .header("Accept", "application/json")
+                        .header("User-Agent", MINECRAFT_SERVICES_USER_AGENT)
+                        .bearer_auth(token)
+        })
     .await.map_err(|source| MinecraftAuthenticationError::Request { source, step: MinecraftAuthStep::MinecraftEntitlements })?;
 
     let status = res.status();
@@ -1873,6 +1866,17 @@ struct SignedRequestResponse<T> {
     pub body: T,
 }
 
+/// Запрос к серверам Microsoft/Xbox/Minecraft: как раньше, но при сетевом
+/// отказе адрес хоста уточняется через DNS-over-HTTPS (Quad9, Cloudflare,
+/// Google) и запрос уходит прямо на полученные адреса. Тот же трюк, что
+/// лечит вход сменой системного DNS на Quad9, — только встроенный в
+/// лаунчер: работает сам, без прокси и без VPN.
+async fn msa_send(
+    make_request: impl Fn(Client) -> RequestBuilder,
+) -> Result<Response, reqwest::Error> {
+    auth_retry(|| crate::util::doh::send_with_doh_fallback(&make_request)).await
+}
+
 #[tracing::instrument(skip(key))]
 async fn send_signed_request<T: DeserializeOwned>(
     authorization: Option<&str>,
@@ -1915,8 +1919,8 @@ async fn send_signed_request<T: DeserializeOwned>(
 
     let signature = BASE64_STANDARD.encode(&sig_buffer);
 
-    let res = auth_retry(|| {
-        let mut request = INSECURE_REQWEST_CLIENT
+    let res = msa_send(|client| {
+        let mut request = client
             .post(url)
             .header("Content-Type", "application/json; charset=utf-8")
             .header("Accept", "application/json")
@@ -1930,7 +1934,7 @@ async fn send_signed_request<T: DeserializeOwned>(
             request = request.header("Authorization", auth);
         }
 
-        request.body(body.clone()).send()
+        request.body(body.clone())
     })
     .await
     .map_err(|source| MinecraftAuthenticationError::Request { source, step })?;

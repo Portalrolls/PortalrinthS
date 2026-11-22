@@ -73,6 +73,7 @@ pub mod portalrinth_offline_auth;
 pub mod portalrinth_archive;
 pub mod portalrinth_gradle;
 pub mod portalrinth_bridge;
+pub mod portalrinth_net;
 pub mod portalrinth_recovery;
 pub mod onboarding_checklist;
 pub mod process;

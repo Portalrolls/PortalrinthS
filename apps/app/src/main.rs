@@ -614,6 +614,7 @@ fn main() {
         .plugin(api::portalrinth_archive::init())
         .plugin(api::portalrinth_gradle::init())
         .plugin(api::portalrinth_bridge::init())
+        .plugin(api::portalrinth_net::init())
         .plugin(api::portalrinth_recovery::init())
         .plugin(api::jre::init())
         .plugin(api::metadata::init())

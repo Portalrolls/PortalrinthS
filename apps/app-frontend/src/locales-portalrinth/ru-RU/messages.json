@@ -3347,6 +3347,9 @@
 	"app.ai.attach-empty": {
 		"message": "Файл не выбран"
 	},
+	"app.ai.drop-here": {
+		"message": "Отпусти файл — прикреплю к сообщению"
+	},
 	"app.ai.models": {
 		"message": "Модель"
 	},

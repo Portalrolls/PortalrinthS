@@ -1718,6 +1718,9 @@
 	"app.ai.attach-empty": {
 		"message": "No file chosen"
 	},
+	"app.ai.drop-here": {
+		"message": "Drop the file — I will attach it to the message"
+	},
 	"app.ai.models": {
 		"message": "Model"
 	},

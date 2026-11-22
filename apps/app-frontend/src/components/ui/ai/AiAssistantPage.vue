@@ -183,6 +183,10 @@ const messages = {
 		id: 'app.ai.attach-empty',
 		defaultMessage: 'Файл не выбран',
 	},
+	dropHere: {
+		id: 'app.ai.drop-here',
+		defaultMessage: 'Отпусти файл — прикреплю к сообщению',
+	},
 	models: { id: 'app.ai.models', defaultMessage: 'Модель' },
 	commands: { id: 'app.ai.activity.commands', defaultMessage: 'команд' },
 	codeEdit: { id: 'app.ai.code.edit', defaultMessage: 'Редактировать' },
@@ -1260,6 +1264,49 @@ function autoGrow() {
 
 watch(input, autoGrow, { flush: 'post' })
 
+/** Reads one pasted or dropped file the webview way: an image becomes a
+ * preview, a small file becomes text, anything else becomes a chip with
+ * name and size. */
+async function readFileLike(file: File): Promise<AttachedFile[]> {
+	try {
+		if (file.type.startsWith('image/')) {
+			const dataUrl = await new Promise<string>((resolve, reject) => {
+				const reader = new FileReader()
+				reader.onload = () => resolve(String(reader.result))
+				reader.onerror = () => reject(reader.error)
+				reader.readAsDataURL(file)
+			})
+			return [{ name: file.name || 'картинка.png', size: file.size, kind: 'image', dataUrl }]
+		}
+		if (file.size < 2000000) {
+			return [{ name: file.name || 'файл', size: file.size, kind: 'text', text: await file.text() }]
+		}
+		return [{ name: file.name || 'файл', size: file.size, kind: 'file' }]
+	} catch {
+		return [{ name: file.name || 'файл', size: file.size, kind: 'file' }]
+	}
+}
+
+/** A file the webview knows on disk goes through attachFromPaths, so the
+ * inbox copy keeps its original bytes; pasted and dropped bytes are read
+ * right here and the inbox decodes them into the sandbox later. */
+async function attachOne(file: File): Promise<AttachedFile[]> {
+	const nativePath = (file as File & { path?: string }).path
+	if (nativePath) {
+		const fromDisk = await attachFromPaths([nativePath]).catch(() => [])
+		if (fromDisk.length > 0) return fromDisk
+	}
+	return readFileLike(file)
+}
+
+async function addAttached(files: File[]): Promise<void> {
+	const attached: AttachedFile[] = []
+	for (const file of files) {
+		attached.push(...(await attachOne(file)))
+	}
+	if (attached.length > 0) attachments.value = [...attachments.value, ...attached]
+}
+
 /** Paste goes straight in: pictures become previews, files become chips,
  * text lands where the caret is - no menu detour, no length cuts. */
 function onPaste(event: ClipboardEvent) {
@@ -1274,39 +1321,25 @@ function onPaste(event: ClipboardEvent) {
 	}
 	if (files.length === 0) return
 	event.preventDefault()
-	void (async () => {
-		const attached: AttachedFile[] = []
-		for (const file of files) {
-			try {
-				if (file.type.startsWith('image/')) {
-					const dataUrl = await new Promise<string>((resolve, reject) => {
-						const reader = new FileReader()
-						reader.onload = () => resolve(String(reader.result))
-						reader.onerror = () => reject(reader.error)
-						reader.readAsDataURL(file)
-					})
-					attached.push({
-						name: file.name || 'картинка.png',
-						size: file.size,
-						kind: 'image',
-						dataUrl,
-					})
-				} else if (file.size < 2000000) {
-					attached.push({
-						name: file.name || 'файл',
-						size: file.size,
-						kind: 'text',
-						text: await file.text(),
-					})
-				} else {
-					attached.push({ name: file.name || 'файл', size: file.size, kind: 'file' })
-				}
-			} catch {
-				attached.push({ name: file.name || 'файл', size: file.size, kind: 'file' })
-			}
-		}
-		if (attached.length > 0) attachments.value = [...attachments.value, ...attached]
-	})()
+	void addAttached(files)
+}
+
+/** Dropping files anywhere on the chat page attaches them, same as paste. */
+const dropDepth = ref(0)
+
+function onDragEnter(event: DragEvent) {
+	if (event.dataTransfer?.types.includes('Files')) dropDepth.value++
+}
+
+function onDragLeave() {
+	dropDepth.value = Math.max(0, dropDepth.value - 1)
+}
+
+function onDrop(event: DragEvent) {
+	dropDepth.value = 0
+	const files = Array.from(event.dataTransfer?.files ?? [])
+	if (files.length === 0) return
+	void addAttached(files)
 }
 
 function answerQuestion(answer: string) {
@@ -1390,7 +1423,16 @@ defineExpose({ send })
 </script>
 
 <template>
-	<div class="ai-page flex h-full min-h-0 flex-col">
+	<div
+		class="ai-page relative flex h-full min-h-0 flex-col"
+		@dragenter.prevent="onDragEnter"
+		@dragover.prevent
+		@dragleave.prevent="onDragLeave"
+		@drop.prevent="onDrop"
+	>
+		<div v-if="dropDepth > 0" class="ai-drop-overlay">
+			<span class="ai-drop-overlay-text">{{ formatMessage(messages.dropHere) }}</span>
+		</div>
 		<div class="flex items-start justify-end gap-3 px-6 pt-6">
 			<div class="relative flex shrink-0 items-center gap-1">
 				<IconButton
@@ -2547,6 +2589,30 @@ defineExpose({ send })
 	border-radius: 0.75rem;
 	border: 1px solid var(--surface-5);
 	object-fit: cover;
+}
+
+.ai-drop-overlay {
+	position: absolute;
+	inset: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	border-radius: 0.75rem;
+	border: 2px dashed var(--color-brand);
+	background: color-mix(in srgb, var(--color-bg) 70%, transparent);
+	backdrop-filter: blur(4px);
+}
+
+.ai-drop-overlay-text {
+	padding: 0.75rem 1.25rem;
+	border-radius: 0.75rem;
+	background: var(--color-raised-bg);
+	border: 1px solid var(--color-brand);
+	color: var(--color-primary);
+	font-size: 0.875rem;
+	font-weight: 600;
 }
 
 .ai-attach-chip {

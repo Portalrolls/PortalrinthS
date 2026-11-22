@@ -619,18 +619,39 @@ export async function sandboxBash(command: string): Promise<string> {
 
 const FORBIDDEN_ATTACHMENTS = /\.(exe|msi|bat|cmd|com|scr|sh|dll|so|apk|app|ps1|vbs|jar\.exe)$/i
 
+/** What the inbox did with the player's attachments. */
+export interface InboxResult {
+	/** Exact sandbox paths of everything that made it into the inbox. */
+	saved: string[]
+	/** Names of files that stayed chat-only: no path, no bytes to copy. */
+	chatOnly: string[]
+	/** Executables refused, as everywhere else in the sandbox. */
+	skipped: string[]
+}
+
+/** Decodes the base64 part of a data: url into raw bytes. */
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+	const comma = dataUrl.indexOf(',')
+	const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl
+	const binary = atob(base64)
+	const bytes = new Uint8Array(binary.length)
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+	return bytes
+}
+
 /**
  * Copies the files the player attached into the sandbox's inbox folder, so
  * the assistant can read, unpack and rework them on every later turn - not
  * just the moment they arrived. Executables stay out, as everywhere else.
+ * Files picked through the dialog carry a real path; pasted and dropped
+ * ones only carry bytes - those are decoded straight into the inbox, so a
+ * pasted screenshot lands in the sandbox just like a picked one.
  */
-export async function inboxSave(files: AttachedFile[]): Promise<string[]> {
-	const saved: string[] = []
-	const skipped: string[] = []
+export async function inboxSave(files: AttachedFile[]): Promise<InboxResult> {
+	const result: InboxResult = { saved: [], chatOnly: [], skipped: [] }
 	for (const file of files) {
-		if (!file.path) continue
 		if (FORBIDDEN_ATTACHMENTS.test(file.name)) {
-			skipped.push(file.name)
+			result.skipped.push(file.name)
 			continue
 		}
 		const base = file.name
@@ -648,17 +669,25 @@ export async function inboxSave(files: AttachedFile[]): Promise<string[]> {
 			counter++
 		}
 		try {
-			const bytes = await fs.readFile(file.path)
-			await sandboxWriteBinary(rel, bytes)
-			saved.push(rel)
+			if (file.path) {
+				const bytes = await fs.readFile(file.path)
+				await sandboxWriteBinary(rel, bytes)
+				result.saved.push(rel)
+			} else if (file.dataUrl) {
+				await sandboxWriteBinary(rel, dataUrlToBytes(file.dataUrl))
+				result.saved.push(rel)
+			} else if (file.text !== undefined) {
+				await sandboxWrite(rel, file.text)
+				result.saved.push(rel)
+			} else {
+				result.chatOnly.push(file.name)
+			}
 		} catch {
 			/* outside the file scope or unreadable - the chat copy is still there */
+			result.chatOnly.push(file.name)
 		}
 	}
-	if (skipped.length > 0) {
-		saved.push(`(пропущены исполняемые файлы: ${skipped.join(', ')})`)
-	}
-	return saved
+	return result
 }
 
 async function pathExists(rel: string): Promise<boolean> {

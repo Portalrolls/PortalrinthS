@@ -184,6 +184,18 @@ export function rebaseServiceUrl(url: string | null | undefined): string {
 /** Запрос к сервису не висит дольше этого — иначе экраны навсегда застревают на «Загружаем…». */
 const REQUEST_TIMEOUT = 15000
 
+/** Коды, которыми на запрошенный домен отвечает не сам сервис, а чужой шлюз
+ *  на пути к нему: у провайдеров в РФ 403 и 504 — обычное дело, когда домен
+ *  душат (DPI отдаёт свой код вместо сайта). Такой ответ значит «вход
+ *  недоступен»: запоминать его рабочим нельзя, а запасной вход — стоит. */
+const DEAD_ENTRY_STATUSES = new Set([403, 502, 504, 521, 522, 523, 525])
+
+/** Вход мёртв? Статус 0 — сеть молчит; шлюзовые коды — домен заблокирован
+ *  на пути к нему. */
+function deadEntryStatus(status: number): boolean {
+	return status === 0 || DEAD_ENTRY_STATUSES.has(status)
+}
+
 /** Что именно сломалось при последнем входе в сервис: показываем игроку
     честную причину вместо «не ответил». */
 export type ServiceFailure = 'no_account' | 'network' | 'auth' | 'rate_limited' | 'service'
@@ -224,7 +236,7 @@ async function probeEntry(base: string): Promise<boolean> {
 			signal: controller.signal,
 		})
 		clearTimeout(timer)
-		return response.status !== 0
+		return !deadEntryStatus(response.status)
 	} catch {
 		return false
 	}
@@ -254,15 +266,20 @@ async function serviceFetch(
 ): Promise<{ ok: boolean; status: number; data: LooseRecord }> {
 	if (opts.base) return serviceFetchOnce(path, opts, opts.base)
 	const first = await serviceFetchOnce(path, opts, preferredApi)
-	if (first.status !== 0) return first
+	if (!deadEntryStatus(first.status)) return first
 	// Запрос, который успел уйти и завис на ответе, второй раз не шлём: сообщение задвоилось бы.
 	const writes = Boolean(opts.method && opts.method.toUpperCase() !== 'GET')
-	if (writes && first.data.error === 'timeout') return first
+	// POST после шлюзового кода тоже не повторяем — он мог дойти до сервиса,
+	// и второй такой же задвоил бы его. GET после любого мёртвого ответа
+	// повторяем: запрос безопасен, а шлюз его точно не выполнил.
+	if (writes && (first.data.error === 'timeout' || DEAD_ENTRY_STATUSES.has(first.status)))
+		return first
 	const other = preferredApi === MESSENGER_API ? MESSENGER_API_EU : MESSENGER_API
 	const second = await serviceFetchOnce(path, opts, other)
-	// Основной вход не ответил, запасной ответил — переходим на него (и
-	// запоминаем). Оба молчат — отдаём ошибку запасного, вход не меняем.
-	if (second.status === 0) return second
+	// Основной вход не ответил или ответил чужим шлюзом, запасной жив —
+	// переходим на него (и запоминаем). Оба мертвы — отдаём ошибку запасного,
+	// вход не меняем.
+	if (deadEntryStatus(second.status)) return second
 	preferredApi = other
 	rememberBase(other)
 	return second
@@ -280,16 +297,27 @@ export async function serviceFetchRaw(
 		connectTimeout?: number
 	} = {},
 ): Promise<Response> {
+	let first: Response | null = null
 	try {
-		return await proxiedFetch(`${serviceBase()}${path}`, { ...opts })
+		first = await proxiedFetch(`${serviceBase()}${path}`, { ...opts })
 	} catch {
-		// Основной вход не отвечает — пробуем запасной и переходим на него.
-		const fallback = serviceBase() === UPROJECTS_BASE ? UPROJECTS_BASE_EU : UPROJECTS_BASE
-		const response = await proxiedFetch(`${fallback}${path}`, { ...opts })
+		/* сеть молчит — пробуем запасной вход ниже */
+	}
+	if (first) {
+		const idempotent = !opts.method || ['GET', 'HEAD'].includes(opts.method.toUpperCase())
+		// Шлюзовой ответ (403/504) у POST на запасном входе не повторяем:
+		// запрос мог дойти до сервиса, и второй такой же задвоил бы его.
+		if (!deadEntryStatus(first.status) || !idempotent) return first
+	}
+	// Основной вход не отвечает или ответил чужим шлюзом — пробуем запасной
+	// и переходим на него, когда тот жив.
+	const fallback = serviceBase() === UPROJECTS_BASE ? UPROJECTS_BASE_EU : UPROJECTS_BASE
+	const response = await proxiedFetch(`${fallback}${path}`, { ...opts })
+	if (!deadEntryStatus(response.status)) {
 		preferredApi = `${fallback}/api/messenger`
 		rememberBase(preferredApi)
-		return response
 	}
+	return response
 }
 
 async function serviceFetchOnce(

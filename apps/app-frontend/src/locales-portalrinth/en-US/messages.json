@@ -5178,5 +5178,7 @@
 	"app.messenger.gate.diagNone": "Diagnostics: both service entries are unreachable from your network. Your ISP is most likely blocking the service — use a VPN or set a proxy in Settings → Resource management.",
 	"app.error-modal.rf-bypass.heading": "Microsoft is unreachable from your network",
 	"app.error-modal.rf-bypass.body": "In Russia Microsoft sign-in servers often do not answer without a proxy — this is not a launcher bug. To bypass it: open Settings → Resource management → Proxy, enter an HTTP or SOCKS5 proxy address (or turn your VPN on) and restart the launcher — the Microsoft sign-in window will also go through the proxy. Alternatively, sign in with an Ely.by account: it works without a proxy.",
-	"app.messenger.gate.failedAuthEly": "The service rejected your Ely.by account — the token expired or was revoked. Sign in to Ely.by again."
+	"app.messenger.gate.failedAuthEly": "The service rejected your Ely.by account — the token expired or was revoked. Sign in to Ely.by again.",
+	"app.messenger.gate.autoRetry": "We keep retrying in the background. Turn on a VPN or set a proxy in Settings → Resource management — the messenger will come back on its own, without restarting the launcher.",
+	"app.messenger.gate.autoRetryRate": "We keep retrying in the background, but no faster than the service allows — give it a couple of minutes."
 }

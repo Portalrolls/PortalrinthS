@@ -1981,8 +1981,51 @@ export function resetState(): void {
 
 let connectSeq = 0
 
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let reconnectAttempt = 0
+let reconnectRefused = false
+
+/**
+ * Провалившийся вход в сервис сами пробуем снова с бэкоффом: сеть к сервису
+ * дышит перебоями, и после краткого сбоя (или включённого VPN/прокси)
+ * мессенджер поднимается сам — без перезапуска лаунчера и без нажатия
+ * «Повторить». Причины, где нужен сам игрок (вход заново, нет аккаунта),
+ * из автоповтора исключены; после пяти отказов по лимиту частоты не
+ * дёргаем сервис вовсе — там нужна пауза, а не упорство.
+ */
+function scheduleReconnect(reason: ServiceFailure | null): void {
+	if (reconnectRefused) return
+	if (reason === 'auth' || reason === 'no_account') return
+	if (reason === 'rate_limited' && reconnectAttempt >= 5) {
+		reconnectRefused = true
+		return
+	}
+	const delay =
+		reason === 'rate_limited' || reconnectAttempt >= 3
+			? 60000
+			: ([5000, 15000, 45000][reconnectAttempt] ?? 60000)
+	reconnectAttempt += 1
+	if (reconnectTimer) clearTimeout(reconnectTimer)
+	reconnectTimer = setTimeout(() => {
+		reconnectTimer = null
+		void connect(true)
+	}, delay)
+}
+
+/** Вход удался — автоповтор больше не нужен. */
+function resetReconnect(): void {
+	reconnectAttempt = 0
+	reconnectRefused = false
+	if (reconnectTimer) clearTimeout(reconnectTimer)
+	reconnectTimer = null
+}
+
 export async function connect(force = false): Promise<void> {
 	const seq = ++connectSeq
+	if (reconnectTimer) {
+		clearTimeout(reconnectTimer)
+		reconnectTimer = null
+	}
 	state.loading = true
 	state.failed = false
 	state.failureReason = null
@@ -2001,6 +2044,7 @@ export async function connect(force = false): Promise<void> {
 			resetState()
 			state.failed = true
 			state.failureReason = lastServiceFailure() ?? 'network'
+			scheduleReconnect(state.failureReason)
 			return
 		}
 		if (state.session && state.session.accountKey !== session.accountKey) resetState()
@@ -2018,12 +2062,14 @@ export async function connect(force = false): Promise<void> {
 		await loadLists()
 		if (seq !== connectSeq) return
 		startLive(session.token)
+		resetReconnect()
 		if (activityPayload.playing) void postActivity()
 		if (state.section === 'server' && state.activeServerId) await openServer(state.activeServerId)
 		else if (state.homePage === 'dm' && state.activeDmId) await openDm(state.activeDmId)
 	} catch {
 		state.failed = true
 		state.failureReason = lastServiceFailure() ?? 'network'
+		scheduleReconnect(state.failureReason)
 	} finally {
 		if (seq === connectSeq) state.loading = false
 	}
@@ -2032,5 +2078,6 @@ export async function connect(force = false): Promise<void> {
 export async function signOut(): Promise<void> {
 	forgetServiceSession()
 	resetState()
+	resetReconnect()
 	await connect(true)
 }

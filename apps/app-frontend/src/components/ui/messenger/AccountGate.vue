@@ -75,6 +75,22 @@ const failedText = computed(() => {
 
 const showLogin = computed(() => props.failed && props.reason === 'auth' && Boolean(actions.value))
 
+/** Автоповтор идёт — говорим об этом, чтобы игрок не думал, что лаунчер сдался. */
+const autoRetryLine = computed(() => {
+	if (!props.failed) return ''
+	if (props.reason === 'network' || props.reason === 'service')
+		return t(
+			'app.messenger.gate.autoRetry',
+			'Мы продолжаем пробовать подключиться в фоне. Включите VPN или укажите прокси в Настройках → Управление ресурсами — мессенджер поднимется сам, без перезапуска лаунчера.',
+		)
+	if (props.reason === 'rate_limited')
+		return t(
+			'app.messenger.gate.autoRetryRate',
+			'Мы продолжаем пробовать подключиться в фоне, но не чаще, чем разрешает сервис — подождите пару минут.',
+		)
+	return ''
+})
+
 async function run(action: () => unknown): Promise<void> {
 	busy.value = true
 	try {
@@ -104,6 +120,7 @@ function ely(): void {
 				<h2>{{ t('app.messenger.gate.failedTitle', 'Не удалось подключиться') }}</h2>
 				<p>{{ failedText }}</p>
 				<p v-if="healthLine" class="msgr-gate__diag">{{ healthLine }}</p>
+				<p v-if="autoRetryLine" class="msgr-gate__diag">{{ autoRetryLine }}</p>
 				<div class="msgr-gate__actions">
 					<button
 						v-if="showLogin"

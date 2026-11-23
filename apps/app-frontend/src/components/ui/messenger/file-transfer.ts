@@ -25,6 +25,9 @@ export const XFER_THRESHOLD = 10 * 1024 * 1024
 /** Какой размер «видит» сервер и чужие клиенты. */
 export const XFER_DISPLAY_CAP = 11 * 1024 * 1024
 
+/** Потолок сервера для вложения в теле сообщения: больше — только P2P между клиентами. */
+export const INLINE_LIMIT = 24 * 1024 * 1024
+
 /** Кусок: 43680 символов base64 = 32760 байт файла на один сигнал. */
 const CHUNK_QUAD = 43680
 const MAX_RESEND = 400

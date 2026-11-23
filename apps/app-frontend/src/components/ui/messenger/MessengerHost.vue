@@ -62,6 +62,11 @@ setFailText((code) => {
 		case 'payload_too_large':
 		case '413':
 			return t('app.messenger.error.tooLarge', 'Файл слишком большой (максимум 1 ГБ)')
+		case 'invalid_attachment':
+			return t(
+				'app.messenger.error.invalidAttachment',
+				'Сервер не принял вложение (лимит 24 МБ) — большие файлы отправляйте в личном чате',
+			)
 		case 'rate_limited':
 		case '429':
 			return t('app.messenger.error.rate', 'Слишком часто. Подождите немного')

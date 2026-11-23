@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import {
+	CheckCheckIcon,
 	ChevronDownIcon,
 	ChevronRightIcon,
+	CopyIcon,
 	EditIcon,
 	EyeOffIcon,
 	FolderIcon,
@@ -32,6 +34,7 @@ import {
 	hideConversation,
 	importantIn,
 	isOwner,
+	markChannelRead,
 	openChannel,
 	saveCategory,
 	showToast,
@@ -41,6 +44,7 @@ import { vTip } from './tooltip'
 import { type Anchor, askConfirm, askPrompt } from './ui-bus'
 import UserAvatar from './UserAvatar.vue'
 import { joinVoice, voice } from './voice-channel'
+import { voiceLimit } from './voice-limits'
 
 const emit = defineEmits<{
 	settings: [conv: Conversation, tab?: string]
@@ -98,6 +102,17 @@ async function pick(channel: Channel): Promise<void> {
 		if (channel.local) {
 			showToast(
 				t('app.messenger.voice.needChannel', 'Создайте голосовой канал в настройках сервера'),
+			)
+			return
+		}
+		const cap = voiceLimit(channel.id)
+		if (cap > 0 && voiceMembers(channel.id).length >= cap) {
+			showToast(
+				t('app.messenger.voice.full', 'Канал «{name}» заполнен ({n}/{limit})', {
+					name: channel.name,
+					n: voiceMembers(channel.id).length,
+					limit: cap,
+				}),
 			)
 			return
 		}
@@ -180,6 +195,15 @@ async function removeChannel(channel: Channel): Promise<void> {
 function voiceMembers(channelId: string) {
 	return voice.members[channelId] ?? []
 }
+
+async function copyId(text: string): Promise<void> {
+	try {
+		await navigator.clipboard.writeText(text)
+		showToast(t('app.messenger.idCopied', 'ID скопирован'))
+	} catch {
+		showToast(t('app.messenger.copyFailed', 'Не удалось скопировать'))
+	}
+}
 </script>
 
 <template>
@@ -240,9 +264,10 @@ function voiceMembers(channelId: string) {
 						@click="pick(channel)"
 						@keydown.enter="pick(channel)"
 						@contextmenu.prevent="
-							canManage && !channel.local
-								? (channelMenu = { channel, anchor: { x: $event.clientX, y: $event.clientY } })
-								: undefined
+							channelMenu = {
+								channel,
+								anchor: { x: $event.clientX, y: $event.clientY },
+							}
 						"
 					>
 						<Volume2Icon v-if="channel.kind === 'voice'" />
@@ -251,6 +276,15 @@ function voiceMembers(channelId: string) {
 						}}</span>
 						<HashIcon v-else />
 						<span class="msgr-side__channel-name">{{ channel.name }}</span>
+						<span
+							v-if="
+								channel.kind === 'voice' &&
+								(voiceMembers(channel.id).length || voiceLimit(channel.id))
+							"
+							class="msgr-side__voice-cap"
+							>{{ voiceMembers(channel.id).length
+							}}{{ voiceLimit(channel.id) ? `/${voiceLimit(channel.id)}` : '' }}</span
+						>
 						<b v-if="importantIn(server.id, channel.id)" class="msgr-side__badge">{{
 							importantIn(server.id, channel.id) > 99 ? '99+' : importantIn(server.id, channel.id)
 						}}</b>
@@ -308,6 +342,9 @@ function voiceMembers(channelId: string) {
 			>
 				<UserPlusIcon /> {{ t('app.messenger.server.invite', 'Пригласить людей') }}
 			</button>
+			<button type="button" class="msgr-menu-item" @click="act(() => void copyId(server!.id))">
+				<CopyIcon /> {{ t('app.messenger.server.copyId', 'Копировать ID сервера') }}
+			</button>
 			<button type="button" class="msgr-menu-item" @click="act(() => emit('settings', server!))">
 				<SettingsIcon />
 				{{
@@ -348,6 +385,22 @@ function voiceMembers(channelId: string) {
 
 		<FloatingMenu :anchor="channelMenu?.anchor ?? null" :width="210" @close="channelMenu = null">
 			<template v-if="channelMenu">
+				<button
+					v-if="(state.channelUnread[channelMenu.channel.id] ?? 0) > 0"
+					type="button"
+					class="msgr-menu-item"
+					@click="act(() => markChannelRead(server!.id, channelMenu!.channel.id))"
+				>
+					<CheckCheckIcon />
+					{{ t('app.messenger.channel.markRead', 'Отметить как прочитанное') }}
+				</button>
+				<button
+					type="button"
+					class="msgr-menu-item"
+					@click="act(() => void copyId(channelMenu!.channel.id))"
+				>
+					<CopyIcon /> {{ t('app.messenger.channel.copyId', 'Копировать ID канала') }}
+				</button>
 				<button
 					type="button"
 					class="msgr-menu-item"
@@ -403,6 +456,16 @@ function voiceMembers(channelId: string) {
 </template>
 
 <style scoped>
+.msgr-side__voice-cap {
+	margin-left: auto;
+	flex-shrink: 0;
+	font-size: 0.72rem;
+	font-weight: 600;
+	color: var(--color-secondary);
+	opacity: 0.85;
+	font-variant-numeric: tabular-nums;
+}
+
 .msgr-side__channel-emoji {
 	font-size: 0.95rem;
 	line-height: 1;

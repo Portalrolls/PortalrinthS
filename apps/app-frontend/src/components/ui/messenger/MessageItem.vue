@@ -3,6 +3,7 @@ import {
 	CheckIcon,
 	CopyIcon,
 	EditIcon,
+	GameIcon,
 	HashIcon,
 	HeartIcon,
 	LinkIcon,
@@ -24,7 +25,7 @@ import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import MessageAttachment from './MessageAttachment.vue'
 import MessageText from './MessageText.vue'
-import { formatDate, formatTime, type Msg, stripXferMarker, xferIdOf } from './model'
+import { buildLine, formatDate, formatTime, type Msg, stripXferMarker, xferIdOf } from './model'
 import ProfileCard from './ProfileCard.vue'
 import { isOnlyEmoji } from './rich-text'
 import { isPlayerSticker, saveStickerFromUrl, stickerById, stickerIdOf } from './stickers'
@@ -55,14 +56,18 @@ import {
 } from './ui-bus'
 import UserAvatar from './UserAvatar.vue'
 
-const props = defineProps<{
-	msg: Msg
-	grouped: boolean
-	editing: boolean
-	highlight: boolean
-	selectMode: boolean
-	selected: boolean
-}>()
+const props = withDefaults(
+	defineProps<{
+		msg: Msg
+		grouped: boolean
+		editing: boolean
+		highlight: boolean
+		selectMode: boolean
+		selected: boolean
+		gameCard?: boolean
+	}>(),
+	{ gameCard: false },
+)
 
 const emit = defineEmits<{
 	reply: [msg: Msg]
@@ -120,6 +125,14 @@ const liked = computed(() =>
 	props.msg.reactions.some((reaction) => reaction.emoji === '❤️' && reaction.me),
 )
 const isBot = computed(() => Boolean(state.users[props.msg.senderId]?.bot))
+
+/** Живой статус автора: карточка «В игре» рисуется на последнем сообщении играющего. */
+const gameActivity = computed(() => {
+	if (!props.gameCard) return null
+	const activity = state.users[props.msg.senderId]?.activity
+	return activity?.playing ? activity : null
+})
+const gameLine = computed(() => (gameActivity.value ? buildLine(gameActivity.value) : ''))
 
 const roleColor = computed(() => {
 	const server = activeServer.value
@@ -403,6 +416,16 @@ function mention(name: string, el: HTMLElement): void {
 					</time>
 					<PinIcon v-if="msg.pinned" class="msgr-msg__pinned" />
 				</div>
+				<div v-if="gameActivity && gameLine" class="msgr-msg__game">
+					<span class="msgr-msg__game-ic"><GameIcon /></span>
+					<div class="msgr-msg__game-body">
+						<b>{{ t('app.messenger.game.playing', 'В игре') }}</b>
+						<span class="msgr-msg__game-build">{{ gameLine }}</span>
+						<span v-if="gameActivity.serverName" class="msgr-msg__game-server">{{
+							gameActivity.serverName
+						}}</span>
+					</div>
+				</div>
 
 				<div v-if="editing" class="msgr-msg__edit">
 					<textarea
@@ -649,6 +672,73 @@ function mention(name: string, el: HTMLElement): void {
 </template>
 
 <style scoped>
+/* Карточка «В игре» — живой статус автора на его последнем сообщении. */
+.msgr-msg__game {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	max-width: 20rem;
+	margin-top: 0.4rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid rgba(35, 165, 90, 0.28);
+	border-radius: 10px;
+	background: rgba(35, 165, 90, 0.09);
+	animation: msgr-game-in 0.22s ease;
+}
+
+.msgr-msg__game-ic {
+	color: #23a55a;
+}
+
+.msgr-msg__game-ic svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.msgr-msg__game-body {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.msgr-msg__game-body > b {
+	color: #23a55a;
+	font-size: 0.75rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.msgr-msg__game-build {
+	overflow: hidden;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-msg__game-server {
+	color: var(--color-secondary);
+	font-size: 0.75rem;
+}
+
+@keyframes msgr-game-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.msgr-msg__game {
+		animation: none;
+	}
+}
+
 .msgr-msg.is-pending .msgr-msg__content {
 	opacity: 0.55;
 }

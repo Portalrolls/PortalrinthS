@@ -8001,5 +8001,29 @@
 	},
 	"app.drafts.title": {
 		"message": "Черновик"
+	},
+	"app.messenger.channel.copyId": {
+		"message": "Копировать ID канала"
+	},
+	"app.messenger.channel.markRead": {
+		"message": "Отметить как прочитанное"
+	},
+	"app.messenger.channel.voiceLimit": {
+		"message": "Лимит участников (0 — без лимита)"
+	},
+	"app.messenger.error.invalidAttachment": {
+		"message": "Сервер не принял вложение (лимит 24 МБ) — большие файлы отправляйте в личном чате"
+	},
+	"app.messenger.game.playing": {
+		"message": "В игре"
+	},
+	"app.messenger.idCopied": {
+		"message": "ID скопирован"
+	},
+	"app.messenger.voice.full": {
+		"message": "Канал «{name}» заполнен ({n}/{limit})"
+	},
+	"app.messenger.xfer.inlineLimit": {
+		"message": "Файлы больше 24 МБ можно отправить только в личном чате — сервер их не принимает"
 	}
 }

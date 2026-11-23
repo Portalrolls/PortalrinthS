@@ -9,6 +9,7 @@ import { useMessengerT } from './i18n'
 import type { Channel } from './model'
 import { deleteChannel, saveChannel, state } from './store'
 import { askConfirm } from './ui-bus'
+import { setVoiceLimit, voiceLimit } from './voice-limits'
 
 const t = useMessengerT()
 
@@ -20,6 +21,7 @@ const topic = ref('')
 const kind = ref<'text' | 'voice'>('text')
 const categoryId = ref('')
 const iconEmoji = ref('')
+const limit = ref(0)
 const busy = ref(false)
 
 const categories = computed(() => state.structures[convId.value]?.categories ?? [])
@@ -47,6 +49,7 @@ function show(
 	kind.value = channel?.kind ?? nextKind
 	categoryId.value = channel ? (channel.categoryId ?? '') : category
 	iconEmoji.value = channel ? channelIcon(channel.id) : ''
+	limit.value = channel ? voiceLimit(channel.id) : 0
 	modal.value?.show()
 }
 
@@ -65,7 +68,11 @@ async function save(): Promise<void> {
 		const created = state.structures[convId.value]?.channels.find(
 			(channel) => channel.name === cleanName.value,
 		)
-		if (created) setChannelIcon(created.id, iconEmoji.value.trim())
+		const target = created ?? editing.value
+		if (target) {
+			setChannelIcon(target.id, iconEmoji.value.trim())
+			setVoiceLimit(target.id, kind.value === 'voice' ? limit.value : 0)
+		}
 		modal.value?.hide()
 	}
 }
@@ -171,6 +178,12 @@ defineExpose({ show })
 					</div>
 				</div>
 			</div>
+			<label v-if="kind === 'voice'" class="msgr-field">
+				<span>{{
+					t('app.messenger.channel.voiceLimit', 'Лимит участников (0 — без лимита)')
+				}}</span>
+				<input v-model.number="limit" type="number" min="0" max="99" />
+			</label>
 			<label v-if="kind === 'text'" class="msgr-field">
 				<span>{{ t('app.messenger.channel.topic', 'Тема канала') }}</span>
 				<input v-model="topic" type="text" maxlength="200" />

@@ -78,6 +78,15 @@ const peer = computed(() =>
 const thread = computed(() => activeThread.value)
 const messages = computed(() => thread.value?.messages ?? [])
 
+/** Последнее сообщение каждого играющего автора — на нём рисуем карточку «В игре». */
+const gameCardIds = computed(() => {
+	const last = new Map<string, string>()
+	for (const msg of messages.value) {
+		if (state.users[msg.senderId]?.activity?.playing) last.set(msg.senderId, msg.id)
+	}
+	return new Set(last.values())
+})
+
 const title = computed(() => {
 	if (!conv.value) return ''
 	if (conv.value.dm)
@@ -459,7 +468,13 @@ function onDrop(event: DragEvent): void {
 		<header class="msgr-chat__head">
 			<template v-if="conv.dm && peer">
 				<button type="button" class="msgr-chat__who" @click="openProfile(peer.id, peer.username)">
-					<UserAvatar :user-id="peer.id" :name="peer.username" :size="26" status ring="var(--msgr-ring)" />
+					<UserAvatar
+						:user-id="peer.id"
+						:name="peer.username"
+						:size="26"
+						status
+						ring="var(--msgr-ring)"
+					/>
 					<b>{{ title }}</b>
 				</button>
 				<span class="msgr-chat__status">{{ statusLabel }}</span>
@@ -646,6 +661,7 @@ function onDrop(event: DragEvent): void {
 							:highlight="highlightId === row.msg.id"
 							:select-mode="selectMode"
 							:selected="selectedIds.has(row.msg.id)"
+							:game-card="gameCardIds.has(row.msg.id)"
 							@reply="startReply"
 							@edit="startEdit"
 							@save="saveEdit"

@@ -19,7 +19,13 @@ import {
 
 import { aliasOf, loadAliases } from './aliases'
 import { REACTIONS } from './emoji'
-import { handleXferSignal, registerOutgoing, startTransfer, XFER_THRESHOLD } from './file-transfer'
+import {
+	handleXferSignal,
+	INLINE_LIMIT,
+	registerOutgoing,
+	startTransfer,
+	XFER_THRESHOLD,
+} from './file-transfer'
 import { openLiveStream } from './live-stream'
 import {
 	attachmentKind,
@@ -557,6 +563,12 @@ async function openThread(): Promise<void> {
 	markRead(conv)
 }
 
+/** Канал отмечен прочитанным без его открытия: гасим счётчики этого канала. */
+export function markChannelRead(convId: string, channelId: string): void {
+	state.channelUnread[channelId] = 0
+	clearImportant(convId, channelId)
+}
+
 function channelQuery(key: string): { convId: string; channelId: string } {
 	const split = key.indexOf(':')
 	const convId = key.slice(0, split)
@@ -732,6 +744,18 @@ export async function sendMessage(payload: {
 	if (payload.attachment) {
 		const att = payload.attachment
 		const big = att.size > XFER_THRESHOLD
+		// Сервер не принимает вложения больше 24 МБ: без P2P-маршрута
+		// (личный чат с собеседником) отправка заранее обречена — честно
+		// говорим об этом сразу, вместо тихо умершего сообщения.
+		if (att.size > INLINE_LIMIT && !(conv.dm && dmPeerId)) {
+			showToast(
+				t(
+					'app.messenger.xfer.inlineLimit',
+					'Файлы больше 24 МБ можно отправить только в личном чате — сервер их не принимает',
+				),
+			)
+			return false
+		}
 		if (big && conv.dm && dmPeerId) {
 			// Сервер получает только обёртку с «сплющенным» размером, байты
 			// поедут между клиентами по сигнальному каналу сразу после accept

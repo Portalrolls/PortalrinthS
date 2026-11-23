@@ -51,6 +51,43 @@ const isSound = computed(
 	() => props.attachment.kind === 'audio' || props.attachment.kind === 'voice',
 )
 
+// --- Ленивая загрузка визуальных вложений: GIF весит десятки мегабайт,
+// грузим только то, что в поле зрения, а из виду выгружаем — тогда
+// сеть не замирает и ничего лишнего не качается. ---
+const visHost = ref<HTMLElement | null>(null)
+const visOn = ref(false)
+const visW = ref(0)
+const visH = ref(0)
+let visObserver: IntersectionObserver | null = null
+
+function measureVisual(): void {
+	const img = visHost.value?.querySelector('.msgr-att__image') as HTMLElement | null
+	if (!img) return
+	const w = img.offsetWidth
+	const h = img.offsetHeight
+	if (w > 40 && h > 40) {
+		visW.value = w
+		visH.value = h
+	}
+}
+
+onMounted(() => {
+	visObserver = new IntersectionObserver(
+		(entries) => {
+			const on = entries.some((entry) => entry.isIntersecting)
+			if (!on && visOn.value) measureVisual()
+			visOn.value = on
+		},
+		{ rootMargin: '320px' },
+	)
+	if (visHost.value) visObserver.observe(visHost.value)
+})
+
+onBeforeUnmount(() => {
+	visObserver?.disconnect()
+	visObserver = null
+})
+
 onMounted(() => {
 	if (!isSound.value || isXfer.value) return
 	void (async () => {
@@ -187,17 +224,24 @@ onBeforeUnmount(() => audio.value?.pause())
 
 <template>
 	<div class="msgr-att" @click.stop>
-		<div v-if="isVisual && srcUrl && !imageFailed" class="msgr-att__vis">
+		<div v-if="isVisual && srcUrl && !imageFailed" ref="visHost" class="msgr-att__vis">
 			<button
 				type="button"
 				class="msgr-att__image"
 				@click="openLightbox(srcUrl, attachment.name, attachment.mime)"
 			>
 				<ServiceImage
+					v-if="visOn"
 					:src="srcUrl"
 					:mime="attachment.mime"
-					:lazy="attachment.kind !== 'gif'"
+					:lazy="false"
+					@loaded="measureVisual"
 					@failed="imageFailed = true"
+				/>
+				<span
+					v-else
+					class="msgr-att__ghost"
+					:style="visW ? { width: `${visW}px`, height: `${visH}px` } : undefined"
 				/>
 				<span v-if="attachment.kind === 'gif'" class="msgr-att__badge">GIF</span>
 			</button>
@@ -395,6 +439,36 @@ onBeforeUnmount(() => audio.value?.pause())
 
 .msgr-att__image:hover img {
 	transform: scale(1.015);
+}
+
+.msgr-att__ghost {
+	display: block;
+	min-width: 120px;
+	min-height: 90px;
+	border-radius: inherit;
+	background: linear-gradient(
+		100deg,
+		rgba(255, 255, 255, 0.04) 20%,
+		rgba(255, 255, 255, 0.09) 40%,
+		rgba(255, 255, 255, 0.04) 60%
+	);
+	background-size: 220% 100%;
+	animation: msgr-att-shimmer 1.3s linear infinite;
+}
+
+@keyframes msgr-att-shimmer {
+	from {
+		background-position: 120% 0;
+	}
+	to {
+		background-position: -120% 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.msgr-att__ghost {
+		animation: none;
+	}
 }
 
 .msgr-att__dl {

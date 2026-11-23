@@ -5399,5 +5399,29 @@
 	},
 	"app.drafts.title": {
 		"message": "Draft"
+	},
+	"app.messenger.channel.copyId": {
+		"message": "Copy channel ID"
+	},
+	"app.messenger.channel.markRead": {
+		"message": "Mark as read"
+	},
+	"app.messenger.channel.voiceLimit": {
+		"message": "Member limit (0 — no limit)"
+	},
+	"app.messenger.error.invalidAttachment": {
+		"message": "The server rejected the attachment (24 MB limit) — send large files in direct chats"
+	},
+	"app.messenger.game.playing": {
+		"message": "In game"
+	},
+	"app.messenger.idCopied": {
+		"message": "ID copied"
+	},
+	"app.messenger.voice.full": {
+		"message": "Channel “{name}” is full ({n}/{limit})"
+	},
+	"app.messenger.xfer.inlineLimit": {
+		"message": "Files over 24 MB can only be sent in direct chats — the server rejects them"
 	}
 }

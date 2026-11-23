@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { PlugIcon, PlusIcon, ShieldIcon, TrashIcon } from '@modrinth/assets'
 import { Button, defineMessages, Toggle, useVIntl } from '@modrinth/ui'
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import {
+	type CatalogEntry,
+	catalogLoadingState,
+	installCatalogPlugin,
 	type InstalledPlugin,
 	installPluginFiles,
+	loadPluginCatalog,
 	plugins,
 	pluginSafeMode,
 	quickCss,
@@ -24,8 +28,7 @@ const messages = defineMessages({
 	},
 	description: {
 		id: 'app.settings.plugins.description',
-		defaultMessage:
-			'Темы и стили поверх интерфейса: плагин — это CSS, который лаунчер применяет поверх текущей темы. Код не исполняется, поэтому сломанная тема может разве что выглядеть странно, но не сломать лаунчер.',
+		defaultMessage: 'CSS-темы поверх интерфейса. Код не исполняется — сломать лаунчер ими нельзя.',
 	},
 	install: {
 		id: 'app.settings.plugins.install',
@@ -33,16 +36,39 @@ const messages = defineMessages({
 	},
 	installHint: {
 		id: 'app.settings.plugins.install-hint',
-		defaultMessage:
-			'Поддерживается .zip с manifest.json и CSS-файлами, отдельный .css файл или папка с манифестом. Повторная установка плагина с тем же id обновляет его.',
+		defaultMessage: '.zip с manifest.json или отдельный .css файл.',
+	},
+	catalogTitle: {
+		id: 'app.settings.plugins.catalog.title',
+		defaultMessage: 'Каталог',
+	},
+	catalogDescription: {
+		id: 'app.settings.plugins.catalog.description',
+		defaultMessage: 'Готовые темы — установите одним нажатием.',
+	},
+	catalogEmpty: {
+		id: 'app.settings.plugins.catalog.empty',
+		defaultMessage: 'Каталог пока пуст.',
+	},
+	catalogInstall: {
+		id: 'app.settings.plugins.catalog.install',
+		defaultMessage: 'Установить',
+	},
+	catalogInstalled: {
+		id: 'app.settings.plugins.catalog.installed',
+		defaultMessage: 'Установлено',
+	},
+	catalogUpdate: {
+		id: 'app.settings.plugins.catalog.update',
+		defaultMessage: 'Обновить',
+	},
+	catalogFailed: {
+		id: 'app.settings.plugins.catalog.failed',
+		defaultMessage: 'Не получилось установить тему из каталога',
 	},
 	empty: {
 		id: 'app.settings.plugins.empty',
 		defaultMessage: 'Пока не установлено ни одного плагина.',
-	},
-	enabled: {
-		id: 'app.settings.plugins.enabled',
-		defaultMessage: 'Включён',
 	},
 	delete: {
 		id: 'app.settings.plugins.delete',
@@ -54,8 +80,7 @@ const messages = defineMessages({
 	},
 	quickCssDescription: {
 		id: 'app.settings.plugins.quick-css.description',
-		defaultMessage:
-			'Свой стиль без упаковки: пишите CSS прямо здесь — он применяется на лету и лежит поверх всех плагинов.',
+		defaultMessage: 'Свой CSS прямо здесь — применяется на лету.',
 	},
 	quickCssPlaceholder: {
 		id: 'app.settings.plugins.quick-css.placeholder',
@@ -69,8 +94,7 @@ const messages = defineMessages({
 	},
 	safeModeDescription: {
 		id: 'app.settings.plugins.safe-mode.description',
-		defaultMessage:
-			'Полностью отключает все плагины и быстрый CSS до перезапуска лаунчера. Тот же переключатель — по Ctrl+Shift+Alt+P в любой момент.',
+		defaultMessage: 'Отключает плагины и Быстрый CSS до перезапуска. Ctrl+Shift+Alt+P.',
 	},
 	errorPrefix: {
 		id: 'app.settings.plugins.error-prefix',
@@ -96,6 +120,39 @@ const fileInput = ref<HTMLInputElement | null>(null)
 
 function openPicker() {
 	fileInput.value?.click()
+}
+
+const catalogEntries = ref<CatalogEntry[]>([])
+const catalogLoading = catalogLoadingState()
+const catalogBusy = ref('')
+const catalogError = ref('')
+
+const installedVersions = computed(() => {
+	const map = new Map<string, string>()
+	for (const plugin of plugins) map.set(plugin.manifest.id, plugin.manifest.version ?? '')
+	return map
+})
+
+onMounted(async () => {
+	catalogEntries.value = await loadPluginCatalog()
+})
+
+function catalogStateOf(entry: CatalogEntry): 'none' | 'update' | 'installed' {
+	const version = installedVersions.value.get(entry.id)
+	if (version === undefined) return 'none'
+	return version && entry.version && version !== entry.version ? 'update' : 'installed'
+}
+
+async function installFromCatalog(entry: CatalogEntry) {
+	if (catalogBusy.value) return
+	catalogBusy.value = entry.id
+	catalogError.value = ''
+	try {
+		await installCatalogPlugin(entry)
+	} catch {
+		catalogError.value = formatMessage(messages.catalogFailed)
+	}
+	catalogBusy.value = ''
 }
 
 function sizeOf(plugin: InstalledPlugin): string {
@@ -133,9 +190,6 @@ function toggleSafeMode(on: boolean) {
 				<PlugIcon class="text-brand" />
 				{{ formatMessage(messages.title) }}
 			</h2>
-			<p class="m-0 max-w-3xl text-sm text-secondary">
-				{{ formatMessage(messages.description) }}
-			</p>
 			<div class="flex items-center gap-2">
 				<Button size="sm" :disabled="installing" @click="openPicker">
 					<PlusIcon class="size-4" />
@@ -156,6 +210,58 @@ function toggleSafeMode(on: boolean) {
 			<p v-if="error" class="m-0 text-sm font-semibold text-red-500" role="alert">
 				{{ formatMessage(messages.errorPrefix) }} {{ error }}
 			</p>
+		</section>
+
+		<section class="flex flex-col gap-2">
+			<div class="flex items-baseline gap-2">
+				<h3 class="m-0 text-base font-bold text-primary">
+					{{ formatMessage(messages.catalogTitle) }}
+				</h3>
+				<p class="m-0 text-xs text-secondary">
+					{{ formatMessage(messages.catalogDescription) }}
+				</p>
+			</div>
+			<p v-if="catalogError" class="m-0 text-sm font-semibold text-red-500" role="alert">
+				{{ catalogError }}
+			</p>
+			<div v-if="catalogLoading" class="text-sm text-secondary">…</div>
+			<p v-else-if="catalogEntries.length === 0" class="m-0 text-sm text-secondary">
+				{{ formatMessage(messages.catalogEmpty) }}
+			</p>
+			<div v-else class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+				<div
+					v-for="entry in catalogEntries"
+					:key="entry.id"
+					class="flex items-center gap-3 rounded-xl border border-solid border-surface-5 bg-surface-2 p-3"
+				>
+					<div class="min-w-0 flex-1">
+						<p class="m-0 truncate text-sm font-semibold text-primary">
+							{{ entry.name }}
+							<span v-if="entry.version" class="ml-1 font-normal text-secondary">
+								{{ formatMessage(messages.versionLabel) }}
+								{{ entry.version }}
+							</span>
+						</p>
+						<p v-if="entry.description" class="m-0 truncate text-xs text-secondary">
+							{{ entry.description }}
+						</p>
+					</div>
+					<Button
+						size="sm"
+						type="outlined"
+						:disabled="catalogBusy === entry.id"
+						@click="installFromCatalog(entry)"
+					>
+						{{
+							catalogStateOf(entry) === 'installed'
+								? formatMessage(messages.catalogInstalled)
+								: catalogStateOf(entry) === 'update'
+									? formatMessage(messages.catalogUpdate)
+									: formatMessage(messages.catalogInstall)
+						}}
+					</Button>
+				</div>
+			</div>
 		</section>
 
 		<p v-if="plugins.length === 0" class="m-0 text-sm text-secondary">
@@ -198,14 +304,9 @@ function toggleSafeMode(on: boolean) {
 
 		<section class="flex flex-col gap-2">
 			<div class="flex items-center justify-between gap-3">
-				<div>
-					<h3 class="m-0 text-base font-bold text-primary">
-						{{ formatMessage(messages.quickCssTitle) }}
-					</h3>
-					<p class="m-0 max-w-3xl text-sm text-secondary">
-						{{ formatMessage(messages.quickCssDescription) }}
-					</p>
-				</div>
+				<h3 class="m-0 text-base font-bold text-primary">
+					{{ formatMessage(messages.quickCssTitle) }}
+				</h3>
 				<Toggle
 					:model-value="quickCss.enabled"
 					:aria-label="formatMessage(messages.quickCssTitle)"

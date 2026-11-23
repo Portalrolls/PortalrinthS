@@ -14,7 +14,9 @@ import {
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
+import DraftNotice from '@/components/ui/DraftNotice.vue'
 import { list as listInstances } from '@/helpers/instance'
+import { autosaveDraft, deleteDraft, loadDraft, saveDraft } from '@/helpers/portalrinth-drafts'
 import type { GameInstance } from '@/helpers/types'
 
 import { packBuild } from './builds'
@@ -63,6 +65,7 @@ const t = useMessengerT()
 
 const drafts = new Map<string, string>()
 const text = ref('')
+const draftNotice = ref<InstanceType<typeof DraftNotice> | null>(null)
 const box = ref<HTMLTextAreaElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const fileAccept = ref('')
@@ -109,10 +112,19 @@ const mentionList = computed(() => {
 watch(
 	activeKey,
 	(next, prev) => {
-		if (prev) drafts.set(prev, text.value)
+		if (prev) {
+			drafts.set(prev, text.value)
+			// Черновик переживает и смену беседы, и уход со страницы целиком.
+			saveDraft('messenger', prev, text.value)
+		}
 		text.value = drafts.get(next) ?? ''
 		clearAttachment()
 		mentionQuery.value = null
+		// Карточка появляется, только когда текст ещё не вернулся сам:
+		// так бывает после перезапуска лаунчера или ухода со страницы.
+		const saved = loadDraft('messenger', next)
+		if (saved && !drafts.has(next)) draftNotice.value?.show(saved)
+		else draftNotice.value?.hide()
 		void nextTick(() => {
 			grow()
 			focus()
@@ -120,6 +132,23 @@ watch(
 	},
 	{ immediate: true },
 )
+
+// Автосохранение: черновик целехоньким останется даже при резком закрытии.
+watch(text, () => {
+	if (activeKey.value) autosaveDraft('messenger', activeKey.value, text.value)
+})
+
+/** Карточка черновика возвращает текст в поле одним нажатием. */
+function applyDraft(draft: { text: string }) {
+	if (!activeKey.value) return
+	text.value = draft.text
+	drafts.set(activeKey.value, draft.text)
+	deleteDraft('messenger', activeKey.value)
+	void nextTick(() => {
+		grow()
+		focus()
+	})
+}
 
 watch(
 	() => props.replyTo,
@@ -211,7 +240,10 @@ async function submit(): Promise<void> {
 	sending.value = false
 	if (!ok) return
 	text.value = ''
-	if (activeKey.value) drafts.delete(activeKey.value)
+	if (activeKey.value) {
+		drafts.delete(activeKey.value)
+		deleteDraft('messenger', activeKey.value)
+	}
 	clearAttachment()
 	emit('sent')
 	await nextTick()
@@ -455,6 +487,7 @@ async function finishRecording(): Promise<void> {
 onBeforeUnmount(() => {
 	if (recorder.value) stopRecording(true)
 	clearAttachment()
+	if (activeKey.value) saveDraft('messenger', activeKey.value, text.value)
 })
 
 defineExpose({ addFile, focus, insertText: (value: string) => (text.value += value) })
@@ -669,6 +702,13 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 				@own="pickOwnSticker"
 			/>
 		</FloatingMenu>
+		<DraftNotice
+			:id="activeKey"
+			ref="draftNotice"
+			kind="messenger"
+			:label="activeConversation?.title || t('app.messenger.heading', 'MC Messenger')"
+			:apply="applyDraft"
+		/>
 	</div>
 </template>
 

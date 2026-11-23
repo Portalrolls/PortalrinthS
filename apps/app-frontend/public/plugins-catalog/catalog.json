@@ -1,0 +1,69 @@
+{
+	"version": 1,
+	"updated": "2026-11-23",
+	"plugins": [
+		{
+			"id": "pr-neon",
+			"name": "Неон",
+			"version": "1.0.0",
+			"author": "Portalrinth",
+			"description": "Яркие контуры и лёгкое свечение вокруг панелей.",
+			"file": "themes/neon.css",
+			"tags": ["акцент"]
+		},
+		{
+			"id": "pr-ocean",
+			"name": "Глубина океана",
+			"version": "1.0.0",
+			"author": "Portalrinth",
+			"description": "Прохладный синий оттенок всего интерфейса.",
+			"file": "themes/ocean.css",
+			"tags": ["цвет"]
+		},
+		{
+			"id": "pr-warm",
+			"name": "Тёплый вечер",
+			"version": "1.0.0",
+			"author": "Portalrinth",
+			"description": "Мягкая сепия — приятная глазам в тёмное время суток.",
+			"file": "themes/warm.css",
+			"tags": ["цвет"]
+		},
+		{
+			"id": "pr-glass",
+			"name": "Стекло",
+			"version": "1.0.0",
+			"author": "Portalrinth",
+			"description": "Полупрозрачные панели с размытием фона.",
+			"file": "themes/glass.css",
+			"tags": ["эффект"]
+		},
+		{
+			"id": "pr-midnight",
+			"name": "Полночь",
+			"version": "1.0.0",
+			"author": "Portalrinth",
+			"description": "Интерфейс становится заметно темнее — для ночных сборок.",
+			"file": "themes/midnight.css",
+			"tags": ["тёмные"]
+		},
+		{
+			"id": "pr-rounded",
+			"name": "Пухлые углы",
+			"version": "1.0.0",
+			"author": "Portalrinth",
+			"description": "Все панели и кнопки становятся заметно круглее.",
+			"file": "themes/rounded.css",
+			"tags": ["форма"]
+		},
+		{
+			"id": "pr-retro",
+			"name": "Ретро-консоль",
+			"version": "1.0.0",
+			"author": "Portalrinth",
+			"description": "Лёгкие линии развёртки, как у старого монитора.",
+			"file": "themes/retro.css",
+			"tags": ["эффект"]
+		}
+	]
+}

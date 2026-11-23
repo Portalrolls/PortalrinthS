@@ -33,6 +33,80 @@ export interface InstalledPlugin {
 	installedAt: string
 }
 
+/** One entry of the bundled catalog: a theme ready to be installed in a click. */
+export interface CatalogEntry {
+	id: string
+	name: string
+	version?: string
+	author?: string
+	description?: string
+	/** Path of the CSS file relative to the catalog folder. */
+	file: string
+	tags?: string[]
+}
+
+interface CatalogFile {
+	version: number
+	updated?: string
+	plugins: CatalogEntry[]
+}
+
+const CATALOG_BASE = 'plugins-catalog/'
+const catalog = ref<CatalogEntry[]>([])
+const catalogLoading = ref(false)
+
+/** The catalog ships with the launcher - no network, no accounts. */
+export async function loadPluginCatalog(): Promise<CatalogEntry[]> {
+	if (catalogLoading.value) return catalog.value
+	catalogLoading.value = true
+	try {
+		const response = await fetch(`${CATALOG_BASE}catalog.json`, { cache: 'no-cache' })
+		if (!response.ok) throw new Error(String(response.status))
+		const data = (await response.json()) as CatalogFile
+		catalog.value = Array.isArray(data?.plugins)
+			? data.plugins.filter(
+					(entry) =>
+						entry &&
+						typeof entry.id === 'string' &&
+						typeof entry.name === 'string' &&
+						typeof entry.file === 'string',
+				)
+			: []
+	} catch {
+		catalog.value = []
+	}
+	catalogLoading.value = false
+	return catalog.value
+}
+
+export function catalogEntries(): CatalogEntry[] {
+	return catalog.value
+}
+
+export function catalogLoadingState() {
+	return catalogLoading
+}
+
+/** Installs a theme from the catalog: fetches its CSS and installs as a plugin. */
+export async function installCatalogPlugin(entry: CatalogEntry): Promise<void> {
+	const response = await fetch(`${CATALOG_BASE}${entry.file.replace(/^[/\\]+/, '')}`)
+	if (!response.ok) throw new Error(String(response.status))
+	const css = (await response.text()).trim()
+	if (!css) throw new Error('Файл темы пуст')
+	upsertPlugin(
+		buildPlugin(
+			{
+				id: entry.id,
+				name: entry.name,
+				version: entry.version,
+				author: entry.author,
+				description: entry.description,
+			},
+			css,
+		),
+	)
+}
+
 const PLUGINS_KEY = 'portalrinth-plugins'
 const QUICK_CSS_KEY = 'portalrinth-quick-css'
 const SAFE_MODE_KEY = 'portalrinth-plugin-safe-mode'

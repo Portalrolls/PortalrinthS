@@ -5306,5 +5306,36 @@
 	},
 	"app.settings.plugins.sizes": {
 		"message": "{size} of CSS"
+	},
+
+	"app.drafts.remove": {
+		"message": "Delete draft"
+	},
+	"app.drafts.restore": {
+		"message": "Click to put the text back"
+	},
+	"app.drafts.title": {
+		"message": "Draft"
+	},
+	"app.settings.plugins.catalog.failed": {
+		"message": "Could not install the catalog theme"
+	},
+	"app.settings.plugins.catalog.update": {
+		"message": "Update"
+	},
+	"app.settings.plugins.catalog.installed": {
+		"message": "Installed"
+	},
+	"app.settings.plugins.catalog.install": {
+		"message": "Install"
+	},
+	"app.settings.plugins.catalog.empty": {
+		"message": "The catalog is empty for now."
+	},
+	"app.settings.plugins.catalog.description": {
+		"message": "Ready-made themes — install with one click."
+	},
+	"app.settings.plugins.catalog.title": {
+		"message": "Catalog"
 	}
 }

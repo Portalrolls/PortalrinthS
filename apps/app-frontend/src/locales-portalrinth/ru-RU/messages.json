@@ -7908,5 +7908,36 @@
 	},
 	"app.settings.plugins.sizes": {
 		"message": "{size} CSS"
+	},
+
+	"app.drafts.remove": {
+		"message": "Удалить черновик"
+	},
+	"app.drafts.restore": {
+		"message": "Нажмите, чтобы вернуть текст"
+	},
+	"app.drafts.title": {
+		"message": "Черновик"
+	},
+	"app.settings.plugins.catalog.failed": {
+		"message": "Не получилось установить тему из каталога"
+	},
+	"app.settings.plugins.catalog.update": {
+		"message": "Обновить"
+	},
+	"app.settings.plugins.catalog.installed": {
+		"message": "Установлено"
+	},
+	"app.settings.plugins.catalog.install": {
+		"message": "Установить"
+	},
+	"app.settings.plugins.catalog.empty": {
+		"message": "Каталог пока пуст."
+	},
+	"app.settings.plugins.catalog.description": {
+		"message": "Готовые темы — установите одним нажатием."
+	},
+	"app.settings.plugins.catalog.title": {
+		"message": "Каталог"
 	}
 }

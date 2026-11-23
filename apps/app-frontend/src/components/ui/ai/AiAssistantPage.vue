@@ -49,6 +49,7 @@ import AiModelPicker from '@/components/ui/ai/AiModelPicker.vue'
 import AiRichText from '@/components/ui/ai/AiRichText.vue'
 import AiSteps from '@/components/ui/ai/AiSteps.vue'
 import AiTaskCard from '@/components/ui/ai/AiTaskCard.vue'
+import DraftNotice from '@/components/ui/DraftNotice.vue'
 import { injectMinecraftAccounts } from '@/features/minecraft-accounts/context'
 import {
 	agentBusy,
@@ -99,6 +100,7 @@ import {
 } from '@/helpers/ai-sandbox'
 import { getInstanceIconUrl, list as listInstances } from '@/helpers/instance'
 import { labySkinPreview, labySkinTexture } from '@/helpers/laby-skins'
+import { autosaveDraft, deleteDraft, loadDraft } from '@/helpers/portalrinth-drafts'
 import { proxiedFetch } from '@/helpers/proxy-fetch'
 import { skinRenderUrl } from '@/helpers/skin-render-service'
 import { add_and_equip_custom_skin, flush_pending_skin_change } from '@/helpers/skins'
@@ -273,6 +275,12 @@ const modelsOpen = ref(false)
 const scrollBox = ref<HTMLElement | null>(null)
 const attachments = ref<AttachedFile[]>([])
 const questionDraft = ref('')
+
+/** Недописанный вопрос живёт черновиком: ушёл со страницы — текст вернётся карточкой. */
+const draftNotice = ref<InstanceType<typeof DraftNotice> | null>(null)
+watch(input, () => {
+	autosaveDraft('ai', 'assistant', input.value)
+})
 const galleryOpen = ref<Record<string, boolean>>({})
 const collapsedCards = ref<Record<string, boolean>>({})
 const jarInstalled = ref<Record<string, boolean>>({})
@@ -634,6 +642,7 @@ async function send(text?: string) {
 	errorText.value = ''
 	errorOnTurn.value = ''
 	input.value = ''
+	deleteDraft('ai', 'assistant')
 	clearPings()
 	const files = attachments.value
 	attachments.value = []
@@ -1347,7 +1356,14 @@ function answerQuestion(answer: string) {
 	const trimmed = answer.trim()
 	if (!trimmed) return
 	questionDraft.value = ''
+	deleteDraft('ai', 'assistant')
 	void send(trimmed)
+}
+
+/** Черновик возвращается в поле вопроса одним нажатием на карточку. */
+function applyDraft(draft: { text: string }) {
+	input.value = draft.text
+	void nextTick(() => inputEl.value?.focus())
 }
 
 function toggleModels() {
@@ -1389,6 +1405,8 @@ function instanceIcon(iconPath: string | undefined): string | null {
 
 onMounted(async () => {
 	scrollToBottom()
+	const saved = loadDraft('ai', 'assistant')
+	if (saved) draftNotice.value?.show(saved)
 	// The chat itself lives in localStorage; the sessions folder is the
 	// long-term memory. If the local copy is gone, the last session restores.
 	if (aiHistory.value.length === 0) {
@@ -2392,6 +2410,13 @@ defineExpose({ send })
 				</Button>
 			</div>
 		</div>
+		<DraftNotice
+			id="assistant"
+			ref="draftNotice"
+			kind="ai"
+			:label="formatMessage(messages.heading)"
+			:apply="applyDraft"
+		/>
 	</div>
 </template>
 

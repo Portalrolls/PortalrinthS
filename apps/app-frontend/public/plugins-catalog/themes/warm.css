@@ -1,0 +1,11 @@
+/* Тёплый вечер — мягкая сепия, глаза скажут спасибо. */
+body {
+	filter: sepia(0.24) saturate(0.95) brightness(0.99);
+}
+
+img,
+video,
+svg,
+iframe {
+	filter: sepia(0) contrast(1.02);
+}

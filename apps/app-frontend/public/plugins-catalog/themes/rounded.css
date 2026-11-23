@@ -1,0 +1,19 @@
+/* Пухлые углы — все панели становятся заметно круглее. */
+button,
+input,
+textarea,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.theme-plaque,
+.nf-card,
+.msgr-chat,
+[class*='rounded-'] {
+	border-radius: 1.25rem !important;
+}
+
+img[class*='rounded'],
+.avatar,
+.theme-icon {
+	border-radius: 1rem !important;
+}

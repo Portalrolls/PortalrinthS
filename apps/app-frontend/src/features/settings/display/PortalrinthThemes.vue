@@ -10,6 +10,10 @@
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
+				<Button type="outlined" :disabled="busy" @click="openSave">
+					<SaveIcon aria-hidden="true" />
+					{{ formatMessage(messages.save) }}
+				</Button>
 				<IconButton
 					v-tooltip="formatMessage(messages.exportTip)"
 					type="quiet"
@@ -28,10 +32,6 @@
 				>
 					<DownloadIcon aria-hidden="true" />
 				</IconButton>
-				<Button type="outlined" :disabled="busy" @click="openSave">
-					<SaveIcon aria-hidden="true" />
-					{{ formatMessage(messages.save) }}
-				</Button>
 			</div>
 		</div>
 

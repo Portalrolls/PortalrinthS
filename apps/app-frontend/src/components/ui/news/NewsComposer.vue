@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ArrowUpIcon, ImageIcon, XIcon } from '@modrinth/assets'
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
+import DraftNotice from '@/components/ui/DraftNotice.vue'
+import { autosaveDraft, deleteDraft, loadDraft } from '@/helpers/portalrinth-drafts'
 import { compressImageFile, serviceRequest } from '@/helpers/uprojects-service'
 
 import { type AvatarSource, type FeedPost, type FeedUser, useNewsText, userAvatar } from './feed'
@@ -43,6 +45,32 @@ const canPublish = computed(
 		!attaching.value &&
 		(Boolean(text.value.trim()) || images.value.length > 0),
 )
+
+const draftNotice = ref<InstanceType<typeof DraftNotice> | null>(null)
+
+/** Недописанный пост живёт черновиком: ушёл со страницы — текст вернётся карточкой. */
+watch(
+	[text, images],
+	() => {
+		autosaveDraft('news', 'composer', text.value, [...images.value])
+	},
+	{ deep: true },
+)
+
+onMounted(() => {
+	const saved = loadDraft('news', 'composer')
+	if (saved) draftNotice.value?.show(saved)
+})
+
+function applyDraft(draft: { text: string; images?: string[] }) {
+	text.value = draft.text
+	images.value = draft.images ? [...draft.images] : []
+	notice.value = ''
+	void nextTick(() => {
+		resize()
+		input.value?.focus()
+	})
+}
 
 function resize() {
 	const el = input.value
@@ -87,6 +115,12 @@ function onPickerAdd(urls: string[]) {
 	for (const url of urls.slice(0, Math.max(0, room))) images.value.push(url)
 }
 
+/** Повторный клик по скриншоту в панели снимает его из поста. */
+function onPickerRemove(url: string) {
+	const index = images.value.indexOf(url)
+	if (index >= 0) removeImage(index)
+}
+
 /** Ctrl+V прямо в поле поста: картинки из буфера прикрепляются. */
 function onPaste(event: ClipboardEvent) {
 	const items = event.clipboardData?.items
@@ -129,6 +163,7 @@ async function publish() {
 	images.value = []
 	focused.value = false
 	mentions.value = []
+	deleteDraft('news', 'composer')
 	await nextTick()
 	resize()
 	input.value?.blur()
@@ -278,6 +313,14 @@ defineExpose({ focus })
 			:max-images="MAX_IMAGES"
 			@close="pickerOpen = false"
 			@add="onPickerAdd"
+			@remove="onPickerRemove"
+		/>
+		<DraftNotice
+			id="composer"
+			ref="draftNotice"
+			kind="news"
+			:label="t('app.news.heading', 'Новости')"
+			:apply="applyDraft"
 		/>
 		<TransitionGroup
 			v-if="images.length || attaching"

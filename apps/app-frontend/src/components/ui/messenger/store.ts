@@ -724,20 +724,25 @@ export async function sendMessage(payload: {
 	if (payload.replyToId) body.replyToId = payload.replyToId
 	let xferId = ''
 	let xferPeer = ''
+	// peer бывает пустым в списке бесед — тогда берём единственного
+	// собеседника из состава: без него большой файл не улетит по P2P.
+	const dmPeerId = conv.dm
+		? (conv.peer?.id ?? conv.members.find((member) => member.id !== myId.value)?.id ?? '')
+		: ''
 	if (payload.attachment) {
 		const att = payload.attachment
 		const big = att.size > XFER_THRESHOLD
-		if (big && conv.dm && conv.peer) {
+		if (big && conv.dm && dmPeerId) {
 			// Сервер получает только обёртку с «сплющенным» размером, байты
 			// поедут между клиентами по сигнальному каналу сразу после accept
 			// сообщения. Маркер в body связывает вложение с передачей.
 			const reg = registerOutgoing(att.dataBase64, att.name, att.mime, att.size)
 			xferId = reg.id
-			xferPeer = conv.peer.id
+			xferPeer = dmPeerId
 			body.attachment = { name: att.name, mime: att.mime, size: reg.displaySize }
 			body.body = `${payload.body}\n[[xfer:${reg.id}]]`
 		} else {
-			if (big) {
+			if (big && !conv.dm) {
 				showToast(
 					t('app.messenger.xfer.dmOnly', 'Файлы больше 10 МБ пока летят только в личных чатах'),
 				)
@@ -752,10 +757,33 @@ export async function sendMessage(payload: {
 	const key = threadKey(conv.id, conv.dm ? '' : channel)
 	const draft = optimisticMessage(conv.id, channel, payload)
 	if (draft) upsert(key, draft)
-	const response = await serviceRequest(`/conversations/${enc(conv.id)}/messages`, {
+	let response = await serviceRequest(`/conversations/${enc(conv.id)}/messages`, {
 		method: 'POST',
 		body,
 	})
+	// Инлайн-вложение упёрлось в лимит сервера, а файл большой и есть
+	// собеседник — переотправляем обёрткой: байты поедут по P2P мимо
+	// сервера, который такие файлы не принимает.
+	if (
+		!response.ok &&
+		payload.attachment &&
+		conv.dm &&
+		dmPeerId &&
+		!xferId &&
+		payload.attachment.size > XFER_THRESHOLD
+	) {
+		const att = payload.attachment
+		const reg = registerOutgoing(att.dataBase64, att.name, att.mime, att.size)
+		xferId = reg.id
+		xferPeer = dmPeerId
+		const retry: LooseRecord = { ...body }
+		retry.attachment = { name: att.name, mime: att.mime, size: reg.displaySize }
+		retry.body = `${payload.body}\n[[xfer:${reg.id}]]`
+		response = await serviceRequest(`/conversations/${enc(conv.id)}/messages`, {
+			method: 'POST',
+			body: retry,
+		})
+	}
 	if (draft) patchEverywhere(draft.id, () => null)
 	if (!response.ok) {
 		fail(response)

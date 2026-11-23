@@ -1,0 +1,10 @@
+/* Полночь — интерфейс становится заметно темнее. */
+body {
+	filter: brightness(0.82) contrast(1.06);
+}
+
+img,
+video,
+iframe {
+	filter: brightness(1.12);
+}

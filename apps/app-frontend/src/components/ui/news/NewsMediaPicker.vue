@@ -23,6 +23,7 @@ const props = defineProps<{
 const emit = defineEmits<{
 	close: []
 	add: [urls: string[]]
+	remove: [url: string]
 }>()
 
 const { t } = useNewsText()
@@ -31,7 +32,8 @@ const shots = ref<InstanceScreenshot[]>([])
 const loading = ref(false)
 const busy = ref(false)
 const notice = ref('')
-const added = ref(new Set<string>())
+/** Путь скриншота → адрес картинки в посте: по второму клику снимаем. */
+const added = ref(new Map<string, string>())
 const dragDepth = ref(0)
 const fileInput = ref<HTMLInputElement | null>(null)
 
@@ -113,15 +115,33 @@ function onDrop(event: DragEvent) {
 	if (files.length) void handleFiles(files)
 }
 
+/** Повторный клик по применённому скриншоту убирает его из поста. */
+function removeShot(shot: InstanceScreenshot) {
+	const url = added.value.get(shot.path)
+	if (!url) return
+	added.value.delete(shot.path)
+	emit('remove', url)
+}
+
 async function addShot(shot: InstanceScreenshot) {
-	if (atMax.value || busy.value) return
+	if (busy.value) return
+	if (added.value.has(shot.path)) {
+		removeShot(shot)
+		return
+	}
+	if (atMax.value) {
+		notice.value = t('app.news.imagesLimit', 'Можно прикрепить не больше {n} фото', {
+			n: props.maxImages,
+		})
+		return
+	}
 	busy.value = true
 	notice.value = ''
 	try {
 		const bytes = await readFile(shot.path)
 		const file = new File([bytes], nameOf(shot.path), { type: 'image/png' })
 		const url = await compressImageFile(file)
-		added.value.add(shot.path)
+		added.value.set(shot.path, url)
 		emit('add', [url])
 	} catch {
 		notice.value = t('app.news.imageBroken', 'Не получилось прочитать «{name}»', {
@@ -135,7 +155,6 @@ watch(
 	() => props.open,
 	(open) => {
 		if (open) {
-			added.value = new Set()
 			notice.value = ''
 			dragDepth.value = 0
 			void reload()
@@ -224,7 +243,7 @@ onBeforeUnmount(() => {
 								type="button"
 								class="nf-picker__tile"
 								:class="{ 'is-added': added.has(shot.path) }"
-								:disabled="atMax || busy"
+								:disabled="busy"
 								:title="shot.instance_name"
 								@click="addShot(shot)"
 							>

@@ -200,12 +200,12 @@ async fn record_current_app_version(pool: &Pool<Sqlite>) -> crate::Result<()> {
 
     sqlx::query!(
         "
-                INSERT INTO app_metadata (key, value, updated_at)
-                VALUES ('app_version', ?, unixepoch())
-                ON CONFLICT(key) DO UPDATE SET
-                        value = excluded.value,
-                        updated_at = excluded.updated_at
-                ",
+		INSERT INTO app_metadata (key, value, updated_at)
+		VALUES ('app_version', ?, unixepoch())
+		ON CONFLICT(key) DO UPDATE SET
+			value = excluded.value,
+			updated_at = excluded.updated_at
+		",
         env!("CARGO_PKG_VERSION"),
     )
     .execute(pool)
@@ -221,18 +221,18 @@ async fn stale_data_cleanup(pool: &Pool<Sqlite>) -> crate::Result<()> {
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
     let has_skin_tables = sqlx::query!(
-                "SELECT COUNT(*) AS \"count!: i64\" FROM sqlite_master WHERE type = 'table' AND name IN ('custom_minecraft_skins', 'minecraft_users')",
-        )
-        .fetch_one(&mut *tx)
-        .await?
-        .count == 2;
+		"SELECT COUNT(*) AS \"count!: i64\" FROM sqlite_master WHERE type = 'table' AND name IN ('custom_minecraft_skins', 'minecraft_users')",
+	)
+	.fetch_one(&mut *tx)
+	.await?
+	.count == 2;
 
     if has_skin_tables {
         sqlx::query!(
-                        "DELETE FROM custom_minecraft_skins WHERE minecraft_user_uuid NOT IN (SELECT uuid FROM minecraft_users)"
-                )
-                .execute(&mut *tx)
-                .await?;
+			"DELETE FROM custom_minecraft_skins WHERE minecraft_user_uuid NOT IN (SELECT uuid FROM minecraft_users)"
+		)
+		.execute(&mut *tx)
+		.await?;
     }
 
     tx.commit().await?;

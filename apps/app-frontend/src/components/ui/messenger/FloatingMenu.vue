@@ -179,7 +179,7 @@ defineExpose({ place })
 	padding: 0.4rem;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 10px;
-	background: #111214;
+	background: var(--msgr-inset);
 	box-shadow:
 		0 12px 36px rgba(0, 0, 0, 0.55),
 		0 0 0 1px rgba(0, 0, 0, 0.3);

@@ -538,7 +538,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 	padding: 0.45rem 0.7rem;
 	border: 0;
 	border-radius: 6px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.8rem;
@@ -636,7 +636,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 	padding: 0.25rem 0.7rem;
 	border: 0;
 	border-radius: 6px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.8rem;
@@ -645,7 +645,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 }
 
 .msgr-worlds__retry:hover {
-	background: #35373c;
+	background: var(--msgr-btn3);
 }
 
 .msgr-worlds__build {
@@ -709,7 +709,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 	padding: 0.45rem 0.9rem;
 	border: 0;
 	border-radius: 6px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.82rem;
@@ -718,7 +718,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 }
 
 .msgr-worlds__cancel:hover {
-	background: #35373c;
+	background: var(--msgr-btn3);
 }
 
 @media (prefers-reduced-motion: reduce) {

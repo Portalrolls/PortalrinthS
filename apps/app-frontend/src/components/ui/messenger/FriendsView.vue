@@ -288,7 +288,7 @@ async function block(peer: Peer): Promise<void> {
 								:name="peer.username"
 								:size="36"
 								status
-								ring="#1a1b1e"
+								ring="var(--msgr-ring)"
 							/>
 							<span>
 								<b>{{ peer.username }}</b>
@@ -333,7 +333,12 @@ async function block(peer: Peer): Promise<void> {
 					<SearchIcon />
 				</label>
 				<h4 class="msgr-friends__section">{{ sectionTitle }}</h4>
-				<TransitionGroup name="msgr-list" tag="div" class="msgr-friends__list">
+				<TransitionGroup
+					name="msgr-list"
+					tag="div"
+					class="msgr-friends__list"
+					:class="{ 'is-empty': !rows.length }"
+				>
 					<div
 						v-for="row in rows"
 						:key="`${row.kind}${row.peer.id}`"
@@ -352,7 +357,7 @@ async function block(peer: Peer): Promise<void> {
 								:name="row.peer.username"
 								:size="36"
 								status
-								ring="#1a1b1e"
+								ring="var(--msgr-ring)"
 							/>
 							<span>
 								<b>{{ displayName(row.peer.id, row.peer.username) }}</b>
@@ -632,7 +637,7 @@ async function block(peer: Peer): Promise<void> {
 	padding: 0.4rem 0.4rem 0.4rem 0.9rem;
 	border: 1px solid rgba(0, 0, 0, 0.4);
 	border-radius: 10px;
-	background: #111214;
+	background: var(--msgr-inset);
 	transition: border-color 0.15s ease;
 }
 
@@ -674,7 +679,7 @@ async function block(peer: Peer): Promise<void> {
 	gap: 0.4rem;
 	padding: 0.4rem 0.6rem;
 	border-radius: 6px;
-	background: #111214;
+	background: var(--msgr-inset);
 }
 
 .msgr-friends__filter input {
@@ -708,6 +713,12 @@ async function block(peer: Peer): Promise<void> {
 	overflow-y: auto;
 	margin: 0 -0.6rem;
 	padding: 0.4rem 0.6rem 1rem;
+}
+
+/* Пустой список не тянет высоту — блок «Добавить в друзья» встаёт по центру. */
+.msgr-friends__list.is-empty {
+	flex: 0 0 auto;
+	overflow: hidden;
 }
 
 .msgr-friends__row {
@@ -772,7 +783,7 @@ async function block(peer: Peer): Promise<void> {
 	place-items: center;
 	border: 0;
 	border-radius: 50%;
-	background: #1e1f23;
+	background: var(--msgr-btn2);
 	color: var(--color-secondary);
 	cursor: pointer;
 	transition:
@@ -782,7 +793,7 @@ async function block(peer: Peer): Promise<void> {
 
 .msgr-friends__actions button:hover {
 	color: var(--color-contrast);
-	background: #111214;
+	background: var(--msgr-inset);
 }
 
 .msgr-friends__actions button.is-ok:hover {
@@ -813,10 +824,12 @@ async function block(peer: Peer): Promise<void> {
 
 .msgr-friends__empty {
 	display: flex;
+	flex: 1;
 	flex-direction: column;
 	align-items: center;
+	justify-content: center;
 	gap: 0.6rem;
-	padding: 3rem 1rem;
+	padding: 1.5rem 1rem;
 	color: var(--color-secondary);
 	text-align: center;
 }
@@ -855,7 +868,7 @@ async function block(peer: Peer): Promise<void> {
 	gap: 0.4rem;
 	border: 1px solid rgba(255, 255, 255, 0.05);
 	border-radius: 10px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	padding: 0.35rem 0.4rem;
 	animation: msgr-recent-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 	transition: background 0.15s ease;

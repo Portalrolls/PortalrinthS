@@ -277,7 +277,7 @@ async function save(): Promise<void> {
 										:name="me.username"
 										:size="72"
 										status
-										ring="#111214"
+										ring="var(--msgr-inset)"
 									/>
 								</div>
 								<div class="ped__card-body">
@@ -338,7 +338,7 @@ async function save(): Promise<void> {
 	overflow: hidden;
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	border-radius: 18px;
-	background: #18191c;
+	background: var(--msgr-peer);
 	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
 }
 
@@ -610,13 +610,13 @@ async function save(): Promise<void> {
 	top: 0;
 	overflow: hidden;
 	border-radius: 14px;
-	background: #111214;
+	background: var(--msgr-inset);
 	box-shadow: 0 0 0 1px color-mix(in srgb, var(--ped-accent) 40%, transparent);
 }
 
 .ped__banner {
 	height: 100px;
-	background: linear-gradient(135deg, #2b2d31, #1d1e22);
+	background: linear-gradient(135deg, var(--msgr-btn), var(--msgr-btn2));
 	background-position: center;
 	background-size: cover;
 	transition: background 0.25s ease;
@@ -626,7 +626,7 @@ async function save(): Promise<void> {
 	width: fit-content;
 	margin: -38px 0 0 14px;
 	border-radius: 50%;
-	box-shadow: 0 0 0 5px #111214;
+	box-shadow: 0 0 0 5px var(--msgr-inset);
 }
 
 .ped__card-body {

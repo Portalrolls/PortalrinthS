@@ -24,8 +24,8 @@ import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import MessageAttachment from './MessageAttachment.vue'
 import MessageText from './MessageText.vue'
-import ProfileCard from './ProfileCard.vue'
 import { formatDate, formatTime, type Msg } from './model'
+import ProfileCard from './ProfileCard.vue'
 import { isOnlyEmoji } from './rich-text'
 import { isPlayerSticker, saveStickerFromUrl, stickerById, stickerIdOf } from './stickers'
 import StickerView from './StickerView.vue'
@@ -433,7 +433,7 @@ function mention(name: string, el: HTMLElement): void {
 					<img :src="playerSticker.url" alt="" draggable="false" />
 				</button>
 				<div v-else-if="userCard || groupCard" class="msgr-msg__card">
-					<ProfileCard :kind="userCard ? 'user' : 'group'" :id="(userCard || groupCard)!" />
+					<ProfileCard :id="(userCard || groupCard)!" :kind="userCard ? 'user' : 'group'" />
 				</div>
 				<div v-else-if="forwarded" class="msgr-msg__forward">
 					<span class="msgr-msg__forward-head">
@@ -986,7 +986,7 @@ function mention(name: string, el: HTMLElement): void {
 	padding: 2px;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 8px;
-	background: #1e1f23;
+	background: var(--msgr-btn2);
 	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 	opacity: 0;
 	pointer-events: none;

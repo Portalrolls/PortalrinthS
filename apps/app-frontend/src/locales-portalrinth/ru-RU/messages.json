@@ -6772,6 +6772,9 @@
 	"app.messenger.peer.account": {
 		"message": "Аккаунт"
 	},
+	"app.messenger.peer.accent": {
+		"message": "Цвет профиля"
+	},
 	"app.messenger.peer.friend": {
 		"message": "Друг"
 	},
@@ -7191,6 +7194,30 @@
 	},
 	"app.news.attachImages": {
 		"message": "Прикрепить фото (до {n})"
+	},
+	"app.news.pickImages": {
+		"message": "Выбрать изображения"
+	},
+	"app.news.pickClose": {
+		"message": "Закрыть"
+	},
+	"app.news.pickAdd": {
+		"message": "Добавить файлы"
+	},
+	"app.news.pickHint": {
+		"message": "Перетащи картинки сюда, нажми «+» или вставь из буфера (Ctrl+V)"
+	},
+	"app.news.pickDropNow": {
+		"message": "Отпускай!"
+	},
+	"app.news.pickMax": {
+		"message": "Больше {n} картинок нельзя"
+	},
+	"app.news.pickScreenshots": {
+		"message": "Скриншоты"
+	},
+	"app.news.pickEmpty": {
+		"message": "Скриншотов пока нет — сделай их в игре или перетащи файлы сюда."
 	},
 	"app.news.bookmarkAdd": {
 		"message": "В закладки"

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import '@/components/ui/news/news-theme.css'
+
 import {
 	BookmarkIcon,
 	CalendarIcon,
@@ -1124,7 +1126,7 @@ watch(locale, () => {
 	padding: 6px;
 	border: 1px solid rgba(255, 255, 255, 0.05);
 	border-radius: 18px;
-	background: rgba(20, 20, 24, 0.55);
+	background: var(--nf-pop2);
 	backdrop-filter: blur(18px) saturate(1.2);
 }
 
@@ -1140,7 +1142,7 @@ watch(locale, () => {
 	grid-template-columns: repeat(var(--nf-tabs), 1fr);
 	padding: 4px;
 	border-radius: 12px;
-	background: rgba(30, 30, 35, 0.85);
+	background: var(--nf-pop);
 }
 
 .nf-tabs__ink {
@@ -1150,7 +1152,7 @@ watch(locale, () => {
 	left: 4px;
 	width: calc((100% - 8px) / var(--nf-tabs));
 	border-radius: 9px;
-	background: #34343b;
+	background: var(--nf-btn2);
 	box-shadow: inset 0 -2px 0 var(--color-brand);
 	transform: translateX(calc(var(--nf-tab) * 100%));
 	transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1202,7 +1204,7 @@ watch(locale, () => {
 	padding: 0 10px;
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	border-radius: 11px;
-	background: rgba(30, 30, 35, 0.85);
+	background: var(--nf-pop);
 	transition: border-color 0.18s ease;
 }
 
@@ -1262,7 +1264,7 @@ watch(locale, () => {
 	height: 36px;
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	border-radius: 11px;
-	background: rgba(30, 30, 35, 0.85);
+	background: var(--nf-pop);
 	color: rgba(255, 255, 255, 0.65);
 	cursor: pointer;
 	transition:
@@ -1271,7 +1273,7 @@ watch(locale, () => {
 }
 
 .nf-icon-btn:hover {
-	background: #2b2b31;
+	background: var(--nf-btn);
 	color: #fff;
 }
 
@@ -1316,7 +1318,7 @@ watch(locale, () => {
 	padding: 0 12px;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 999px;
-	background: rgba(30, 30, 35, 0.85);
+	background: var(--nf-pop);
 	color: rgba(255, 255, 255, 0.65);
 	font: inherit;
 	font-size: 12.5px;
@@ -1344,7 +1346,7 @@ watch(locale, () => {
 	padding: 10px;
 	border: 1px solid rgba(255, 255, 255, 0.07);
 	border-radius: 14px;
-	background: #1d1d21;
+	background: var(--nf-card);
 	color: inherit;
 	font: inherit;
 	text-align: left;
@@ -1373,7 +1375,7 @@ watch(locale, () => {
 	height: 120px;
 	overflow: hidden;
 	border-radius: 10px;
-	background: #141417;
+	background: var(--nf-inset);
 	color: rgba(255, 255, 255, 0.25);
 }
 
@@ -1442,7 +1444,7 @@ watch(locale, () => {
 	padding: 36px 24px;
 	border: 1px solid rgba(255, 255, 255, 0.07);
 	border-radius: 14px;
-	background: #1d1d21;
+	background: var(--nf-card);
 	text-align: center;
 }
 
@@ -1495,7 +1497,7 @@ watch(locale, () => {
 	gap: 10px;
 	padding: 40px 20px;
 	border-radius: 14px;
-	background: rgba(29, 29, 33, 0.7);
+	background: var(--nf-pop4);
 	color: rgba(255, 255, 255, 0.5);
 	text-align: center;
 }
@@ -1519,7 +1521,7 @@ watch(locale, () => {
 	padding: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.05);
 	border-radius: 14px;
-	background: #1d1d21;
+	background: var(--nf-card);
 }
 
 .nf-skeleton__head {
@@ -1578,7 +1580,7 @@ watch(locale, () => {
 	padding: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	border-radius: 14px;
-	background: rgba(24, 24, 28, 0.6);
+	background: var(--nf-pop3);
 	backdrop-filter: blur(18px) saturate(1.2);
 	animation: nf-card-in 0.4s ease both;
 }

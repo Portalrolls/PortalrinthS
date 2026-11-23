@@ -5,11 +5,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useMessengerT } from './i18n'
 import {
 	displayName,
+	joinGroupServer,
+	openServer,
 	requestFriend,
 	showToast,
 	state,
-	joinGroupServer,
-	openServer,
 	userOf,
 } from './store'
 import { openProfile } from './ui-bus'

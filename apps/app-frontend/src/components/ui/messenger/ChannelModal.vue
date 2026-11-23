@@ -3,10 +3,10 @@ import { HashIcon } from '@modrinth/assets'
 import { NewModal } from '@modrinth/ui'
 import { computed, ref } from 'vue'
 
+import { CHANNEL_ICON_PRESETS, channelIcon, setChannelIcon } from './channel-icons'
 import HeadphonesIcon from './HeadphonesIcon.vue'
 import { useMessengerT } from './i18n'
 import type { Channel } from './model'
-import { CHANNEL_ICON_PRESETS, channelIcon, setChannelIcon } from './channel-icons'
 import { deleteChannel, saveChannel, state } from './store'
 import { askConfirm } from './ui-bus'
 

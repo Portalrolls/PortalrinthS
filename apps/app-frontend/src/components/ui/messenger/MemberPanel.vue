@@ -149,10 +149,18 @@ function statusText(id: string): string {
 					class="msgr-members__peer-avatar"
 					@click="openProfile(peer.id, peer.username)"
 				>
-					<UserAvatar :user-id="peer.id" :name="peer.username" :size="80" status ring="#18191c" />
+					<UserAvatar
+						:user-id="peer.id"
+						:name="peer.username"
+						:size="80"
+						status
+						ring="var(--msgr-peer)"
+					/>
 				</button>
 				<div class="msgr-members__peer-body">
-					<h3>{{ displayName(peer.id, peer.username) }}</h3>
+					<h3 :style="peerCard?.accent ? { color: peerCard.accent } : undefined">
+						{{ displayName(peer.id, peer.username) }}
+					</h3>
 					<span class="msgr-members__peer-handle">{{ peer.username }}</span>
 					<span
 						class="msgr-members__peer-status"
@@ -169,6 +177,13 @@ function statusText(id: string): string {
 						<p class="msgr-members__peer-bio">{{ peerCard.bio }}</p>
 					</div>
 					<div class="msgr-members__peer-card">
+						<div v-if="peerCard?.accent || peerCard?.bannerColor" class="msgr-members__peer-row">
+							<span>{{ t('app.messenger.peer.accent', 'Цвет профиля') }}</span>
+							<b class="msgr-members__peer-swatch">
+								<span :style="{ background: peerCard.accent || peerCard.bannerColor }" />
+								{{ peerCard.accent || peerCard.bannerColor }}
+							</b>
+						</div>
 						<div class="msgr-members__peer-row">
 							<span>{{ t('app.messenger.peer.account', 'Аккаунт') }}</span>
 							<b>{{ peer.provider === 'ely' ? 'Ely.by' : peer.bot ? 'Bot' : 'Microsoft' }}</b>
@@ -233,7 +248,7 @@ function statusText(id: string): string {
 							:name="row.member.username"
 							:size="32"
 							status
-							ring="#18191c"
+							ring="var(--msgr-peer)"
 						/>
 						<span class="msgr-members__item-body">
 							<span
@@ -263,7 +278,7 @@ function statusText(id: string): string {
 	flex-shrink: 0;
 	flex-direction: column;
 	border-left: 1px solid rgba(0, 0, 0, 0.3);
-	background: rgba(18, 19, 22, 0.6);
+	background: var(--msgr-glass);
 	backdrop-filter: blur(16px);
 }
 
@@ -364,7 +379,7 @@ function statusText(id: string): string {
 	min-height: 0;
 	flex: 1;
 	overflow-y: auto;
-	background: #18191c;
+	background: var(--msgr-peer);
 }
 
 .msgr-members__banner {
@@ -383,7 +398,7 @@ function statusText(id: string): string {
 	padding: 6px;
 	border: 0;
 	border-radius: 50%;
-	background: #18191c;
+	background: var(--msgr-peer);
 	cursor: pointer;
 	transition: transform 0.15s ease;
 }
@@ -438,7 +453,7 @@ function statusText(id: string): string {
 	margin-top: 0.8rem;
 	padding: 0.7rem;
 	border-radius: 8px;
-	background: #111214;
+	background: var(--msgr-inset);
 }
 
 .msgr-members__peer-row {
@@ -455,6 +470,20 @@ function statusText(id: string): string {
 
 .msgr-members__peer-row b {
 	color: var(--color-contrast);
+}
+
+.msgr-members__peer-swatch {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.msgr-members__peer-swatch span {
+	width: 0.9rem;
+	height: 0.9rem;
+	flex-shrink: 0;
+	border-radius: 4px;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
 
 .msgr-members__peer-label {
@@ -492,7 +521,7 @@ function statusText(id: string): string {
 	overflow: hidden;
 	place-items: center;
 	border-radius: 8px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	font-size: 0.7rem;
 	font-weight: 700;
 }
@@ -509,7 +538,7 @@ function statusText(id: string): string {
 	padding: 0.6rem;
 	border: 0;
 	border-radius: 8px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.85rem;

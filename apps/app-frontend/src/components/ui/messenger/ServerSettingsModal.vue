@@ -813,7 +813,7 @@ defineExpose({ show })
 	gap: 0.5rem;
 	padding: 0.6rem 0.8rem;
 	border-radius: 8px;
-	background: #111214;
+	background: var(--msgr-inset);
 	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
 }
 
@@ -951,7 +951,7 @@ defineExpose({ show })
 	gap: 0.4rem 0.9rem;
 	padding: 0.5rem 0.6rem;
 	border-radius: 8px;
-	background: #111214;
+	background: var(--msgr-inset);
 }
 
 .msgr-settings__role-pick label {

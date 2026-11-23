@@ -494,7 +494,7 @@ onUnmounted(() => {
 	padding: 0.65rem 1rem;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 10px;
-	background: #111214;
+	background: var(--msgr-inset);
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 	color: #f2f3f5;
 	font-size: 0.88rem;
@@ -532,7 +532,7 @@ onUnmounted(() => {
 	padding: 0.75rem 0.8rem;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 14px;
-	background: #16171b;
+	background: var(--msgr-surface);
 	box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
 	color: #dbdee1;
 	cursor: pointer;
@@ -594,7 +594,7 @@ onUnmounted(() => {
 	max-height: 12rem;
 	margin-top: 0.3rem;
 	border-radius: 8px;
-	background: #0e0f12;
+	background: var(--msgr-inset2);
 	object-fit: contain;
 }
 
@@ -625,7 +625,7 @@ onUnmounted(() => {
 	padding: 0.3rem 0.55rem;
 	border: 1px solid rgba(255, 255, 255, 0.12);
 	border-radius: 8px;
-	background: #0e0f12;
+	background: var(--msgr-inset2);
 	color: #f2f3f5;
 	font: inherit;
 	font-size: 0.82rem;

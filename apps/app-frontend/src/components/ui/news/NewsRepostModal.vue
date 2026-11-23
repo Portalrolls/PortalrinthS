@@ -243,7 +243,7 @@ defineExpose({ show })
 	grid-template-columns: 1fr 1fr;
 	padding: 3px;
 	border-radius: 11px;
-	background: #141417;
+	background: var(--nf-inset);
 }
 
 .nf-rp__tabs button {
@@ -280,7 +280,7 @@ defineExpose({ show })
 	left: 3px;
 	width: calc(50% - 3px);
 	border-radius: 9px;
-	background: #2a2a31;
+	background: var(--nf-btn);
 	transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -296,7 +296,7 @@ defineExpose({ show })
 	padding: 8px 10px;
 	border-left: 3px solid var(--color-brand);
 	border-radius: 8px;
-	background: #17171a;
+	background: var(--nf-sk1);
 	font-size: 13px;
 }
 
@@ -325,7 +325,7 @@ defineExpose({ show })
 	border-radius: 10px;
 	outline: none;
 	resize: vertical;
-	background: #141417;
+	background: var(--nf-inset);
 	color: var(--color-contrast, #fff);
 	font: inherit;
 	font-size: 14px;
@@ -342,7 +342,7 @@ defineExpose({ show })
 	padding: 0 10px;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 10px;
-	background: #141417;
+	background: var(--nf-inset);
 }
 
 .nf-rp__search svg {

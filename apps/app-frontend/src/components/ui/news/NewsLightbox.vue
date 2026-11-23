@@ -136,7 +136,7 @@ onBeforeUnmount(() => {
 	padding: 0;
 	border: 0;
 	border-radius: 50%;
-	background: #1e1e22;
+	background: var(--nf-lb);
 	color: #fff;
 	cursor: pointer;
 	transition:
@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
 
 .nf-lb__btn:hover,
 .nf-lb__nav:hover {
-	background: #2c2c32;
+	background: var(--nf-lb2);
 	transform: scale(1.06);
 }
 

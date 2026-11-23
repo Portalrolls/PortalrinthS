@@ -94,7 +94,7 @@ async function logout(): Promise<void> {
 <template>
 	<div v-if="me" class="msgr-user">
 		<button type="button" class="msgr-user__who" :class="{ 'is-open': menu }" @click.stop="open">
-			<UserAvatar :user-id="me.id" :name="me.username" :size="34" status ring="#111214" />
+			<UserAvatar :user-id="me.id" :name="me.username" :size="34" status ring="var(--msgr-inset)" />
 			<span class="msgr-user__text">
 				<b>{{ me.username }}</b>
 				<small>{{ currentLabel }}</small>
@@ -111,7 +111,7 @@ async function logout(): Promise<void> {
 
 		<FloatingMenu :anchor="menu" placement="top-start" :width="270" @close="menu = null">
 			<div class="msgr-user__card">
-				<UserAvatar :user-id="me.id" :name="me.username" :size="48" status ring="#111214" />
+				<UserAvatar :user-id="me.id" :name="me.username" :size="48" status ring="var(--msgr-inset)" />
 				<div>
 					<b>{{ me.username }}</b>
 					<small>{{ me.provider === 'ely' ? 'Ely.by' : 'Microsoft' }}</small>
@@ -158,7 +158,7 @@ async function logout(): Promise<void> {
 	align-items: center;
 	gap: 0.25rem;
 	padding: 0.45rem 0.5rem;
-	background: rgba(10, 10, 13, 0.72);
+	background: var(--msgr-glass2);
 }
 
 .msgr-user__who {

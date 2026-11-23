@@ -393,7 +393,7 @@ defineExpose({ show, hide })
 	display: block;
 	height: 10px;
 	border-radius: 6px;
-	background: linear-gradient(90deg, #26262b 0%, #303036 50%, #26262b 100%);
+	background: linear-gradient(90deg, var(--nf-shimmer1) 0%, var(--nf-shimmer2) 50%, var(--nf-shimmer1) 100%);
 	background-size: 200% 100%;
 	animation: nf-shimmer 1.2s linear infinite;
 }
@@ -464,7 +464,7 @@ defineExpose({ show, hide })
 	padding: 6px 6px 6px 12px;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 12px;
-	background: #141417;
+	background: var(--nf-inset);
 	transition: border-color 0.18s ease;
 }
 

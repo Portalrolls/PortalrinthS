@@ -16,8 +16,8 @@ import {
 } from '@modrinth/assets'
 import { computed, ref } from 'vue'
 
-import FloatingMenu from './FloatingMenu.vue'
 import { channelIcon } from './channel-icons'
+import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import MicOffIcon from './MicOffIcon.vue'
 import type { Category, Channel, Conversation } from './model'

@@ -956,7 +956,7 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 	max-width: 100%;
 	padding: 0.4rem 2.4rem 0.4rem 0.4rem;
 	border-radius: 8px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	animation: msgr-pop-in 0.18s ease-out;
 }
 
@@ -1060,7 +1060,7 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 	padding: 0.4rem;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 10px;
-	background: #111214;
+	background: var(--msgr-inset);
 	box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.45);
 }
 

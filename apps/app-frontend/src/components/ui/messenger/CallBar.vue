@@ -628,7 +628,7 @@ async function invite(id: string, username: string): Promise<void> {
 
 .msgr-callbar__person.is-speaking {
 	box-shadow:
-		0 0 0 2px #111214,
+		0 0 0 2px var(--msgr-inset),
 		0 0 0 4px #23a55a;
 }
 
@@ -645,7 +645,7 @@ async function invite(id: string, username: string): Promise<void> {
 	height: 0.85rem;
 	padding: 1px;
 	border-radius: 50%;
-	background: #111214;
+	background: var(--msgr-inset);
 	color: #f23f43;
 }
 
@@ -858,7 +858,7 @@ async function invite(id: string, username: string): Promise<void> {
 	gap: 0.7rem;
 	padding: 1.4rem 1rem 1.1rem;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-	background: #0e0f12;
+	background: var(--msgr-inset2);
 }
 
 .msgr-stage__people {
@@ -903,7 +903,7 @@ div.msgr-stage__person {
 
 .msgr-stage__person.is-speaking .msgr-stage__avatar {
 	box-shadow:
-		0 0 0 3px #0e0f12,
+		0 0 0 3px var(--msgr-inset2),
 		0 0 0 6px #23a55a;
 }
 
@@ -920,7 +920,7 @@ div.msgr-stage__person {
 	height: 1.3rem;
 	padding: 3px;
 	border-radius: 50%;
-	background: #0e0f12;
+	background: var(--msgr-inset2);
 	color: #f23f43;
 }
 
@@ -1000,7 +1000,7 @@ div.msgr-stage__person {
 	padding: 2rem 1.5rem 1.5rem;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 18px;
-	background: #111214;
+	background: var(--msgr-inset);
 	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
 	color: var(--color-secondary);
 	text-align: center;

@@ -373,7 +373,7 @@ onBeforeUnmount(() => observer?.disconnect())
 	padding: 12px;
 	border: 1px solid rgba(255, 255, 255, 0.07);
 	border-radius: 14px;
-	background: #1d1d21;
+	background: var(--nf-card);
 	box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22);
 	cursor: pointer;
 	animation: nf-card-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -476,7 +476,7 @@ onBeforeUnmount(() => observer?.disconnect())
 	padding: 0 10px;
 	border: 0;
 	border-radius: 7px;
-	background: #2b2b31;
+	background: var(--nf-btn);
 	color: var(--color-contrast, #fff);
 	font: inherit;
 	font-size: 12px;
@@ -488,7 +488,7 @@ onBeforeUnmount(() => observer?.disconnect())
 }
 
 .nf-follow:hover {
-	background: #36363d;
+	background: var(--nf-btn2);
 }
 
 .nf-follow.is-on {
@@ -536,12 +536,12 @@ onBeforeUnmount(() => observer?.disconnect())
 	padding: 10px;
 	border-radius: 10px;
 	border-left: 3px solid var(--color-brand);
-	background: #17171a;
+	background: var(--nf-sk1);
 	transition: background-color 0.18s ease;
 }
 
 .nf-quote:hover {
-	background: #1a1a1e;
+	background: var(--nf-sk2);
 }
 
 .nf-quote__head {

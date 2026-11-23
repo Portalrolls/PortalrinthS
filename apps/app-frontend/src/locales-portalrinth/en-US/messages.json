@@ -4242,6 +4242,9 @@
 	"app.messenger.peer.account": {
 		"message": "Account"
 	},
+	"app.messenger.peer.accent": {
+		"message": "Profile color"
+	},
 	"app.messenger.peer.friend": {
 		"message": "Friend"
 	},
@@ -4661,6 +4664,30 @@
 	},
 	"app.news.attachImages": {
 		"message": "Attach photos (up to {n})"
+	},
+	"app.news.pickImages": {
+		"message": "Pick images"
+	},
+	"app.news.pickClose": {
+		"message": "Close"
+	},
+	"app.news.pickAdd": {
+		"message": "Add files"
+	},
+	"app.news.pickHint": {
+		"message": "Drop images here, press “+” or paste from clipboard (Ctrl+V)"
+	},
+	"app.news.pickDropNow": {
+		"message": "Drop them!"
+	},
+	"app.news.pickMax": {
+		"message": "{n} images max"
+	},
+	"app.news.pickScreenshots": {
+		"message": "Screenshots"
+	},
+	"app.news.pickEmpty": {
+		"message": "No screenshots yet — take some in-game or drop files here."
 	},
 	"app.news.bookmarkAdd": {
 		"message": "Bookmark"

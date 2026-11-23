@@ -185,7 +185,7 @@ function act(fn: () => void): void {
 	padding: 0.75rem 0;
 	overflow-y: auto;
 	scrollbar-width: none;
-	background: rgba(8, 8, 11, 0.55);
+	background: var(--msgr-rail);
 	backdrop-filter: blur(18px);
 }
 
@@ -214,7 +214,7 @@ function act(fn: () => void): void {
 	place-items: center;
 	overflow: hidden;
 	border-radius: 50%;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	font-size: 0.95rem;
 	font-weight: 700;
@@ -252,7 +252,7 @@ function act(fn: () => void): void {
 }
 
 .msgr-rail__add .msgr-rail__icon {
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: #23a55a;
 }
 

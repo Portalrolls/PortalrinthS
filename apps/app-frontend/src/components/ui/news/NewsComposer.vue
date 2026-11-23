@@ -6,6 +6,7 @@ import { compressImageFile, serviceRequest } from '@/helpers/uprojects-service'
 
 import { type AvatarSource, type FeedPost, type FeedUser, useNewsText, userAvatar } from './feed'
 import NewsAvatar from './NewsAvatar.vue'
+import NewsMediaPicker from './NewsMediaPicker.vue'
 
 const MAX_IMAGES = 6
 
@@ -29,7 +30,7 @@ const publishing = ref(false)
 const attaching = ref(false)
 const notice = ref('')
 const input = ref<HTMLTextAreaElement | null>(null)
-const files = ref<HTMLInputElement | null>(null)
+const pickerOpen = ref(false)
 const mentions = ref<FeedUser[]>([])
 const mentionIndex = ref(0)
 let mentionTimer: ReturnType<typeof setTimeout> | undefined
@@ -50,10 +51,8 @@ function resize() {
 	el.style.height = `${Math.min(el.scrollHeight, 260)}px`
 }
 
-async function attach(event: Event) {
-	const target = event.target as HTMLInputElement
-	const list = Array.from(target.files || [])
-	target.value = ''
+/** Файлы из диалога, перетаскивания или буфера обмена. */
+async function attachFiles(list: File[]) {
 	const room = MAX_IMAGES - images.value.length
 	if (list.length > room) {
 		notice.value = t('app.news.imagesLimit', 'Можно прикрепить не больше {n} фото', {
@@ -73,6 +72,35 @@ async function attach(event: Event) {
 		}
 	}
 	attaching.value = false
+}
+
+/** Готовые (уже сжатые) картинки из панели выбора. */
+function onPickerAdd(urls: string[]) {
+	const room = MAX_IMAGES - images.value.length
+	if (urls.length > room) {
+		notice.value = t('app.news.imagesLimit', 'Можно прикрепить не больше {n} фото', {
+			n: MAX_IMAGES,
+		})
+	} else {
+		notice.value = ''
+	}
+	for (const url of urls.slice(0, Math.max(0, room))) images.value.push(url)
+}
+
+/** Ctrl+V прямо в поле поста: картинки из буфера прикрепляются. */
+function onPaste(event: ClipboardEvent) {
+	const items = event.clipboardData?.items
+	if (!items) return
+	const files: File[] = []
+	for (const item of items) {
+		if (item.kind === 'file' && item.type.startsWith('image/')) {
+			const file = item.getAsFile()
+			if (file) files.push(file)
+		}
+	}
+	if (!files.length) return
+	event.preventDefault()
+	void attachFiles(files)
 }
 
 function removeImage(index: number) {
@@ -204,6 +232,7 @@ defineExpose({ focus })
 					@input="onInput"
 					@click="onInput"
 					@keydown="onKey"
+					@paste="onPaste"
 				/>
 				<Transition name="nf-pop">
 					<div v-if="mentions.length" class="nf-composer__mentions" role="listbox">
@@ -228,7 +257,7 @@ defineExpose({ focus })
 				:disabled="images.length >= MAX_IMAGES || attaching"
 				:title="t('app.news.attachImages', 'Прикрепить фото (до {n})', { n: MAX_IMAGES })"
 				:aria-label="t('app.news.attachImages', 'Прикрепить фото (до {n})', { n: MAX_IMAGES })"
-				@click="files?.click()"
+				@click="pickerOpen = true"
 			>
 				<ImageIcon />
 			</button>
@@ -242,8 +271,14 @@ defineExpose({ focus })
 			>
 				<ArrowUpIcon />
 			</button>
-			<input ref="files" type="file" accept="image/*" multiple hidden @change="attach" />
 		</div>
+		<NewsMediaPicker
+			:open="pickerOpen"
+			:count="images.length"
+			:max-images="MAX_IMAGES"
+			@close="pickerOpen = false"
+			@add="onPickerAdd"
+		/>
 		<TransitionGroup
 			v-if="images.length || attaching"
 			tag="div"
@@ -278,7 +313,7 @@ defineExpose({ focus })
 	padding: 10px 12px;
 	border: 1px solid rgba(255, 255, 255, 0.07);
 	border-radius: 14px;
-	background: #1d1d21;
+	background: var(--nf-card);
 	transition:
 		border-color 0.2s ease,
 		box-shadow 0.2s ease;
@@ -341,7 +376,7 @@ defineExpose({ focus })
 	padding: 4px;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 11px;
-	background: #232328;
+	background: var(--nf-pop-solid);
 	box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
 }
 
@@ -427,7 +462,7 @@ defineExpose({ focus })
 	height: 76px;
 	overflow: hidden;
 	border-radius: 10px;
-	background: #141417;
+	background: var(--nf-inset);
 }
 
 .nf-composer__thumb img {
@@ -458,7 +493,12 @@ defineExpose({ focus })
 }
 
 .nf-composer__thumb.is-loading {
-	background: linear-gradient(90deg, #26262b 0%, #303036 50%, #26262b 100%);
+	background: linear-gradient(
+		90deg,
+		var(--nf-shimmer1) 0%,
+		var(--nf-shimmer2) 50%,
+		var(--nf-shimmer1) 100%
+	);
 	background-size: 200% 100%;
 	animation: nf-shimmer 1.2s linear infinite;
 }

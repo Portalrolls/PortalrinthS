@@ -459,7 +459,7 @@ function onDrop(event: DragEvent): void {
 		<header class="msgr-chat__head">
 			<template v-if="conv.dm && peer">
 				<button type="button" class="msgr-chat__who" @click="openProfile(peer.id, peer.username)">
-					<UserAvatar :user-id="peer.id" :name="peer.username" :size="26" status ring="#1a1b1e" />
+					<UserAvatar :user-id="peer.id" :name="peer.username" :size="26" status ring="var(--msgr-ring)" />
 					<b>{{ title }}</b>
 				</button>
 				<span class="msgr-chat__status">{{ statusLabel }}</span>
@@ -564,7 +564,7 @@ function onDrop(event: DragEvent): void {
 										:name="peer.username"
 										:size="88"
 										status
-										ring="#1a1b1e"
+										ring="var(--msgr-ring)"
 									/>
 								</button>
 								<div class="msgr-chat__intro-text">
@@ -919,7 +919,7 @@ function onDrop(event: DragEvent): void {
 	padding: 0 0.45rem;
 	margin-left: 0.35rem;
 	border-radius: 6px;
-	background: #111214;
+	background: var(--msgr-inset);
 	transition: width 0.2s ease;
 }
 
@@ -1084,7 +1084,7 @@ function onDrop(event: DragEvent): void {
 	gap: 0.4rem;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 9px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	cursor: pointer;
 	font: inherit;
@@ -1111,7 +1111,7 @@ function onDrop(event: DragEvent): void {
 }
 
 .msgr-chat__intro-actions button:hover:not(:disabled) {
-	background: #35373c;
+	background: var(--msgr-btn3);
 	transform: translateY(-1px);
 }
 
@@ -1417,7 +1417,7 @@ function onDrop(event: DragEvent): void {
 	margin-bottom: 0.4rem;
 	border: 1px solid rgba(255, 255, 255, 0.05);
 	border-radius: 8px;
-	background: #1e1f23;
+	background: var(--msgr-btn2);
 	color: var(--color-base);
 	font: inherit;
 	font-size: 0.85rem;
@@ -1602,7 +1602,7 @@ function onDrop(event: DragEvent): void {
 	padding: 0.4rem 0.7rem;
 	border: 0;
 	border-radius: 6px;
-	background: #2b2d31;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.8rem;

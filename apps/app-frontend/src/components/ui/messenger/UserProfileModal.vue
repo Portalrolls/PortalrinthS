@@ -726,7 +726,7 @@ function edit(): void {
 }
 
 .upm__window {
-	--upm-bg: #18191c;
+	--upm-bg: var(--msgr-peer);
 	--upm-accent: var(--color-brand);
 	position: relative;
 	display: flex;
@@ -785,7 +785,7 @@ function edit(): void {
 			color-mix(in srgb, var(--color-brand) 55%, transparent),
 			transparent 60%
 		),
-		linear-gradient(135deg, #26282e, #1d1e22);
+		linear-gradient(135deg, #26282e, var(--msgr-btn2));
 }
 
 .upm__body {

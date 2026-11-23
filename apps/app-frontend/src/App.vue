@@ -20,6 +20,7 @@ import {
 	NewspaperIcon,
 	OrganizationIcon,
 	PlayIcon,
+	PlugIcon,
 	PlusIcon,
 	RadioTowerIcon,
 	RefreshCwIcon,
@@ -105,6 +106,7 @@ import UpdateToPlayModal from '@/components/ui/modal/UpdateToPlayModal.vue'
 import PackManifestModal from '@/components/ui/modpack/PackManifestModal.vue'
 import NavButton from '@/components/ui/NavButton.vue'
 import NotesLaunchPopup from '@/components/ui/NotesLaunchPopup.vue'
+import PluginHost from '@/components/ui/portalrinth-widgets/PluginHost.vue'
 import ViewportScrollbar from '@/components/ui/portalrinth-widgets/ViewportScrollbar.vue'
 import PortalrinthBackdrop from '@/components/ui/PortalrinthBackdrop.vue'
 import PortalrinthCrashModal from '@/components/ui/PortalrinthCrashModal.vue'
@@ -172,7 +174,13 @@ import {
 import { loadBackground } from '@/helpers/portalrinth-background'
 import { startDesignWatcher } from '@/helpers/portalrinth-design'
 import { handleHotkeyKeyEvent, registerHotkeyHandler } from '@/helpers/portalrinth-hotkeys'
-import { applyPlugins, isPluginSafeMode, setPluginSafeMode } from '@/helpers/portalrinth-plugins'
+import {
+	applyPlugins,
+	isPluginSafeMode,
+	pluginPages,
+	setPluginNotifyHook,
+	setPluginSafeMode,
+} from '@/helpers/portalrinth-plugins'
 import { prefetchRouteChunks, startProjectHoverPrefetch } from '@/helpers/portalrinth-prefetch'
 import { installSoundEffects } from '@/helpers/portalrinth-sfx'
 import { markSidebarMoving } from '@/helpers/portalrinth-sidebar-motion'
@@ -413,6 +421,7 @@ const hostingIntercom = useHostingIntercom({
 const notificationManager = new AppNotificationManager()
 provideNotificationManager(notificationManager)
 const { handleError, addNotification } = notificationManager
+setPluginNotifyHook((opts) => notificationManager.addNotification(opts))
 
 useAppEvent(
 	'warning',
@@ -2863,6 +2872,7 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 			@hide="resolvePackManifestChoice(null)"
 			@confirm="resolvePackManifestChoice"
 		/>
+		<PluginHost />
 		<div
 			data-pd-zone="sidebar"
 			class="app-grid-navbar bg-bg-raised flex flex-col p-[0.5rem] pt-0 gap-[0.25rem] w-[--left-bar-width]"
@@ -2950,6 +2960,16 @@ provideAppUpdateDownloadProgress(appUpdateDownload)
 				<RadioTowerIcon v-else />
 			</NavButton>
 			<ContextMenu ref="lanMenu" :label="formatMessage(messages.lan)" />
+			<NavButton
+				v-for="entry in pluginPages"
+				:key="`${entry.pluginId}/${entry.pageId}`"
+				v-tooltip.right="entry.tooltip || entry.title"
+				:to="`/plugin/${entry.pluginId}/${entry.pageId}`"
+				:is-primary="(r) => r.path === `/plugin/${entry.pluginId}/${entry.pageId}`"
+				:is-subpage="(r) => r.path === `/plugin/${entry.pluginId}/${entry.pageId}`"
+			>
+				<PlugIcon />
+			</NavButton>
 			<suspense>
 				<QuickInstanceSwitcher>
 					<NavButton

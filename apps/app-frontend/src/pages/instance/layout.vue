@@ -97,8 +97,8 @@ import {
 	ImageIcon,
 	PlayIcon,
 	PlusIcon,
-	StopCircleIcon,
 	StickyNotePlusIcon,
+	StopCircleIcon,
 	TerminalSquareIcon,
 	UserPlusIcon,
 } from '@modrinth/assets'
@@ -158,6 +158,7 @@ import {
 	propagateModUpdates,
 	restoreCleanLaunch,
 } from '@/helpers/portalrinth-mods'
+import { emitPluginEvent } from '@/helpers/portalrinth-plugins'
 import { kill as killProcess } from '@/helpers/process'
 import { useSharedInstanceErrors } from '@/helpers/shared-instance-errors'
 import type { GameInstance } from '@/helpers/types'
@@ -615,6 +616,7 @@ const handleCleanLaunch = async () => {
 	try {
 		await cleanLaunch(currentInstance.id)
 		await processesQuery.refetch()
+		emitPluginEvent('instance:launch', { instanceId: currentInstance.id, clean: true })
 	} catch (err) {
 		handleSevereError(err, { instanceId: currentInstance.id })
 	}
@@ -637,6 +639,7 @@ const launchInstance = async (context: string) => {
 	loading.value = false
 
 	if (!instance.value) return
+	emitPluginEvent('instance:launch', { instanceId: currentInstance.id })
 	trackEvent('InstanceStart', {
 		loader: instance.value.loader,
 		game_version: instance.value.game_version,

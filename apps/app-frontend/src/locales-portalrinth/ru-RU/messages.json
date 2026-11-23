@@ -7864,26 +7864,95 @@
 	"app.settings.tabs.plugins": {
 		"message": "Плагины"
 	},
-	"app.settings.plugins.title": {
-		"message": "Плагины"
+	"app.plugins.page.disabled": {
+		"message": "Плагин выключен, либо включён Безопасный режим (Ctrl+Shift+Alt+P) — включите плагин в Настройках."
 	},
-	"app.settings.plugins.description": {
-		"message": "Темы и стили поверх интерфейса: плагин — это CSS, который лаунчер применяет поверх текущей темы. Код не исполняется, поэтому сломанная тема может разве что выглядеть странно, но не сломать лаунчер."
+	"app.plugins.page.not-found": {
+		"message": "Плагин или вкладка не найдены."
 	},
-	"app.settings.plugins.install": {
+	"app.plugins.page.title": {
+		"message": "Вкладка плагина"
+	},
+	"app.settings.plugins.actions.title": {
+		"message": "Действия"
+	},
+	"app.settings.plugins.by-label": {
+		"message": "автор"
+	},
+	"app.settings.plugins.catalog.confirm-accept": {
+		"message": "Всё равно установить"
+	},
+	"app.settings.plugins.catalog.confirm-text": {
+		"message": "Перед установкой посмотрите, что плагин просит:"
+	},
+	"app.settings.plugins.catalog.confirm-title": {
+		"message": "Разрешения плагина"
+	},
+	"app.settings.plugins.catalog.description": {
+		"message": "Плагины сообщества: темы, расширения и источники контента."
+	},
+	"app.settings.plugins.catalog.downloading": {
+		"message": "Скачиваю…"
+	},
+	"app.settings.plugins.catalog.empty": {
+		"message": "Каталог пуст."
+	},
+	"app.settings.plugins.catalog.failed": {
+		"message": "Не получилось установить плагин из каталога"
+	},
+	"app.settings.plugins.catalog.install": {
 		"message": "Установить"
 	},
-	"app.settings.plugins.install-hint": {
-		"message": "Поддерживается .zip с manifest.json и CSS-файлами, отдельный .css файл или папка с манифестом. Повторная установка плагина с тем же id обновляет его."
+	"app.settings.plugins.catalog.installed": {
+		"message": "Установлено"
 	},
-	"app.settings.plugins.empty": {
-		"message": "Пока не установлено ни одного плагина."
+	"app.settings.plugins.catalog.load-failed": {
+		"message": "Каталог не загрузился — проверьте соединение."
+	},
+	"app.settings.plugins.catalog.refresh": {
+		"message": "Обновить"
+	},
+	"app.settings.plugins.catalog.title": {
+		"message": "Каталог Noctrinth"
+	},
+	"app.settings.plugins.catalog.update": {
+		"message": "Обновить"
 	},
 	"app.settings.plugins.delete": {
 		"message": "Удалить"
 	},
-	"app.settings.plugins.quick-css.title": {
-		"message": "Быстрый CSS"
+	"app.settings.plugins.description": {
+		"message": "Темы, расширения и свои вкладки по формату Noctrinth: плагин может перекрасить лаунчер, добавить вкладку в боковую панель или подключить свой источник контента. Если что-то сломалось — Безопасный режим всё отключает."
+	},
+	"app.settings.plugins.empty": {
+		"message": "Пока не установлено ни одного плагина."
+	},
+	"app.settings.plugins.error-prefix": {
+		"message": "Не получилось установить:"
+	},
+	"app.settings.plugins.install": {
+		"message": "Установить из файла"
+	},
+	"app.settings.plugins.install-hint": {
+		"message": ".zip с plugin.json (или старым manifest.json) или отдельный .css файл."
+	},
+	"app.settings.plugins.pages.hint": {
+		"message": "Вкладки этого плагина — в боковой панели слева."
+	},
+	"app.settings.plugins.pages.title": {
+		"message": "Вкладки"
+	},
+	"app.settings.plugins.permissions.domains": {
+		"message": "Сеть: {domains}"
+	},
+	"app.settings.plugins.permissions.events": {
+		"message": "События: {events}"
+	},
+	"app.settings.plugins.permissions.instances": {
+		"message": "Инстансы: {levels}"
+	},
+	"app.settings.plugins.permissions.ui": {
+		"message": "Интерфейс: {features}"
 	},
 	"app.settings.plugins.quick-css.description": {
 		"message": "Свой стиль без упаковки: пишите CSS прямо здесь — он применяется на лету и лежит поверх всех плагинов."
@@ -7891,25 +7960,39 @@
 	"app.settings.plugins.quick-css.placeholder": {
 		"message": "Например:\nbody '{'\n\tfilter: hue-rotate(30deg);\n'}'"
 	},
+	"app.settings.plugins.quick-css.title": {
+		"message": "Быстрый CSS"
+	},
+	"app.settings.plugins.safe-mode.description": {
+		"message": "Отключает плагины, вкладки и Быстрый CSS до перезапуска лаунчера. Ctrl+Shift+Alt+P."
+	},
 	"app.settings.plugins.safe-mode.title": {
 		"message": "Безопасный режим"
 	},
-	"app.settings.plugins.safe-mode.description": {
-		"message": "Полностью отключает все плагины и быстрый CSS до перезапуска лаунчера. Тот же переключатель — по Ctrl+Shift+Alt+P в любой момент."
+	"app.settings.plugins.settings.empty": {
+		"message": "Своих настроек у плагина нет."
 	},
-	"app.settings.plugins.error-prefix": {
-		"message": "Не получилось установить:"
-	},
-	"app.settings.plugins.version-label": {
-		"message": "версия"
-	},
-	"app.settings.plugins.by-label": {
-		"message": "автор"
+	"app.settings.plugins.settings.title": {
+		"message": "Настройки плагина"
 	},
 	"app.settings.plugins.sizes": {
 		"message": "{size} CSS"
 	},
-
+	"app.settings.plugins.title": {
+		"message": "Плагины"
+	},
+	"app.settings.plugins.type.content-source": {
+		"message": "Источник контента"
+	},
+	"app.settings.plugins.type.extension": {
+		"message": "Расширение"
+	},
+	"app.settings.plugins.type.theme": {
+		"message": "Тема"
+	},
+	"app.settings.plugins.version-label": {
+		"message": "версия"
+	},
 	"app.drafts.remove": {
 		"message": "Удалить черновик"
 	},
@@ -7918,26 +8001,5 @@
 	},
 	"app.drafts.title": {
 		"message": "Черновик"
-	},
-	"app.settings.plugins.catalog.failed": {
-		"message": "Не получилось установить тему из каталога"
-	},
-	"app.settings.plugins.catalog.update": {
-		"message": "Обновить"
-	},
-	"app.settings.plugins.catalog.installed": {
-		"message": "Установлено"
-	},
-	"app.settings.plugins.catalog.install": {
-		"message": "Установить"
-	},
-	"app.settings.plugins.catalog.empty": {
-		"message": "Каталог пока пуст."
-	},
-	"app.settings.plugins.catalog.description": {
-		"message": "Готовые темы — установите одним нажатием."
-	},
-	"app.settings.plugins.catalog.title": {
-		"message": "Каталог"
 	}
 }

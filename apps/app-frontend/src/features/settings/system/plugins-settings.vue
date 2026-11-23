@@ -59,7 +59,9 @@ const messages = defineMessages({
 	},
 	quickCssPlaceholder: {
 		id: 'app.settings.plugins.quick-css.placeholder',
-		defaultMessage: 'Например:\nbody {\n\tfilter: hue-rotate(30deg);\n}',
+		// Фигурные скобки экранированы по правилам ICU ('{' и '}'), иначе
+		// парсер сообщений считает их аргументами и падает с MALFORMED_ARGUMENT.
+		defaultMessage: "Например:\nbody '{'\n\tfilter: hue-rotate(30deg);\n'}'",
 	},
 	safeModeTitle: {
 		id: 'app.settings.plugins.safe-mode.title',

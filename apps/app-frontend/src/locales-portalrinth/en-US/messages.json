@@ -5248,7 +5248,7 @@
 		"message": "Your own style without any packaging: write CSS right here - it applies live and sits on top of every plugin."
 	},
 	"app.settings.plugins.quick-css.placeholder": {
-		"message": "For example:\nbody {\n\tfilter: hue-rotate(30deg);\n}"
+		"message": "For example:\nbody '{'\n\tfilter: hue-rotate(30deg);\n'}'"
 	},
 	"app.settings.plugins.safe-mode.title": {
 		"message": "Safe mode"

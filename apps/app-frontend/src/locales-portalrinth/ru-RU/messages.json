@@ -7850,7 +7850,7 @@
 		"message": "Свой стиль без упаковки: пишите CSS прямо здесь — он применяется на лету и лежит поверх всех плагинов."
 	},
 	"app.settings.plugins.quick-css.placeholder": {
-		"message": "Например:\nbody {\n\tfilter: hue-rotate(30deg);\n}"
+		"message": "Например:\nbody '{'\n\tfilter: hue-rotate(30deg);\n'}'"
 	},
 	"app.settings.plugins.safe-mode.title": {
 		"message": "Безопасный режим"

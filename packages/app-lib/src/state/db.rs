@@ -282,10 +282,17 @@ mod tests {
         .execute(&pool)
         .await
         .expect("migration table should exist");
+        // A version this binary has never resolved: whatever the other edition
+        // shipped, it is not part of this build's migration set. A version the
+        // build DOES resolve would fail on a checksum comparison instead, which
+        // is a different (and real) mistake.
+        let foreign_version =
+            MIGRATOR.iter().map(|migration| migration.version).max().unwrap_or(0) + 1;
         sqlx::query(
             "INSERT INTO _sqlx_migrations (version, description, success, checksum, \
-             execution_time) VALUES (20261122120000, 'doh-fallback', true, x'00', 0)",
+             execution_time) VALUES (?, 'another-edition', true, x'00', 0)",
         )
+        .bind(foreign_version)
         .execute(&pool)
         .await
         .expect("foreign migration should be recorded");

@@ -5219,5 +5219,53 @@
 	},
 	"app.settings.resource-management.doh.toggle": {
 		"message": "On a failed connection, look the address up via Quad9/Cloudflare/Google"
+	},
+	"app.settings.tabs.plugins": {
+		"message": "Plugins"
+	},
+	"app.settings.plugins.title": {
+		"message": "Plugins"
+	},
+	"app.settings.plugins.description": {
+		"message": "Themes and styles layered over the interface: a plugin is CSS the launcher applies on top of the current theme. No code is executed, so a broken theme can at worst look odd - it cannot break the launcher."
+	},
+	"app.settings.plugins.install": {
+		"message": "Install"
+	},
+	"app.settings.plugins.install-hint": {
+		"message": "A .zip with a manifest.json and CSS files, a single .css file or a folder with a manifest is supported. Re-installing a plugin with the same id updates it."
+	},
+	"app.settings.plugins.empty": {
+		"message": "No plugins installed yet."
+	},
+	"app.settings.plugins.delete": {
+		"message": "Delete"
+	},
+	"app.settings.plugins.quick-css.title": {
+		"message": "Quick CSS"
+	},
+	"app.settings.plugins.quick-css.description": {
+		"message": "Your own style without any packaging: write CSS right here - it applies live and sits on top of every plugin."
+	},
+	"app.settings.plugins.quick-css.placeholder": {
+		"message": "For example:\nbody {\n\tfilter: hue-rotate(30deg);\n}"
+	},
+	"app.settings.plugins.safe-mode.title": {
+		"message": "Safe mode"
+	},
+	"app.settings.plugins.safe-mode.description": {
+		"message": "Turns every plugin and Quick CSS off until the launcher restarts. The same switch lives on Ctrl+Shift+Alt+P at any moment."
+	},
+	"app.settings.plugins.error-prefix": {
+		"message": "Could not install:"
+	},
+	"app.settings.plugins.version-label": {
+		"message": "version"
+	},
+	"app.settings.plugins.by-label": {
+		"message": "by"
+	},
+	"app.settings.plugins.sizes": {
+		"message": "{size} of CSS"
 	}
 }

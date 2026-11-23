@@ -5,7 +5,7 @@ use sqlx::sqlite::{
     SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions,
 };
 use sqlx::{Pool, Sqlite};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 use std::time::Duration;
 
@@ -77,12 +77,63 @@ async fn run_migrations(pool: &Pool<Sqlite>) -> crate::Result<()> {
         )));
     }
 
-    MIGRATOR.run(pool).await.inspect_err(|err| {
+    // Editions share one app.db: the admin build ships migrations the regular
+    // build does not, so a database that just moved between them carries
+    // versions this binary has never heard of. sqlx would refuse to start with
+    // "previously applied but is missing in the resolved migrations"; instead
+    // the other edition's features are simply not here while its tables and
+    // data stay put — installing that edition again picks up where it left off.
+    let migrator = tolerant_migrator();
+    if let Err(err) = report_edition_migrations(pool, &migrator).await {
+        tracing::warn!(
+            "Could not inspect applied migrations before migrating: {err}"
+        );
+    }
+
+    migrator.run(pool).await.inspect_err(|err| {
         tracing::error!(
             "Failed to apply migrations to the state database: {err}. A copy of \
              the database from before this launch is kept next to it."
         );
     })?;
+
+    Ok(())
+}
+
+/// The same embedded migration set, but a database carrying versions from
+/// another edition starts instead of refusing to.
+fn tolerant_migrator() -> Migrator {
+    Migrator {
+        migrations: MIGRATOR.migrations.clone(),
+        ignore_missing: true,
+        locking: MIGRATOR.locking,
+        no_tx: MIGRATOR.no_tx,
+    }
+}
+
+/// Logs the versions another edition applied that this build does not know.
+async fn report_edition_migrations(
+    pool: &Pool<Sqlite>,
+    migrator: &Migrator,
+) -> crate::Result<()> {
+    let applied: Vec<i64> =
+        sqlx::query_scalar::<_, i64>("SELECT version FROM _sqlx_migrations")
+            .fetch_all(pool)
+            .await?;
+    let known: HashSet<i64> = migrator.iter().map(|m| m.version).collect();
+    let foreign: Vec<String> = applied
+        .into_iter()
+        .filter(|version| !known.contains(version))
+        .map(|version| version.to_string())
+        .collect();
+    if !foreign.is_empty() {
+        tracing::warn!(
+            "The state database carries migrations from another edition ({}). Their \
+             features are not part of this build and stay off, but the data is kept \
+             and comes back when the other edition is installed again.",
+            foreign.join(", ")
+        );
+    }
 
     Ok(())
 }
@@ -149,12 +200,12 @@ async fn record_current_app_version(pool: &Pool<Sqlite>) -> crate::Result<()> {
 
     sqlx::query!(
         "
-		INSERT INTO app_metadata (key, value, updated_at)
-		VALUES ('app_version', ?, unixepoch())
-		ON CONFLICT(key) DO UPDATE SET
-			value = excluded.value,
-			updated_at = excluded.updated_at
-		",
+                INSERT INTO app_metadata (key, value, updated_at)
+                VALUES ('app_version', ?, unixepoch())
+                ON CONFLICT(key) DO UPDATE SET
+                        value = excluded.value,
+                        updated_at = excluded.updated_at
+                ",
         env!("CARGO_PKG_VERSION"),
     )
     .execute(pool)
@@ -170,18 +221,18 @@ async fn stale_data_cleanup(pool: &Pool<Sqlite>) -> crate::Result<()> {
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
     let has_skin_tables = sqlx::query!(
-		"SELECT COUNT(*) AS \"count!: i64\" FROM sqlite_master WHERE type = 'table' AND name IN ('custom_minecraft_skins', 'minecraft_users')",
-	)
-	.fetch_one(&mut *tx)
-	.await?
-	.count == 2;
+                "SELECT COUNT(*) AS \"count!: i64\" FROM sqlite_master WHERE type = 'table' AND name IN ('custom_minecraft_skins', 'minecraft_users')",
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .count == 2;
 
     if has_skin_tables {
         sqlx::query!(
-			"DELETE FROM custom_minecraft_skins WHERE minecraft_user_uuid NOT IN (SELECT uuid FROM minecraft_users)"
-		)
-		.execute(&mut *tx)
-		.await?;
+                        "DELETE FROM custom_minecraft_skins WHERE minecraft_user_uuid NOT IN (SELECT uuid FROM minecraft_users)"
+                )
+                .execute(&mut *tx)
+                .await?;
     }
 
     tx.commit().await?;
@@ -211,6 +262,38 @@ mod tests {
         let mut sorted = versions.clone();
         sorted.sort_unstable();
         assert_eq!(versions, sorted);
+    }
+
+    /// A database migrated by another edition carries versions this binary has
+    /// never seen. Startup must not refuse — the other edition's features are
+    /// simply absent while its tables and data stay put.
+    #[tokio::test]
+    async fn foreign_edition_migrations_do_not_stop_startup() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("in-memory database should open");
+        sqlx::query(
+            "CREATE TABLE _sqlx_migrations (version BIGINT PRIMARY KEY, description TEXT, \
+             installed_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP, success BOOLEAN, \
+             checksum BLOB, execution_time BIGINT)",
+        )
+        .execute(&pool)
+        .await
+        .expect("migration table should exist");
+        sqlx::query(
+            "INSERT INTO _sqlx_migrations (version, description, success, checksum, \
+             execution_time) VALUES (20261122120000, 'doh-fallback', true, x'00', 0)",
+        )
+        .execute(&pool)
+        .await
+        .expect("foreign migration should be recorded");
+
+        tolerant_migrator()
+            .run(&pool)
+            .await
+            .expect("migrations should apply next to a foreign edition's entry");
     }
 
     /// Every migration has to apply on top of the ones before it. Two files

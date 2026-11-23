@@ -12,6 +12,7 @@ import {
 	LightBulbIcon,
 	NewspaperIcon,
 	PaintbrushIcon,
+	PlugIcon,
 	RefreshCwIcon,
 	SearchIcon,
 	Settings2Icon,
@@ -59,6 +60,7 @@ import ChangesSettings from '@/features/settings/system/ChangesSettings.vue'
 import ConnectionsSettings from '@/features/settings/system/connections-settings.vue'
 import CurseforgeSettings from '@/features/settings/system/CurseforgeSettings.vue'
 import HotkeysSettings from '@/features/settings/system/hotkeys-settings.vue'
+import PluginsSettings from '@/features/settings/system/plugins-settings.vue'
 import ResourceManagementSettings from '@/features/settings/system/resource-management-settings/index.vue'
 import TroubleshootingSettings from '@/features/settings/system/troubleshooting-settings.vue'
 import { appSettingsKeys, appSettingsQueryOptions, set } from '@/helpers/settings.ts'
@@ -276,14 +278,19 @@ const tabs = [
 		icon: GlobeIcon,
 		content: ConnectionsSettings,
 	},
+	{
+		name: defineMessage({
+			id: 'app.settings.tabs.plugins',
+			defaultMessage: 'Plugins',
+		}),
+		category: tabCategories.system,
+		icon: PlugIcon,
+		content: PluginsSettings,
+	},
 ]
 
-const availableTabs = computed(
-	() =>
-		tabs.filter(
-			(tab) =>
-				!tab.developerOnly || appSettings.devMode,
-		),
+const availableTabs = computed(() =>
+	tabs.filter((tab) => !tab.developerOnly || appSettings.devMode),
 )
 
 const modal = ref<InstanceType<typeof TabbedModal> | null>(null)

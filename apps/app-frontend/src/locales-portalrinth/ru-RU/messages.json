@@ -7821,5 +7821,53 @@
 	},
 	"app.settings.resource-management.doh.toggle": {
 		"message": "При сбое подключения искать адрес через Quad9/Cloudflare/Google"
+	},
+	"app.settings.tabs.plugins": {
+		"message": "Плагины"
+	},
+	"app.settings.plugins.title": {
+		"message": "Плагины"
+	},
+	"app.settings.plugins.description": {
+		"message": "Темы и стили поверх интерфейса: плагин — это CSS, который лаунчер применяет поверх текущей темы. Код не исполняется, поэтому сломанная тема может разве что выглядеть странно, но не сломать лаунчер."
+	},
+	"app.settings.plugins.install": {
+		"message": "Установить"
+	},
+	"app.settings.plugins.install-hint": {
+		"message": "Поддерживается .zip с manifest.json и CSS-файлами, отдельный .css файл или папка с манифестом. Повторная установка плагина с тем же id обновляет его."
+	},
+	"app.settings.plugins.empty": {
+		"message": "Пока не установлено ни одного плагина."
+	},
+	"app.settings.plugins.delete": {
+		"message": "Удалить"
+	},
+	"app.settings.plugins.quick-css.title": {
+		"message": "Быстрый CSS"
+	},
+	"app.settings.plugins.quick-css.description": {
+		"message": "Свой стиль без упаковки: пишите CSS прямо здесь — он применяется на лету и лежит поверх всех плагинов."
+	},
+	"app.settings.plugins.quick-css.placeholder": {
+		"message": "Например:\nbody {\n\tfilter: hue-rotate(30deg);\n}"
+	},
+	"app.settings.plugins.safe-mode.title": {
+		"message": "Безопасный режим"
+	},
+	"app.settings.plugins.safe-mode.description": {
+		"message": "Полностью отключает все плагины и быстрый CSS до перезапуска лаунчера. Тот же переключатель — по Ctrl+Shift+Alt+P в любой момент."
+	},
+	"app.settings.plugins.error-prefix": {
+		"message": "Не получилось установить:"
+	},
+	"app.settings.plugins.version-label": {
+		"message": "версия"
+	},
+	"app.settings.plugins.by-label": {
+		"message": "автор"
+	},
+	"app.settings.plugins.sizes": {
+		"message": "{size} CSS"
 	}
 }

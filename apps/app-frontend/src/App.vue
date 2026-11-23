@@ -172,6 +172,7 @@ import {
 import { loadBackground } from '@/helpers/portalrinth-background'
 import { startDesignWatcher } from '@/helpers/portalrinth-design'
 import { handleHotkeyKeyEvent, registerHotkeyHandler } from '@/helpers/portalrinth-hotkeys'
+import { applyPlugins, isPluginSafeMode, setPluginSafeMode } from '@/helpers/portalrinth-plugins'
 import { prefetchRouteChunks, startProjectHoverPrefetch } from '@/helpers/portalrinth-prefetch'
 import { installSoundEffects } from '@/helpers/portalrinth-sfx'
 import { markSidebarMoving } from '@/helpers/portalrinth-sidebar-motion'
@@ -674,6 +675,17 @@ const authUnreachable = computed(
 
 let unlistenEditMenu
 
+// Plugin themes go on before the first paint so a dark theme never flashes
+// the default look first; the safe-mode hotkey works anywhere in the launcher.
+applyPlugins()
+
+function handlePluginSafeModeHotkey(event) {
+	if (event.code === 'KeyP' && event.ctrlKey && event.shiftKey && event.altKey) {
+		event.preventDefault()
+		setPluginSafeMode(!isPluginSafeMode())
+	}
+}
+
 function handleEditMenuAction(action) {
 	const event = new CustomEvent(`edit-menu:${action}`, { cancelable: true })
 	if (document.dispatchEvent(event)) document.execCommand(action)
@@ -706,6 +718,7 @@ onMounted(async () => {
 	document.querySelector('body').addEventListener('contextmenu', handleContextMenu)
 	document.addEventListener('fullscreenchange', handleFullscreenChange)
 	document.addEventListener('keydown', handleKeyDown)
+	window.addEventListener('keydown', handlePluginSafeModeHotkey)
 
 	checkUpdates()
 })
@@ -716,6 +729,7 @@ onUnmounted(async () => {
 	document.querySelector('body').removeEventListener('contextmenu', handleContextMenu)
 	document.removeEventListener('fullscreenchange', handleFullscreenChange)
 	document.removeEventListener('keydown', handleKeyDown)
+	window.removeEventListener('keydown', handlePluginSafeModeHotkey)
 	unlistenEditMenu?.()
 	clearDelayedUpdatePopup()
 

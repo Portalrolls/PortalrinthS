@@ -4,17 +4,23 @@
  * Two ways to the newest build, picked by what the running build can do:
  *  - release builds carry Tauri's updater: App.vue checks it, and with
  *    "install at once" on it downloads and installs right at start-up;
- *  - every build can also look at the GitHub releases themselves. A release is
- *    recognised by its tag AND by its name (whichever carries the higher
- *    version wins - "v0.22.0+4", "Portalrinth 0.22.0 (4)", "0.22.0-build.4"),
- *    and on Windows the installer is downloaded and started for the player.
+ *  - every build can also look at the GitHub releases themselves, across both
+ *    repositories the launcher lives in. A release is recognised by its tag AND
+ *    by its name (whichever carries the higher version wins - "v0.22.0+4",
+ *    "Portalrinth 0.22.0 (4)", "0.22.0-build.4"), and on Windows the installer
+ *    is downloaded and started for the player.
  */
 import { getVersion } from '@tauri-apps/api/app'
 import { invoke } from '@tauri-apps/api/core'
 import { fetch } from '@tauri-apps/plugin-http'
 import { reactive } from 'vue'
 
-export const LAUNCHER_REPO = 'manusportalgpt-beep/Portalrinth'
+/** The launcher has two homes; a release published in either reaches everyone. */
+export const LAUNCHER_REPOS = [
+	'Portalrolls/Portalrinth',
+	'manusportalgpt-beep/Portalrinth',
+] as const
+export const LAUNCHER_REPO = LAUNCHER_REPOS[0]
 export const LAUNCHER_RELEASES_URL = `https://github.com/${LAUNCHER_REPO}/releases`
 
 const AUTO_KEY = 'portalrinth-auto-update'
@@ -124,38 +130,54 @@ function pickInstaller(assets: GithubRelease['assets']) {
 		: undefined
 }
 
-/** All published releases, newest first by version (tag and name both count). */
+/** All published releases across both homes, newest first by version. */
 export async function fetchLauncherReleases(): Promise<LauncherRelease[]> {
-	const response = await fetch(
-		`https://api.github.com/repos/${LAUNCHER_REPO}/releases?per_page=20`,
-		{
-			headers: { Accept: 'application/vnd.github+json' },
-		},
+	const responses = await Promise.allSettled(
+		LAUNCHER_REPOS.map((repo) =>
+			fetch(`https://api.github.com/repos/${repo}/releases?per_page=20`, {
+				headers: { Accept: 'application/vnd.github+json' },
+			}),
+		),
 	)
-	if (!response.ok) throw new Error(`GitHub ответил ${response.status}`)
-	const list = (await response.json()) as GithubRelease[]
+	const reachable = responses.filter(
+		(response) => response.status === 'fulfilled' && response.value.ok,
+	).length
+	if (reachable === 0) throw new Error('GitHub ответил ошибкой')
 	const releases: LauncherRelease[] = []
-	for (const release of list) {
-		if (release.draft || release.prerelease) continue
-		const fromTag = parseVersion(release.tag_name)
-		const fromName = parseVersion(release.name ?? '')
-		const version =
-			fromTag && fromName
-				? compareVersions(fromTag, fromName) >= 0
-					? fromTag
-					: fromName
-				: (fromTag ?? fromName)
-		if (!version) continue
-		releases.push({
-			tag: release.tag_name,
-			name: release.name || release.tag_name,
-			version,
-			label: versionLabel(version),
-			date: release.published_at,
-			url: release.html_url,
-			body: release.body ?? '',
-			installer: pickInstaller(release.assets ?? []),
-		})
+	const seen = new Set<string>()
+	for (const response of responses) {
+		if (response.status !== 'fulfilled' || !response.value.ok) continue
+		let list: GithubRelease[]
+		try {
+			list = (await response.value.json()) as GithubRelease[]
+		} catch {
+			continue
+		}
+		for (const release of list) {
+			if (release.draft || release.prerelease) continue
+			// The same release can live in both homes; count it once.
+			if (seen.has(release.tag_name)) continue
+			seen.add(release.tag_name)
+			const fromTag = parseVersion(release.tag_name)
+			const fromName = parseVersion(release.name ?? '')
+			const version =
+				fromTag && fromName
+					? compareVersions(fromTag, fromName) >= 0
+						? fromTag
+						: fromName
+					: (fromTag ?? fromName)
+			if (!version) continue
+			releases.push({
+				tag: release.tag_name,
+				name: release.name || release.tag_name,
+				version,
+				label: versionLabel(version),
+				date: release.published_at,
+				url: release.html_url,
+				body: release.body ?? '',
+				installer: pickInstaller(release.assets ?? []),
+			})
+		}
 	}
 	releases.sort(
 		(a, b) => compareVersions(b.version, a.version) || Date.parse(b.date) - Date.parse(a.date),

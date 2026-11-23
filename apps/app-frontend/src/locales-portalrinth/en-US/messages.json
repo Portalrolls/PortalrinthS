@@ -1328,6 +1328,33 @@
 	"notifications.view-history": {
 		"message": "View history"
 	},
+	"portalrinth.settings.themes.export": {
+		"message": "Export"
+	},
+	"portalrinth.settings.themes.export-choose": {
+		"message": "Choose the theme to export"
+	},
+	"portalrinth.settings.themes.export-header": {
+		"message": "Export theme"
+	},
+	"portalrinth.settings.themes.export-tip": {
+		"message": "Export a theme to a file"
+	},
+	"portalrinth.settings.themes.exported": {
+		"message": "Theme exported"
+	},
+	"portalrinth.settings.themes.import": {
+		"message": "Import"
+	},
+	"portalrinth.settings.themes.import-full": {
+		"message": "There are already {max} themes — delete one first"
+	},
+	"portalrinth.settings.themes.import-tip": {
+		"message": "Load a theme from a file"
+	},
+	"portalrinth.settings.themes.imported": {
+		"message": "Theme loaded"
+	},
 	"search.sort.date-published": {
 		"message": "Date published"
 	},

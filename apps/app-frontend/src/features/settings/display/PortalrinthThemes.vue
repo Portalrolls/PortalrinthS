@@ -9,10 +9,30 @@
 					{{ formatMessage(messages.description, { max: MAX_THEMES }) }}
 				</p>
 			</div>
-			<Button type="outlined" :disabled="busy" @click="openSave">
-				<SaveIcon aria-hidden="true" />
-				{{ formatMessage(messages.save) }}
-			</Button>
+			<div class="flex items-center gap-2">
+				<IconButton
+					v-tooltip="formatMessage(messages.exportTip)"
+					type="quiet"
+					:label="formatMessage(messages.export)"
+					:disabled="busy || !savedThemes.length"
+					@click="openExport"
+				>
+					<UploadIcon aria-hidden="true" />
+				</IconButton>
+				<IconButton
+					v-tooltip="formatMessage(messages.importTip)"
+					type="quiet"
+					:label="formatMessage(messages.import)"
+					:disabled="busy || full"
+					@click="runImport"
+				>
+					<DownloadIcon aria-hidden="true" />
+				</IconButton>
+				<Button type="outlined" :disabled="busy" @click="openSave">
+					<SaveIcon aria-hidden="true" />
+					{{ formatMessage(messages.save) }}
+				</Button>
+			</div>
 		</div>
 
 		<div v-if="savedThemes.length" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -50,6 +70,36 @@
 				/>
 			</div>
 		</div>
+
+		<NewModal ref="exportModal" :header="formatMessage(messages.exportHeader)">
+			<div class="flex w-[28rem] max-w-full flex-col gap-4">
+				<p class="m-0 text-secondary">{{ formatMessage(messages.exportChoose) }}</p>
+				<div class="grid grid-cols-2 gap-1.5">
+					<button
+						v-for="theme in savedThemes"
+						:key="theme.id"
+						class="replace-choice flex min-w-0 items-center gap-2 rounded-xl p-2 text-left"
+						:class="{ 'is-selected': exportChoice === theme.id }"
+						:aria-pressed="exportChoice === theme.id"
+						@click="exportChoice = theme.id"
+					>
+						<ThemeIcon :icon="theme.icon" />
+						<span class="truncate text-contrast">{{ theme.name }}</span>
+					</button>
+				</div>
+				<div class="flex justify-end gap-2">
+					<Button type="outlined" @click="exportModal?.hide()">
+						<XIcon aria-hidden="true" />
+						{{ formatMessage(commonMessages.cancelButton) }}
+					</Button>
+					<Button type="colored" color="brand" :disabled="busy || !exportChoice" @click="runExport">
+						<SpinnerIcon v-if="busy" class="animate-spin" aria-hidden="true" />
+						<UploadIcon v-else aria-hidden="true" />
+						{{ formatMessage(messages.export) }}
+					</Button>
+				</div>
+			</div>
+		</NewModal>
 
 		<NewModal ref="modal" :header="formatMessage(messages.modalHeader)">
 			<div class="flex w-[28rem] max-w-full flex-col gap-4">
@@ -140,10 +190,11 @@
 <script setup lang="ts">
 /**
  * Themes, under the background's settings: the background and the accent as
- * they are now, kept under a name and an icon, eight at most. Choosing a
- * plaque puts its theme back.
+ * they are now, kept under a name and an icon, twelve at most. Choosing a
+ * plaque puts its theme back. A theme can also leave as one file and come
+ * back the same way.
  */
-import { SaveIcon, SpinnerIcon, TrashIcon, UploadIcon, XIcon } from '@modrinth/assets'
+import { DownloadIcon, SaveIcon, SpinnerIcon, TrashIcon, UploadIcon, XIcon } from '@modrinth/assets'
 import {
 	Button,
 	commonMessages,
@@ -162,6 +213,8 @@ import {
 	applyThemeBackground,
 	chooseThemeIcon,
 	deleteTheme,
+	exportTheme,
+	importTheme,
 	MAX_THEMES,
 	type SavedTheme,
 	savedThemes,
@@ -204,14 +257,89 @@ const messages = defineMessages({
 		defaultMessage: 'No more can be kept. Choose the theme the new one will replace.',
 	},
 	saved: { id: 'portalrinth.settings.themes.saved', defaultMessage: 'Theme saved' },
+	exportTip: {
+		id: 'portalrinth.settings.themes.export-tip',
+		defaultMessage: 'Export a theme to a file',
+	},
+	importTip: {
+		id: 'portalrinth.settings.themes.import-tip',
+		defaultMessage: 'Load a theme from a file',
+	},
+	export: { id: 'portalrinth.settings.themes.export', defaultMessage: 'Export' },
+	import: { id: 'portalrinth.settings.themes.import', defaultMessage: 'Import' },
+	exportHeader: {
+		id: 'portalrinth.settings.themes.export-header',
+		defaultMessage: 'Export theme',
+	},
+	exportChoose: {
+		id: 'portalrinth.settings.themes.export-choose',
+		defaultMessage: 'Choose the theme to export',
+	},
+	exported: { id: 'portalrinth.settings.themes.exported', defaultMessage: 'Theme exported' },
+	imported: { id: 'portalrinth.settings.themes.imported', defaultMessage: 'Theme loaded' },
+	importFull: {
+		id: 'portalrinth.settings.themes.import-full',
+		defaultMessage: 'There are already {max} themes — delete one first',
+	},
 })
 
 const modal = ref<InstanceType<typeof NewModal> | null>(null)
+const exportModal = ref<InstanceType<typeof NewModal> | null>(null)
 const name = ref('')
 const icon = ref<string>(THEME_ICONS[0])
 const replace = ref<string | null>(null)
 const busy = ref(false)
 const full = computed(() => savedThemes.value.length >= MAX_THEMES)
+const exportChoice = ref<string | null>(null)
+
+function openExport(event?: MouseEvent) {
+	exportChoice.value = null
+	exportModal.value?.show(event)
+}
+
+async function runExport() {
+	const theme = savedThemes.value.find((kept) => kept.id === exportChoice.value)
+	if (!theme) return
+	busy.value = true
+	try {
+		await exportTheme(theme)
+		exportModal.value?.hide()
+		addNotification({
+			title: formatMessage(messages.exported),
+			text: theme.name,
+			type: 'success',
+		})
+	} catch (error) {
+		handleError(error as Error)
+	} finally {
+		busy.value = false
+	}
+}
+
+async function runImport() {
+	if (full.value) {
+		addNotification({
+			title: formatMessage(messages.importFull, { max: MAX_THEMES }),
+			type: 'error',
+		})
+		return
+	}
+	busy.value = true
+	try {
+		const theme = await importTheme()
+		if (theme) {
+			addNotification({
+				title: formatMessage(messages.imported),
+				text: theme.name,
+				type: 'success',
+			})
+		}
+	} catch (error) {
+		handleError(error as Error)
+	} finally {
+		busy.value = false
+	}
+}
 
 function openSave(event?: MouseEvent) {
 	name.value = ''

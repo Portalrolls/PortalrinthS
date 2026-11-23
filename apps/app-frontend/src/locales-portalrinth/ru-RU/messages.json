@@ -1991,6 +1991,33 @@
 	"offline-account.uuid": {
 		"message": "Будет играть как {uuid}"
 	},
+	"portalrinth.settings.themes.export": {
+		"message": "Экспорт"
+	},
+	"portalrinth.settings.themes.export-choose": {
+		"message": "Выберите тему, которую выгрузить"
+	},
+	"portalrinth.settings.themes.export-header": {
+		"message": "Экспорт темы"
+	},
+	"portalrinth.settings.themes.export-tip": {
+		"message": "Выгрузить тему в файл"
+	},
+	"portalrinth.settings.themes.exported": {
+		"message": "Тема выгружена"
+	},
+	"portalrinth.settings.themes.import": {
+		"message": "Загрузить"
+	},
+	"portalrinth.settings.themes.import-full": {
+		"message": "Тем уже {max} — сначала удалите одну"
+	},
+	"portalrinth.settings.themes.import-tip": {
+		"message": "Загрузить тему из файла"
+	},
+	"portalrinth.settings.themes.imported": {
+		"message": "Тема загружена"
+	},
 	"search.sort.date-published": {
 		"message": "Дата публикации"
 	},

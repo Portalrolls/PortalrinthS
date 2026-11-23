@@ -6,6 +6,7 @@
 //! to the interface as raw bytes: the webview cannot read files on disk.
 
 use crate::api::Result;
+use base64::Engine as _;
 use tauri::ipc::Response;
 
 pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
@@ -19,6 +20,8 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             background_theme_apply,
             background_theme_remove,
             background_read_icon,
+            background_theme_export,
+            background_theme_import,
         ])
         .build()
 }
@@ -247,4 +250,132 @@ pub async fn background_read_icon(path: String) -> Result<Response> {
             .await
             .map_err(|error| anyhow::anyhow!(error.to_string()))?,
     ))
+}
+
+/*
+ * Portability: a theme leaves as one JSON file - its meta, as the interface
+ * keeps it, plus the background bytes as base64 - and comes back the same
+ * way. The webview cannot read or write files on disk, so the whole file is
+ * assembled here; the interface only picks the destination and the theme.
+ */
+
+const THEME_FILE_KIND: &str = "portalrinth-theme";
+
+/// An extension a theme file may be stored with: letters only, short, so it
+/// cannot slide out of the themes folder.
+fn safe_extension(extension: &str) -> String {
+    let cleaned = extension.to_lowercase();
+    if !cleaned.is_empty()
+        && cleaned.len() <= 12
+        && cleaned
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric())
+    {
+        cleaned
+    } else {
+        "bin".to_string()
+    }
+}
+
+/// Writes theme `theme` (the interface's own JSON for it) to `path`, adding
+/// the background's bytes when the theme carries one.
+#[tauri::command]
+pub async fn background_theme_export(theme: serde_json::Value, path: String) -> Result<()> {
+    let id = theme
+        .get("id")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default()
+        .to_string();
+    if !valid_theme_id(&id) {
+        return Err(anyhow::anyhow!("Invalid theme id").into());
+    }
+
+    let mut background = None;
+    if let Some(source) = theme_files(&id).await?.into_iter().next() {
+        let bytes = tokio::fs::read(&source)
+            .await
+            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        let extension = safe_extension(
+            source
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .unwrap_or("bin"),
+        );
+        background = Some(serde_json::json!({
+            "extension": extension,
+            "dataBase64": base64::engine::general_purpose::STANDARD.encode(bytes),
+        }));
+    }
+
+    let payload = serde_json::json!({
+        "kind": THEME_FILE_KIND,
+        "version": 1,
+        "theme": theme,
+        "background": background,
+    });
+    tokio::fs::write(&path, serde_json::to_vec_pretty(&payload).map_err(|error| anyhow::anyhow!(error.to_string()))?)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    Ok(())
+}
+
+/// Reads a theme file, keeps its background as theme `id`'s (the id is the
+/// interface's fresh one, so an imported theme never collides with a kept
+/// one) and returns the theme's meta as the interface kept it.
+#[tauri::command]
+pub async fn background_theme_import(id: String, path: String) -> Result<serde_json::Value> {
+    if !valid_theme_id(&id) {
+        return Err(anyhow::anyhow!("Invalid theme id").into());
+    }
+    let raw = tokio::fs::read(&path)
+        .await
+        .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    if raw.len() > (MAX_BYTES as usize) * 2 {
+        return Err(anyhow::anyhow!("The theme file is too large").into());
+    }
+    let payload: serde_json::Value =
+        serde_json::from_slice(&raw).map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    if payload.get("kind").and_then(|value| value.as_str()) != Some(THEME_FILE_KIND) {
+        return Err(anyhow::anyhow!("Not a Portalrinth theme file").into());
+    }
+    let theme = payload
+        .get("theme")
+        .cloned()
+        .filter(|value| value.is_object())
+        .ok_or_else(|| anyhow::anyhow!("The theme file carries no theme"))?;
+
+    // Whatever this id held before, an import replaces it - same as saving
+    // over a theme does.
+    for old in theme_files(&id).await? {
+        let _ = tokio::fs::remove_file(old).await;
+    }
+
+    if let Some(background) = payload.get("background").filter(|value| value.is_object()) {
+        let extension = safe_extension(
+            background
+                .get("extension")
+                .and_then(|value| value.as_str())
+                .unwrap_or("bin"),
+        );
+        let data = background
+            .get("dataBase64")
+            .and_then(|value| value.as_str())
+            .unwrap_or_default();
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(data)
+            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        if bytes.len() as u64 > MAX_BYTES {
+            return Err(anyhow::anyhow!("The background is too large").into());
+        }
+        if !bytes.is_empty() {
+            tokio::fs::write(
+                themes_dir().await?.join(format!("{id}.{extension}")),
+                bytes,
+            )
+            .await
+            .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+        }
+    }
+
+    Ok(theme)
 }

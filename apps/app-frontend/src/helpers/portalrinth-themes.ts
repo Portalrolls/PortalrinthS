@@ -1,14 +1,16 @@
 /**
  * Saved themes: a background with the accent (a colour or a gradient) and how
  * the background is drawn, under a name and an icon, to be put back with one
- * click. At most eight are kept; a ninth replaces one of them.
+ * click. At most twelve are kept; a thirteenth replaces one of them. A theme
+ * also leaves as one file and comes back the same way, so it can travel
+ * between computers.
  *
  * The background itself is copied aside by the background plugin
  * (`themes/<id>.<ext>`); the rest is kept on this computer, as the background
  * is.
  */
 import { invoke } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import { ref, watch } from 'vue'
 
 import {
@@ -24,7 +26,7 @@ import {
 	savePageShade,
 } from '@/helpers/portalrinth-background'
 
-export const MAX_THEMES = 8
+export const MAX_THEMES = 12
 
 /** Icons a theme can wear when it has no picture of its own. */
 export const THEME_ICONS = [
@@ -142,6 +144,61 @@ export async function applyThemeBackground(theme: SavedTheme): Promise<void> {
 export async function deleteTheme(id: string): Promise<void> {
 	await invoke('plugin:portalrinth-background|background_theme_remove', { id })
 	savedThemes.value = savedThemes.value.filter((theme) => theme.id !== id)
+}
+
+/** Writes the theme and its background to the file the save dialog picked. */
+export async function exportTheme(theme: SavedTheme): Promise<void> {
+	const path = await save({
+		defaultPath: `${theme.name || 'theme'}.json`,
+		filters: [{ name: 'Portalrinth theme', extensions: ['json'] }],
+	})
+	if (typeof path !== 'string') return
+	await invoke('plugin:portalrinth-background|background_theme_export', {
+		theme: JSON.parse(JSON.stringify(theme)),
+		path,
+	})
+}
+
+/**
+ * Reads a theme file and adds it under a fresh id, so an imported theme
+ * never collides with a kept one. Null when no file was picked.
+ */
+export async function importTheme(): Promise<SavedTheme | null> {
+	if (savedThemes.value.length >= MAX_THEMES) {
+		throw new Error(`No more than ${MAX_THEMES} themes`)
+	}
+	const path = await open({
+		multiple: false,
+		filters: [{ name: 'Portalrinth theme', extensions: ['json'] }],
+	})
+	if (typeof path !== 'string') return null
+	// One id for both the stored background and the theme: applying the
+	// theme later finds its background by this very id.
+	const id = newId()
+	const raw = await invoke<Record<string, unknown>>(
+		'plugin:portalrinth-background|background_theme_import',
+		{ id, path },
+	)
+	const meta = raw && typeof raw === 'object' ? raw : {}
+	const accentRaw = meta.accent as Partial<ThemeAccent> | undefined
+	const accent: ThemeAccent = {
+		preset: String(accentRaw?.preset ?? ''),
+		tint: Boolean(accentRaw?.tint),
+		color: String(accentRaw?.color ?? ''),
+	}
+	const theme: SavedTheme = {
+		id,
+		name: String(meta.name ?? 'Theme').slice(0, 32),
+		icon: String(meta.icon ?? THEME_ICONS[0]),
+		accent,
+		blur: Boolean(meta.blur),
+		dim: Number(meta.dim) || 0,
+		pageShade: Number(meta.pageShade) || 0,
+		headerShade: Number(meta.headerShade) || 0,
+		savedAt: Number(meta.savedAt) || Date.now(),
+	}
+	savedThemes.value = [...savedThemes.value, theme]
+	return theme
 }
 
 /** Asks for a picture to be an icon and makes it small. Null when none was picked. */

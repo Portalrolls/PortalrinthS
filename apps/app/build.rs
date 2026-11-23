@@ -585,6 +585,8 @@ fn main() {
                         "background_theme_apply",
                         "background_theme_remove",
                         "background_read_icon",
+                        "background_theme_export",
+                        "background_theme_import",
                     ])
                     .default_permission(
                         DefaultPermissionRule::AllowAllCommands,

@@ -5,6 +5,9 @@
 	>
 		<component :is="icon" class="size-4 shrink-0" :class="iconClass" />
 		<span class="tabular-nums">{{ timeLabel }}</span>
+		<span v-if="pluginSafeMode" v-tooltip="safeModeTip" class="sm-badge" aria-label="Safe Mode">
+			SM
+		</span>
 	</div>
 </template>
 
@@ -14,11 +17,15 @@
  * clock does. It shows the system timezone's own time - what the PC
  * shows - and picks its icon by the part of the day: a sunrise around
  * dawn, a sun through the day, a sunset in the evening, a moon at night.
+ * While Safe Mode is on, a green SM badge stands right of the time: the
+ * plugins' styles and the quick CSS are off until the hotkey brings
+ * them back.
  */
 import { MoonIcon, SunIcon, SunriseIcon, SunsetIcon } from '@modrinth/assets'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
-import { systemTime, timeOfDay, type TimeOfDay } from '@/helpers/portalrinth-widgets'
+import { pluginSafeMode } from '@/helpers/portalrinth-plugins'
+import { systemTime, type TimeOfDay, timeOfDay } from '@/helpers/portalrinth-widgets'
 
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval> | undefined
@@ -46,6 +53,9 @@ const iconClass = computed(() => (part.value === 'night' ? 'text-secondary' : 't
 
 const timeLabel = computed(() => systemTime(now.value))
 
+/** The colour is fixed green on purpose: it must not follow the accent. */
+const safeModeTip = 'Safe Mode — стили плагинов и Быстрого CSS сняты. Ctrl+Shift+Alt+P — вернуть'
+
 const tooltip = computed(() => {
 	const full = now.value.toLocaleString([], {
 		weekday: 'long',
@@ -63,3 +73,21 @@ const tooltip = computed(() => {
 	return `${full} · ${parts[part.value]}`
 })
 </script>
+
+<style scoped>
+.sm-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.7rem;
+	height: 1.15rem;
+	padding: 0 0.3rem;
+	border-radius: 999px;
+	background: #23a55a;
+	color: #ffffff;
+	font-size: 0.62rem;
+	font-weight: 800;
+	letter-spacing: 0.06em;
+	cursor: help;
+}
+</style>

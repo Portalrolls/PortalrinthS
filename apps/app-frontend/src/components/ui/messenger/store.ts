@@ -19,6 +19,7 @@ import {
 
 import { aliasOf, loadAliases } from './aliases'
 import { REACTIONS } from './emoji'
+import { handleXferSignal, registerOutgoing, startTransfer, XFER_THRESHOLD } from './file-transfer'
 import { openLiveStream } from './live-stream'
 import {
 	attachmentKind,
@@ -721,11 +722,31 @@ export async function sendMessage(payload: {
 	const body: LooseRecord = { body: payload.body }
 	if (channel && !channel.startsWith('local:')) body.channelId = channel
 	if (payload.replyToId) body.replyToId = payload.replyToId
+	let xferId = ''
+	let xferPeer = ''
 	if (payload.attachment) {
-		body.attachment = {
-			name: payload.attachment.name,
-			mime: payload.attachment.mime,
-			dataBase64: payload.attachment.dataBase64,
+		const att = payload.attachment
+		const big = att.size > XFER_THRESHOLD
+		if (big && conv.dm && conv.peer) {
+			// Сервер получает только обёртку с «сплющенным» размером, байты
+			// поедут между клиентами по сигнальному каналу сразу после accept
+			// сообщения. Маркер в body связывает вложение с передачей.
+			const reg = registerOutgoing(att.dataBase64, att.name, att.mime, att.size)
+			xferId = reg.id
+			xferPeer = conv.peer.id
+			body.attachment = { name: att.name, mime: att.mime, size: reg.displaySize }
+			body.body = `${payload.body}\n[[xfer:${reg.id}]]`
+		} else {
+			if (big) {
+				showToast(
+					t('app.messenger.xfer.dmOnly', 'Файлы больше 10 МБ пока летят только в личных чатах'),
+				)
+			}
+			body.attachment = {
+				name: att.name,
+				mime: att.mime,
+				dataBase64: att.dataBase64,
+			}
 		}
 	}
 	const key = threadKey(conv.id, conv.dm ? '' : channel)
@@ -740,6 +761,7 @@ export async function sendMessage(payload: {
 		fail(response)
 		return false
 	}
+	if (response.ok && xferId && xferPeer) void startTransfer(xferPeer, xferId)
 	const sent = response.data?.message ? mapMessage(response.data.message, mapOpts(conv.id)) : null
 	if (sent) {
 		rememberMessage(sent)
@@ -1693,6 +1715,7 @@ export function handleLive(name: string, data: LooseRecord): void {
 			return
 		case 'signal':
 			if (handleWorldShareSignal(data)) return
+			if (handleXferSignal(data)) return
 			if (handleProfileSignal(data)) return
 			if (String(data.type || '').startsWith('vc_')) {
 				void handleVoiceSignal(data)

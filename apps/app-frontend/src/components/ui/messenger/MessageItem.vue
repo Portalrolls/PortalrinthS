@@ -24,7 +24,7 @@ import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import MessageAttachment from './MessageAttachment.vue'
 import MessageText from './MessageText.vue'
-import { formatDate, formatTime, type Msg } from './model'
+import { formatDate, formatTime, type Msg, stripXferMarker, xferIdOf } from './model'
 import ProfileCard from './ProfileCard.vue'
 import { isOnlyEmoji } from './rich-text'
 import { isPlayerSticker, saveStickerFromUrl, stickerById, stickerIdOf } from './stickers'
@@ -85,6 +85,9 @@ const mine = computed(() => props.msg.senderId === myId.value)
 const system = computed(() => props.msg.kind === 'system')
 const author = computed(() => displayName(props.msg.senderId, props.msg.senderName) || '?')
 const bigEmoji = computed(() => !props.msg.attachment && isOnlyEmoji(props.msg.body))
+/** P2P-передача большого файла: маркер в теле не показывается, карточке нужен только id. */
+const xferId = computed(() => xferIdOf(props.msg.body))
+const displayBody = computed(() => stripXferMarker(props.msg.body))
 const serverSticker = computed(() => {
 	const id = stickerIdOf(props.msg.body)
 	return id === null ? null : stickerById(id)
@@ -366,7 +369,7 @@ function mention(name: string, el: HTMLElement): void {
 			<UserAvatar :user-id="msg.replyTo.senderId" :name="msg.replyTo.senderName" :size="16" />
 			<b>{{ displayName(msg.replyTo.senderId, msg.replyTo.senderName) }}</b>
 			<span class="msgr-msg__reply-body">{{
-				msg.replyTo.body || t('app.messenger.attachment', 'Вложение')
+				stripXferMarker(msg.replyTo.body) || t('app.messenger.attachment', 'Вложение')
 			}}</span>
 		</div>
 		<div class="msgr-msg__row">
@@ -443,8 +446,8 @@ function mention(name: string, el: HTMLElement): void {
 					</span>
 					<MessageText v-if="forwarded.text" :text="forwarded.text" @mention="mention" />
 				</div>
-				<div v-else-if="msg.body" class="msgr-msg__body" :class="{ 'is-emoji': bigEmoji }">
-					<MessageText :text="msg.body" @mention="mention" />
+				<div v-else-if="displayBody" class="msgr-msg__body" :class="{ 'is-emoji': bigEmoji }">
+					<MessageText :text="displayBody" @mention="mention" />
 					<span
 						v-if="msg.editedAt"
 						class="msgr-msg__edited"
@@ -457,7 +460,12 @@ function mention(name: string, el: HTMLElement): void {
 					{{ t('app.messenger.message.empty', 'Пустое сообщение') }}
 				</div>
 
-				<MessageAttachment v-if="msg.attachment && !isSticker" :attachment="msg.attachment" />
+				<MessageAttachment
+					v-if="msg.attachment && !isSticker"
+					:attachment="msg.attachment"
+					:xfer-id="xferId"
+					:xfer-sender="msg.senderId"
+				/>
 
 				<TransitionGroup
 					v-if="msg.reactions.length"
@@ -608,7 +616,7 @@ function mention(name: string, el: HTMLElement): void {
 				v-if="msg.body && !isSticker"
 				type="button"
 				class="msgr-menu-item"
-				@click="copy(msg.body, t('app.messenger.copied.text', 'Текст скопирован'))"
+				@click="copy(displayBody, t('app.messenger.copied.text', 'Текст скопирован'))"
 			>
 				<CopyIcon /> {{ t('app.messenger.copy.text', 'Копировать текст') }}
 			</button>

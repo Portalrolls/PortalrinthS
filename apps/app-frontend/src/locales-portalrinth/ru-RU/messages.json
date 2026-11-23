@@ -1,4 +1,16 @@
 {
+	"app.messenger.xfer.dmOnly": {
+		"message": "Файлы больше 10 МБ пока летят только в личных чатах"
+	},
+	"app.messenger.xfer.downloadFailed": {
+		"message": "Не удалось получить файл"
+	},
+	"app.messenger.xfer.failed": {
+		"message": "Передача не удалась — нажмите «Скачать» ещё раз"
+	},
+	"app.messenger.xfer.receiving": {
+		"message": "Получение файла…"
+	},
 	"app.news.view-all": {
 		"message": "Список изменений"
 	},

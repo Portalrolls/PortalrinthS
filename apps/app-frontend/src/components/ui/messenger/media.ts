@@ -129,3 +129,11 @@ export async function downloadAttachment(
 		return 'opened'
 	}
 }
+
+/** Сохранить уже имеющиеся байты (P2P-передача) через диалог «Куда сохранить». */
+export async function saveBytesAs(name: string, bytes: Uint8Array): Promise<'saved' | 'cancel'> {
+	const target = await save({ defaultPath: name }).catch(() => null)
+	if (target === null) return 'cancel'
+	await writeFile(target, bytes)
+	return 'saved'
+}

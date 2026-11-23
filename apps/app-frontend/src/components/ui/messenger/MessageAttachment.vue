@@ -11,15 +11,20 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { installBuild, isBuildFile } from './builds'
+import { obtainXferBytes, xferProgress, xferRealSize, xferRecord, xferUrl } from './file-transfer'
 import { useMessengerT } from './i18n'
-import { downloadAttachment, mediaBlobUrl } from './media'
+import { downloadAttachment, mediaBlobUrl, saveBytesAs } from './media'
 import MicIcon from './MicIcon.vue'
 import { type Attachment, extensionOf, formatDuration, formatSize } from './model'
 import ServiceImage from './ServiceImage.vue'
 import { showToast } from './store'
 import { openLightbox } from './ui-bus'
 
-const props = defineProps<{ attachment: Attachment }>()
+const props = defineProps<{
+	attachment: Attachment
+	xferId?: string
+	xferSender?: string
+}>()
 
 const t = useMessengerT()
 
@@ -47,7 +52,7 @@ const isSound = computed(
 )
 
 onMounted(() => {
-	if (!isSound.value) return
+	if (!isSound.value || isXfer.value) return
 	void (async () => {
 		try {
 			const url = await mediaBlobUrl(props.attachment.url, props.attachment.mime)
@@ -75,6 +80,20 @@ const fileExt = computed(() => extensionOf(props.attachment.name).toUpperCase())
 const installing = ref(false)
 const installed = ref(false)
 
+// --- P2P-передача большого файла: маркер [[xfer:id]] связан с сообщением ---
+const isXfer = computed(() => Boolean(props.xferId))
+const xferRec = computed(() => (props.xferId ? xferRecord(props.xferId) : null))
+const xferDone = computed(() => Boolean(xferRec.value?.done))
+const xferFailed = computed(() => Boolean(xferRec.value?.failed))
+const xferProg = computed(() => (props.xferId ? xferProgress(props.xferId) : -1))
+/** Пока передача едет — адреса нет; после — локальный blob. */
+const srcUrl = computed(() =>
+	isXfer.value ? xferUrl(props.xferId ?? '') || '' : props.attachment.url,
+)
+const shownSize = computed(() =>
+	isXfer.value ? xferRealSize(props.xferId ?? '') || props.attachment.size : props.attachment.size,
+)
+
 async function install(): Promise<void> {
 	if (installing.value || installed.value) return
 	installing.value = true
@@ -92,6 +111,12 @@ const progress = computed(() => (duration.value ? Math.min(1, position.value / d
 
 async function loadMedia(): Promise<boolean> {
 	if (mediaUrl.value) return true
+	if (isXfer.value) {
+		// blob-адрес принятого файла уже локален — не гоняем его через кэш сервиса
+		if (!srcUrl.value) return false
+		mediaUrl.value = srcUrl.value
+		return true
+	}
 	mediaLoading.value = true
 	mediaFailed.value = false
 	try {
@@ -128,6 +153,20 @@ function onMeta(): void {
 
 async function download(): Promise<void> {
 	if (downloading.value) return
+	if (isXfer.value && props.xferId) {
+		downloading.value = true
+		try {
+			const bytes = await obtainXferBytes(props.xferId, props.xferSender || '')
+			if (!bytes) throw new Error('xfer_no_bytes')
+			const result = await saveBytesAs(props.attachment.name, bytes)
+			if (result === 'saved') showToast(t('app.messenger.file.saved', 'Файл сохранён'))
+		} catch {
+			showToast(t('app.messenger.xfer.downloadFailed', 'Не удалось получить файл'))
+		} finally {
+			downloading.value = false
+		}
+		return
+	}
 	downloading.value = true
 	try {
 		const result = await downloadAttachment(props.attachment.url, props.attachment.name)
@@ -148,14 +187,14 @@ onBeforeUnmount(() => audio.value?.pause())
 
 <template>
 	<div class="msgr-att" @click.stop>
-		<div v-if="isVisual && !imageFailed" class="msgr-att__vis">
+		<div v-if="isVisual && srcUrl && !imageFailed" class="msgr-att__vis">
 			<button
 				type="button"
 				class="msgr-att__image"
-				@click="openLightbox(attachment.url, attachment.name, attachment.mime)"
+				@click="openLightbox(srcUrl, attachment.name, attachment.mime)"
 			>
 				<ServiceImage
-					:src="attachment.url"
+					:src="srcUrl"
 					:mime="attachment.mime"
 					:lazy="attachment.kind !== 'gif'"
 					@failed="imageFailed = true"
@@ -173,8 +212,8 @@ onBeforeUnmount(() => audio.value?.pause())
 			</button>
 		</div>
 
-		<div v-else-if="attachment.kind === 'video'" class="msgr-att__video">
-			<video v-if="mediaUrl" :src="mediaUrl" controls autoplay preload="metadata" />
+		<div v-else-if="attachment.kind === 'video' && (srcUrl || !isXfer)" class="msgr-att__video">
+			<video v-if="srcUrl" :src="srcUrl" controls autoplay preload="metadata" />
 			<button
 				v-else
 				type="button"
@@ -191,7 +230,7 @@ onBeforeUnmount(() => audio.value?.pause())
 		</div>
 
 		<div
-			v-else-if="isSound"
+			v-else-if="isSound && (srcUrl || !isXfer)"
 			class="msgr-att__audio"
 			:class="{ 'is-voice': attachment.kind === 'voice' }"
 		>
@@ -267,11 +306,27 @@ onBeforeUnmount(() => audio.value?.pause())
 				<span class="msgr-att__file-meta">
 					<span v-if="fileExt" class="msgr-att__file-ext">{{ fileExt }}</span>
 					<span class="msgr-att__file-size">{{
-						attachment.size ? formatSize(attachment.size) : attachment.mime
+						shownSize ? formatSize(shownSize) : attachment.mime
 					}}</span>
 				</span>
+				<div v-if="isXfer && !xferDone" class="msgr-att__xfer">
+					<div class="msgr-att__track">
+						<span
+							class="msgr-att__track-fill"
+							:style="{ width: `${Math.max(4, xferProg * 100)}%` }"
+						/>
+					</div>
+					<span v-if="xferFailed" class="msgr-att__error">
+						{{ t('app.messenger.xfer.failed', 'Передача не удалась — нажмите «Скачать» ещё раз') }}
+					</span>
+					<span v-else class="msgr-att__xfer-status">
+						{{ t('app.messenger.xfer.receiving', 'Получение файла…') }}
+						{{ Math.round(xferProg * 100) }}%
+					</span>
+				</div>
 			</div>
 			<button
+				v-if="!isXfer"
 				type="button"
 				class="msgr-att__icon-btn"
 				:title="t('app.messenger.file.openBrowser', 'Открыть в браузере')"
@@ -296,7 +351,7 @@ onBeforeUnmount(() => audio.value?.pause())
 				}}
 			</button>
 			<button
-				v-else
+				v-if="!isBuild"
 				type="button"
 				class="msgr-att__download"
 				:disabled="downloading"
@@ -560,6 +615,25 @@ onBeforeUnmount(() => audio.value?.pause())
 	font-size: 0.7rem;
 	font-variant-numeric: tabular-nums;
 	opacity: 0.65;
+}
+
+.msgr-att__xfer {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.msgr-att__xfer .msgr-att__track {
+	flex: 1;
+	min-width: 6rem;
+	cursor: default;
+}
+
+.msgr-att__xfer-status {
+	font-size: 0.7rem;
+	font-variant-numeric: tabular-nums;
+	opacity: 0.65;
+	white-space: nowrap;
 }
 
 .msgr-att__error {

@@ -8,6 +8,18 @@
 	"app.library.instance.action.unpin": {
 		"message": "Unpin"
 	},
+	"app.messenger.xfer.dmOnly": {
+		"message": "Files over 10 MB currently only travel in direct messages"
+	},
+	"app.messenger.xfer.downloadFailed": {
+		"message": "Could not get the file"
+	},
+	"app.messenger.xfer.failed": {
+		"message": "Transfer failed — click Download to retry"
+	},
+	"app.messenger.xfer.receiving": {
+		"message": "Receiving file…"
+	},
 	"app.news.view-all": {
 		"message": "Changelog"
 	},

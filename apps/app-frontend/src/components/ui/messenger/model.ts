@@ -358,8 +358,21 @@ export function mapMessage(
 	}
 }
 
+/** Маркер P2P-передачи большого файла в личном чате: дописывается в конец тела. */
+const XFER_MARKER_RE = /\[\[xfer:([A-Za-z0-9]+)\]\]\s*$/
+
+/** id P2P-передачи, если тело сообщения несёт маркер. */
+export function xferIdOf(body: string): string {
+	return XFER_MARKER_RE.exec(body)?.[1] ?? ''
+}
+
+/** Тело без служебного маркера P2P-передачи — для показа игроку. */
+export function stripXferMarker(body: string): string {
+	return body.replace(XFER_MARKER_RE, '').trim()
+}
+
 export function previewOf(row: LooseRecord): string {
-	const body = String(row.body || '').trim()
+	const body = stripXferMarker(String(row.body || ''))
 	if (/^\[\[(?:sticker:\d+|psticker)\]\]$/.test(body)) return '✦ Стикер'
 	if (/^\[\[(?:profile|user):[^\]]+\]\]$/.test(body)) return '👤 Профиль'
 	if (/^\[\[group:[^\]]+\]\]$/.test(body)) return '👥 Группа'

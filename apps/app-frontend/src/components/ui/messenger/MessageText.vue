@@ -128,7 +128,7 @@ function reveal(index: number): void {
 	padding: 0 0.25em;
 	border: 0;
 	border-radius: 4px;
-	background: #1e1f22;
+	background: var(--msgr-btn2);
 	color: transparent;
 	font: inherit;
 	cursor: pointer;

@@ -429,7 +429,7 @@ onMounted(() => {
 	align-items: center;
 	justify-content: space-between;
 	padding: 0.2rem 0.15rem 0.3rem;
-	background: var(--msgr-float, #1c1d22);
+	background: var(--msgr-inset);
 	color: var(--color-secondary);
 	font-size: 0.72rem;
 	font-weight: 700;

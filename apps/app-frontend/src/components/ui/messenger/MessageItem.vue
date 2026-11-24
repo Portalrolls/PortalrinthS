@@ -1137,7 +1137,7 @@ function mention(name: string, el: HTMLElement): void {
 	padding: 0.6rem 0.8rem;
 	border: 1px solid color-mix(in srgb, var(--color-brand) 50%, transparent);
 	border-radius: 8px;
-	background: #1b1c20;
+	background: var(--msgr-btn2);
 	color: var(--color-contrast);
 	font: inherit;
 	font-size: 0.95rem;

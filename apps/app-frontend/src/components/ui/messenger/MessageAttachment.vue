@@ -607,13 +607,13 @@ onBeforeUnmount(() => audio.value?.pause())
 	padding: 0.65rem 0.75rem;
 	border: 1px solid rgba(255, 255, 255, 0.07);
 	border-radius: 10px;
-	background: #1b1c20;
+	background: var(--msgr-btn2);
 }
 
 .msgr-att__audio.is-voice {
 	width: 19rem;
 	border-color: color-mix(in srgb, var(--color-brand) 35%, transparent);
-	background: color-mix(in srgb, var(--color-brand) 12%, #1b1c20);
+	background: color-mix(in srgb, var(--color-brand) 12%, var(--msgr-btn2));
 }
 
 .msgr-att__audio-btn {

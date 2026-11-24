@@ -220,7 +220,7 @@ function ely(): void {
 	padding: 2rem 2.2rem;
 	border: 1px solid rgba(255, 255, 255, 0.07);
 	border-radius: 16px;
-	background: #1e1f22;
+	background: var(--msgr-btn2);
 	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
 	text-align: center;
 	animation: msgr-gate-in 0.3s ease;

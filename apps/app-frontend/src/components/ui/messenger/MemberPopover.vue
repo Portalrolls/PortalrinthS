@@ -156,7 +156,13 @@ async function kick(): Promise<void> {
 		<div v-if="popover.userId" class="msgr-pop">
 			<div class="msgr-pop__banner" />
 			<div class="msgr-pop__avatar">
-				<UserAvatar :user-id="popover.userId" :name="name" :size="72" status ring="var(--msgr-inset)" />
+				<UserAvatar
+					:user-id="popover.userId"
+					:name="name"
+					:size="72"
+					status
+					ring="var(--msgr-inset)"
+				/>
 			</div>
 			<div class="msgr-pop__body">
 				<h3>{{ name }}</h3>
@@ -326,7 +332,7 @@ async function kick(): Promise<void> {
 }
 
 .msgr-pop__actions button:hover {
-	background: #383a40;
+	background: var(--msgr-btn3);
 }
 
 .msgr-pop__actions .msgr-pop__primary {

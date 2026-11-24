@@ -239,7 +239,7 @@ onUnmounted(() => {
 	flex-shrink: 0;
 	flex-direction: column;
 	border-right: 1px solid rgba(0, 0, 0, 0.3);
-	background: rgba(16, 17, 20, 0.62);
+	background: var(--msgr-side-bg);
 	backdrop-filter: blur(18px);
 }
 
@@ -248,7 +248,7 @@ onUnmounted(() => {
 	display: flex;
 	min-width: 0;
 	flex: 1;
-	background: rgba(24, 25, 29, 0.55);
+	background: var(--msgr-main-bg);
 	backdrop-filter: blur(14px);
 }
 

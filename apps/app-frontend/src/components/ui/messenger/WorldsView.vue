@@ -238,7 +238,13 @@ async function joinWith(build: GameInstance): Promise<void> {
 				</article>
 				<article v-for="peer in worlds" :key="peer.id" class="msgr-worlds__card">
 					<div class="msgr-worlds__top">
-						<UserAvatar :user-id="peer.id" :name="peer.username" :size="40" status ring="#1b1c20" />
+						<UserAvatar
+							:user-id="peer.id"
+							:name="peer.username"
+							:size="40"
+							status
+							ring="var(--msgr-ring)"
+						/>
 						<div>
 							<b>
 								{{ displayName(peer.id, peer.username) }}
@@ -425,7 +431,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 	padding: 1rem;
 	border: 1px solid rgba(255, 255, 255, 0.06);
 	border-radius: 12px;
-	background: #1b1c20;
+	background: var(--msgr-btn2);
 	transition:
 		transform 0.15s ease,
 		border-color 0.15s ease;
@@ -589,7 +595,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 	flex-direction: column;
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 14px;
-	background: #1b1c20;
+	background: var(--msgr-peer);
 	box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
 
@@ -655,7 +661,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 	padding: 0.6rem 0.75rem;
 	border: 1px solid rgba(255, 255, 255, 0.07);
 	border-radius: 8px;
-	background: #232529;
+	background: var(--msgr-btn2);
 	color: var(--color-contrast);
 	font: inherit;
 	text-align: left;
@@ -667,7 +673,7 @@ async function joinWith(build: GameInstance): Promise<void> {
 
 .msgr-worlds__build:hover {
 	border-color: color-mix(in srgb, var(--color-brand) 45%, transparent);
-	background: #2a2c31;
+	background: var(--msgr-btn);
 }
 
 .msgr-worlds__build.is-fit {

@@ -4,45 +4,52 @@
  * Живут на :root, а не на .msgr-root: часть модалок (профиль, редактор
  * профиля) телепортируется в <body> и не наследует переменные от корня
  * мессенджера. Префикс --msgr-* namespaced, на остальное приложение не влияет.
- * Тёмная тема = значения по умолчанию; OLED переопределяет их на глухой чёрный
- * (см. блок .oled-mode ниже). Обычный dark выглядит ровно как раньше.
+ * Тёмная тема — Discord-серые по умолчанию; OLED переопределяет их на
+ * «Modrinth, но чуть темнее» (см. блок .oled-mode ниже).
  */
 :root {
 	--msgr-panel: #17181b;
-	--msgr-surface: var(--msgr-surface);
-	--msgr-inset: var(--msgr-inset);
-	--msgr-inset2: var(--msgr-inset2);
-	--msgr-peer: var(--msgr-peer);
-	--msgr-ring: var(--msgr-ring);
-	--msgr-btn: var(--msgr-btn);
-	--msgr-btn2: var(--msgr-btn2);
-	--msgr-btn3: var(--msgr-btn3);
-	--msgr-glass: var(--msgr-glass);
-	--msgr-glass2: var(--msgr-glass2);
-	--msgr-rail: var(--msgr-rail);
-	--msgr-search: rgba(0, 0, 0, 0.45);
+	--msgr-surface: #16171b;
+	--msgr-inset: #111214;
+	--msgr-inset2: #0e0f12;
+	--msgr-peer: #18191c;
+	--msgr-ring: #1a1b1e;
+	--msgr-btn: #2b2d31;
+	--msgr-btn2: #1e1f23;
+	--msgr-btn3: #35373c;
+	--msgr-glass: rgba(18, 19, 22, 0.6);
+	--msgr-glass2: rgba(10, 10, 13, 0.72);
+	--msgr-rail: rgba(8, 8, 11, 0.55);
+	--msgr-side-bg: rgba(16, 17, 20, 0.62);
+	--msgr-main-bg: rgba(24, 25, 29, 0.55);
+	--msgr-search: rgba(0, 0, 0, 0.4);
 	--msgr-ok: #23a55a;
 	--msgr-danger: #f23f43;
 }
 
 /*
- * OLED: панели — чистый чёрный (пиксель не светится), вставки/кнопки —
- * едва заметные, чтобы границы читались, но фон оставался чёрным.
+ * OLED: «Modrinth, но чуть темнее» — все панели тёмно-серые, никаких глухих
+ * чёрных заливок: серые читаются на OLED-матрице лучше чистого #000 и всё
+ * ещё заметно темнее обычного Modrinth-дарка. Рельс серверов, плашка юзера
+ * снизу и список участников — полупрозрачное стекло, сквозь которое мягко
+ * проходит фон и любой акцент.
  */
 .oled-mode {
-	--msgr-panel: #000000;
-	--msgr-surface: #000000;
-	--msgr-inset: #0a0a0b;
-	--msgr-inset2: #050506;
-	--msgr-peer: #000000;
-	--msgr-ring: #000000;
-	--msgr-btn: #161618;
-	--msgr-btn2: #0e0e10;
-	--msgr-btn3: #1d1d20;
-	--msgr-glass: rgba(0, 0, 0, 0.82);
-	--msgr-glass2: rgba(0, 0, 0, 0.88);
-	--msgr-rail: rgba(0, 0, 0, 0.85);
-	--msgr-search: rgba(0, 0, 0, 0.72);
+	--msgr-panel: #101014;
+	--msgr-surface: #19191e;
+	--msgr-inset: #1e1e24;
+	--msgr-inset2: #15151a;
+	--msgr-peer: #1f1f25;
+	--msgr-ring: #131318;
+	--msgr-btn: #2c2c33;
+	--msgr-btn2: #212127;
+	--msgr-btn3: #35353d;
+	--msgr-glass: rgba(15, 15, 20, 0.62);
+	--msgr-glass2: rgba(10, 10, 15, 0.74);
+	--msgr-rail: rgba(9, 9, 13, 0.58);
+	--msgr-side-bg: rgba(22, 23, 28, 0.85);
+	--msgr-main-bg: rgba(30, 31, 37, 0.8);
+	--msgr-search: rgba(255, 255, 255, 0.07);
 }
 
 .msgr-side {
@@ -944,7 +951,7 @@
 	width: 5rem;
 	height: 5rem;
 	flex-shrink: 0;
-	border: 5px solid #1e1f22;
+	border: 5px solid var(--msgr-btn2);
 	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	font-size: 1.2rem;

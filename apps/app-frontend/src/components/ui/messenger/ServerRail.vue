@@ -294,7 +294,7 @@ function act(fn: () => void): void {
 	padding: 0 0.3rem;
 	border-radius: 999px;
 	background: #f23f43;
-	box-shadow: 0 0 0 3px #0d0d10;
+	box-shadow: 0 0 0 3px var(--msgr-ring);
 	color: white;
 	font-size: 0.68rem;
 	font-weight: 800;

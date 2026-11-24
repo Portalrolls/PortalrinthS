@@ -450,7 +450,7 @@ async function invite(id: string, username: string): Promise<void> {
 						:name="friend.username"
 						:size="28"
 						status
-						ring="#1c1d22"
+						ring="var(--msgr-ring)"
 					/>
 					<span>{{ displayName(friend.id, friend.username) }}</span>
 					<span v-if="inviting === friend.id" class="msgr-spinner msgr-invite__spin" />
@@ -738,7 +738,7 @@ async function invite(id: string, username: string): Promise<void> {
 	gap: 0.45rem;
 	padding: 0 0.6rem;
 	border-radius: 8px;
-	background: rgba(0, 0, 0, 0.28);
+	background: var(--msgr-search);
 	color: var(--color-secondary);
 }
 
@@ -942,7 +942,7 @@ div.msgr-stage__person {
 	place-items: center;
 	border: 0;
 	border-radius: 50%;
-	background: #26272d;
+	background: var(--msgr-btn);
 	color: var(--color-contrast);
 	cursor: pointer;
 	transition: background 0.12s ease;
@@ -950,7 +950,7 @@ div.msgr-stage__person {
 
 .msgr-stage__controls button:hover,
 .msgr-stage__controls button.is-on {
-	background: #34363d;
+	background: var(--msgr-btn3);
 }
 
 .msgr-stage__controls button.is-off {

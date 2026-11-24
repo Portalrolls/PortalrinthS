@@ -875,7 +875,7 @@ async function block(peer: Peer): Promise<void> {
 }
 
 .msgr-friends__recent-row:hover {
-	background: #313338;
+	background: var(--msgr-btn3);
 }
 
 .msgr-friends__recent-who {
@@ -919,7 +919,7 @@ async function block(peer: Peer): Promise<void> {
 	place-items: center;
 	border: none;
 	border-radius: 50%;
-	background: #1e1f22;
+	background: var(--msgr-btn2);
 	color: var(--color-secondary);
 	cursor: pointer;
 	transition:

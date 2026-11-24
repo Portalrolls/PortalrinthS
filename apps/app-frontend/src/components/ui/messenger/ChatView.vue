@@ -1362,7 +1362,7 @@ function onDrop(event: DragEvent): void {
 	max-width: 50%;
 	flex-direction: column;
 	border-left: 1px solid rgba(0, 0, 0, 0.35);
-	background: #17181b;
+	background: var(--msgr-panel);
 }
 
 .msgr-chat__tool header {

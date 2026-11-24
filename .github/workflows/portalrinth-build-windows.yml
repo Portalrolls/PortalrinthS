@@ -28,7 +28,12 @@ name: PortalrinthS
 
 on:
   push:
-    branches: [PortalrinthS]
+    branches:
+      - PortalrinthS
+      # `main` тоже: раунды правок уходят в main, и без этого триггера сборка
+      # «попробовать на Windows» после каждого раунда приходилось запускать
+      # вручную — чего она раз за разом не дожидалась.
+      - main
   workflow_dispatch:
 
 concurrency:

@@ -6853,6 +6853,18 @@
 	"app.messenger.plus.image": {
 		"message": "Изображение или GIF"
 	},
+	"app.messenger.pop.account": {
+		"message": "Аккаунт"
+	},
+	"app.messenger.pop.mutual": {
+		"message": "Общие серверы ({n})"
+	},
+	"app.messenger.pop.mutualMore": {
+		"message": "и ещё {n}…"
+	},
+	"app.messenger.pop.relation": {
+		"message": "Отношение"
+	},
 	"app.messenger.rail": {
 		"message": "Серверы"
 	},
@@ -6864,6 +6876,15 @@
 	},
 	"app.messenger.reconnect": {
 		"message": "Переподключиться"
+	},
+	"app.messenger.relation.friend": {
+		"message": "Друг"
+	},
+	"app.messenger.relation.incoming": {
+		"message": "Входящая заявка"
+	},
+	"app.messenger.relation.outgoing": {
+		"message": "Исходящая заявка"
 	},
 	"app.messenger.replyingTo": {
 		"message": "Ответ"
@@ -7148,7 +7169,7 @@
 		"message": "{name} печатает…"
 	},
 	"app.messenger.viewProfile": {
-		"message": "Посмотреть профиль"
+		"message": "Открыть полный профиль"
 	},
 	"app.messenger.viewingOlder": {
 		"message": "Вы просматриваете старые сообщения"

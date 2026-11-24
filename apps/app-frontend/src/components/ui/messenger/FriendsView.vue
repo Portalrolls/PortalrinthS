@@ -506,7 +506,7 @@ async function block(peer: Peer): Promise<void> {
 					class="msgr-menu-item"
 					@click="(openProfile(menu.peer.id, menu.peer.username), (menu = null))"
 				>
-					<UserIcon /> {{ t('app.messenger.viewProfile', 'Посмотреть профиль') }}
+					<UserIcon /> {{ t('app.messenger.viewProfile', 'Открыть полный профиль') }}
 				</button>
 				<button type="button" class="msgr-menu-item" @click="rename(menu.peer)">
 					<EditIcon /> {{ t('app.messenger.alias.action', 'Изменить имя') }}

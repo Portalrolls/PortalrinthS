@@ -12,7 +12,7 @@ import { computed, ref } from 'vue'
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import type { PresenceStatus } from './model'
-import { profileEditor } from './profile-card'
+import { cardOf, profileEditor } from './profile-card'
 import { connect, me, myId, setPresence, showToast, signOut, state } from './store'
 import { vTip } from './tooltip'
 import { type Anchor, askConfirm, openProfile } from './ui-bus'
@@ -44,6 +44,26 @@ const statuses = computed<{ id: PresenceStatus; label: string; hint: string }[]>
 const currentLabel = computed(
 	() => statuses.value.find((entry) => entry.id === state.myStatus)?.label ?? '',
 )
+
+/** «Обо мне» из карточки профиля — как кастомный статус в Discord. */
+const customStatus = computed(() => cardOf(me.value?.id ?? '').bio.trim())
+
+/** Плашка снизу красится баннером своей карточки — как в Discord. */
+const panelStyle = computed(() => {
+	const card = cardOf(me.value?.id ?? '')
+	const accent = card.accent || card.bannerColor || ''
+	if (card.bannerImage) {
+		return {
+			backgroundImage: `linear-gradient(rgba(8, 9, 11, 0.62), rgba(8, 9, 11, 0.78)), url("${card.bannerImage}")`,
+		}
+	}
+	if (accent) {
+		return {
+			backgroundImage: `linear-gradient(rgba(8, 9, 11, 0.68), rgba(8, 9, 11, 0.8)), linear-gradient(135deg, ${accent}, ${accent}99)`,
+		}
+	}
+	return {}
+})
 
 function open(event: MouseEvent): void {
 	const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -92,12 +112,13 @@ async function logout(): Promise<void> {
 </script>
 
 <template>
-	<div v-if="me" class="msgr-user">
+	<div v-if="me" class="msgr-user" :style="panelStyle">
 		<button type="button" class="msgr-user__who" :class="{ 'is-open': menu }" @click.stop="open">
 			<UserAvatar :user-id="me.id" :name="me.username" :size="34" status ring="var(--msgr-inset)" />
 			<span class="msgr-user__text">
 				<b>{{ me.username }}</b>
-				<small>{{ currentLabel }}</small>
+				<small v-if="customStatus" class="msgr-user__custom">{{ customStatus }}</small>
+				<small v-else>{{ currentLabel }}</small>
 			</span>
 		</button>
 		<button
@@ -111,7 +132,13 @@ async function logout(): Promise<void> {
 
 		<FloatingMenu :anchor="menu" placement="top-start" :width="270" @close="menu = null">
 			<div class="msgr-user__card">
-				<UserAvatar :user-id="me.id" :name="me.username" :size="48" status ring="var(--msgr-inset)" />
+				<UserAvatar
+					:user-id="me.id"
+					:name="me.username"
+					:size="48"
+					status
+					ring="var(--msgr-inset)"
+				/>
 				<div>
 					<b>{{ me.username }}</b>
 					<small>{{ me.provider === 'ely' ? 'Ely.by' : 'Microsoft' }}</small>
@@ -158,7 +185,9 @@ async function logout(): Promise<void> {
 	align-items: center;
 	gap: 0.25rem;
 	padding: 0.45rem 0.5rem;
-	background: var(--msgr-glass2);
+	background-color: var(--msgr-glass2);
+	background-size: cover;
+	background-position: center;
 }
 
 .msgr-user__who {
@@ -201,6 +230,14 @@ async function logout(): Promise<void> {
 .msgr-user__text small {
 	color: var(--color-secondary);
 	font-size: 0.72rem;
+}
+
+.msgr-user__custom {
+	overflow: hidden;
+	color: #2dc770;
+	font-size: 0.72rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .msgr-user__btn {

@@ -9,12 +9,13 @@ import {
 	UserPlusIcon,
 	UserXIcon,
 } from '@modrinth/assets'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { promptAlias } from './aliases'
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import PhoneIcon from './PhoneIcon.vue'
+import { cardOf, requestCard } from './profile-card'
 import {
 	activeServer,
 	callUser,
@@ -22,12 +23,15 @@ import {
 	displayName,
 	isOwner,
 	kickMember,
+	me,
 	memberOf,
 	myId,
+	openServer,
 	presenceFor,
 	relationOf,
 	requestFriend,
 	showToast,
+	state,
 	toggleMemberRole,
 	userOf,
 	writeTo,
@@ -100,6 +104,63 @@ const statusLabel = computed(() => {
 	}
 })
 
+/* Карточка профиля: баннер, акцент и «Обо мне». Пока она не доехала — просим
+   свежую; отвечает в течение секунды, поповер при этом не мигает. */
+const card = computed(() => cardOf(popover.userId))
+const accent = computed(() => card.value.accent || card.value.bannerColor || '')
+
+const bannerStyle = computed(() => {
+	if (card.value.bannerImage) {
+		return { backgroundImage: `url("${card.value.bannerImage}")` }
+	}
+	const color = accent.value
+	if (color) return { background: `linear-gradient(135deg, ${color}, ${color}99)` }
+	return {}
+})
+
+watch(
+	() => [popover.userId, popover.anchor] as const,
+	([id, anchor]) => {
+		if (id && anchor) requestCard(id)
+	},
+)
+
+/** Тип аккаунта — как строка «Аккаунт: Ely.by» в Discord. */
+const account = computed(() => {
+	const u = popover.userId === myId.value ? me.value : user.value
+	return u?.provider === 'ely' ? 'Ely.by' : 'Microsoft'
+})
+
+const relationLabel = computed(() => {
+	switch (relationOf(popover.userId)) {
+		case 'friend':
+			return t('app.messenger.relation.friend', 'Друг')
+		case 'incoming':
+			return t('app.messenger.relation.incoming', 'Входящая заявка')
+		case 'outgoing':
+			return t('app.messenger.relation.outgoing', 'Исходящая заявка')
+		default:
+			return t('app.messenger.friends.blockedBadge', 'Заблокирован')
+	}
+})
+
+const relationShown = computed(() => {
+	const rel = relationOf(popover.userId)
+	return rel !== 'none' && rel !== 'self'
+})
+
+/** Серверы, где состоят и этот игрок, и я — блок «Общие серверы» в Discord. */
+const mutual = computed(() => {
+	const id = popover.userId
+	if (!id) return []
+	return state.conversations.filter((conv) => !conv.dm && memberOf(conv, id))
+})
+
+function openShared(id: string): void {
+	closePopover()
+	openServer(id)
+}
+
 function profile(): void {
 	const id = popover.userId
 	closePopover()
@@ -154,7 +215,11 @@ async function kick(): Promise<void> {
 <template>
 	<FloatingMenu :anchor="popover.anchor" placement="left-start" :width="300" @close="closePopover">
 		<div v-if="popover.userId" class="msgr-pop">
-			<div class="msgr-pop__banner" />
+			<div
+				class="msgr-pop__banner"
+				:class="{ 'is-empty': !card.bannerImage && !accent }"
+				:style="bannerStyle"
+			/>
 			<div class="msgr-pop__avatar">
 				<UserAvatar
 					:user-id="popover.userId"
@@ -168,6 +233,16 @@ async function kick(): Promise<void> {
 				<h3>{{ name }}</h3>
 				<span class="msgr-pop__handle">{{ user?.username || popover.name }}</span>
 				<span class="msgr-pop__status">{{ statusLabel }}</span>
+				<div class="msgr-pop__meta">
+					<div class="msgr-pop__meta-row">
+						<span>{{ t('app.messenger.pop.account', 'Аккаунт') }}</span>
+						<b>{{ account }}</b>
+					</div>
+					<div v-if="relationShown" class="msgr-pop__meta-row">
+						<span>{{ t('app.messenger.pop.relation', 'Отношение') }}</span>
+						<b>{{ relationLabel }}</b>
+					</div>
+				</div>
 				<div
 					v-if="roles.length || member?.role === 'owner' || member?.role === 'admin'"
 					class="msgr-pop__roles"
@@ -186,7 +261,7 @@ async function kick(): Promise<void> {
 				</div>
 				<div class="msgr-pop__actions">
 					<button type="button" class="msgr-pop__primary" @click="profile">
-						<UserIcon /> {{ t('app.messenger.viewProfile', 'Посмотреть профиль') }}
+						<UserIcon /> {{ t('app.messenger.viewProfile', 'Открыть полный профиль') }}
 					</button>
 					<template v-if="!self && !user?.bot">
 						<button type="button" @click="write">
@@ -211,6 +286,27 @@ async function kick(): Promise<void> {
 						<span class="msgr-pop__assign-name">{{ role.name }}</span>
 						<CheckIcon v-if="hasRole(role.id)" />
 					</button>
+				</div>
+				<div v-if="mutual.length" class="msgr-pop__mutual">
+					<span class="msgr-pop__mutual-title">{{
+						t('app.messenger.pop.mutual', 'Общие серверы ({n})', { n: mutual.length })
+					}}</span>
+					<button
+						v-for="conv in mutual.slice(0, 6)"
+						:key="conv.id"
+						type="button"
+						class="msgr-pop__mutual-item"
+						@click="openShared(conv.id)"
+					>
+						<span class="msgr-pop__mutual-avatar">
+							<img v-if="conv.avatarUrl" :src="conv.avatarUrl" alt="" draggable="false" />
+							<UserIcon v-else />
+						</span>
+						<span class="msgr-pop__mutual-name">{{ conv.title }}</span>
+					</button>
+					<span v-if="mutual.length > 6" class="msgr-pop__mutual-more">{{
+						t('app.messenger.pop.mutualMore', 'и ещё {n}…', { n: mutual.length - 6 })
+					}}</span>
 				</div>
 				<div class="msgr-pop__links">
 					<button
@@ -250,6 +346,12 @@ async function kick(): Promise<void> {
 .msgr-pop__banner {
 	height: 4.2rem;
 	background: linear-gradient(135deg, var(--color-brand), #4a1572);
+	background-size: cover;
+	background-position: center;
+}
+
+.msgr-pop__banner.is-empty {
+	background: linear-gradient(135deg, var(--color-brand), #4a1572);
 }
 
 .msgr-pop__avatar {
@@ -284,6 +386,36 @@ async function kick(): Promise<void> {
 	flex-wrap: wrap;
 	gap: 0.3rem;
 	margin-top: 0.6rem;
+}
+
+.msgr-pop__meta {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	margin-top: 0.55rem;
+	padding: 0.5rem 0.6rem;
+	border-radius: 6px;
+	background: rgba(0, 0, 0, 0.28);
+}
+
+.msgr-pop__meta-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.6rem;
+	font-size: 0.78rem;
+}
+
+.msgr-pop__meta-row span {
+	color: var(--color-secondary);
+}
+
+.msgr-pop__meta-row b {
+	overflow: hidden;
+	color: var(--color-contrast);
+	font-weight: 600;
+	text-align: right;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .msgr-pop__role {
@@ -418,6 +550,80 @@ async function kick(): Promise<void> {
 	margin-top: 0.5rem;
 	padding-top: 0.4rem;
 	border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.msgr-pop__mutual {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	margin-top: 0.6rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.msgr-pop__mutual-title {
+	color: var(--color-secondary);
+	font-size: 0.72rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.msgr-pop__mutual-item {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.25rem 0.35rem;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--color-base);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.12s ease;
+}
+
+.msgr-pop__mutual-item:hover {
+	background: var(--msgr-btn);
+}
+
+.msgr-pop__mutual-avatar {
+	display: grid;
+	width: 1.7rem;
+	height: 1.7rem;
+	flex-shrink: 0;
+	place-items: center;
+	border-radius: 50%;
+	background: var(--msgr-btn2);
+	color: var(--color-secondary);
+	overflow: hidden;
+}
+
+.msgr-pop__mutual-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.msgr-pop__mutual-avatar svg {
+	width: 0.85rem;
+	height: 0.85rem;
+}
+
+.msgr-pop__mutual-name {
+	overflow: hidden;
+	color: var(--color-contrast);
+	font-size: 0.8rem;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.msgr-pop__mutual-more {
+	padding-left: 0.35rem;
+	color: var(--color-secondary);
+	font-size: 0.72rem;
 }
 
 .msgr-pop__blocked {

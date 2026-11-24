@@ -4323,6 +4323,18 @@
 	"app.messenger.plus.image": {
 		"message": "Image or GIF"
 	},
+	"app.messenger.pop.account": {
+		"message": "Account"
+	},
+	"app.messenger.pop.mutual": {
+		"message": "Mutual servers ({n})"
+	},
+	"app.messenger.pop.mutualMore": {
+		"message": "and {n} more…"
+	},
+	"app.messenger.pop.relation": {
+		"message": "Relationship"
+	},
 	"app.messenger.rail": {
 		"message": "Servers"
 	},
@@ -4334,6 +4346,15 @@
 	},
 	"app.messenger.reconnect": {
 		"message": "Reconnect"
+	},
+	"app.messenger.relation.friend": {
+		"message": "Friend"
+	},
+	"app.messenger.relation.incoming": {
+		"message": "Incoming request"
+	},
+	"app.messenger.relation.outgoing": {
+		"message": "Outgoing request"
 	},
 	"app.messenger.replyingTo": {
 		"message": "Replying to"
@@ -4618,7 +4639,7 @@
 		"message": "{name} is typing…"
 	},
 	"app.messenger.viewProfile": {
-		"message": "View profile"
+		"message": "Open full profile"
 	},
 	"app.messenger.viewingOlder": {
 		"message": "You're viewing older messages"

@@ -637,7 +637,7 @@ function mention(name: string, el: HTMLElement): void {
 				<HashIcon /> {{ t('app.messenger.copy.id', 'Копировать ID сообщения') }}
 			</button>
 			<button type="button" class="msgr-menu-item" @click="showAuthor">
-				<UserIcon /> {{ t('app.messenger.viewProfile', 'Посмотреть профиль') }}
+				<UserIcon /> {{ t('app.messenger.viewProfile', 'Открыть полный профиль') }}
 			</button>
 			<div class="msgr-menu-sep" />
 			<button v-if="!mine" type="button" class="msgr-menu-item is-danger" @click="report">

@@ -11,6 +11,9 @@
 			external-navigation
 			:in-app-paths="['/organization/', '/collection/']"
 		>
+			<template v-if="isOwnProfile" #sidebar>
+				<LastServerCard :user-id="user?.id" />
+			</template>
 			<template #project-actions="{ project }">
 				<Button
 					v-if="project.minecraft_server == null"
@@ -44,6 +47,7 @@ import {
 	Button,
 	commonMessages,
 	defineMessages,
+	injectAuth,
 	injectNotificationManager,
 	provideUserProfile,
 	UserProfilePageLayout,
@@ -53,6 +57,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 import { onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 
+import LastServerCard from '@/components/ui/world/LastServerCard.vue'
 import { injectSettingsActions } from '@/features/settings/settings-actions'
 import { layoutFor } from '@/helpers/portalrinth-layouts.ts'
 import {
@@ -78,6 +83,11 @@ const { formatMessage } = useVIntl()
 const { handleError } = injectNotificationManager()
 const { install: installVersion } = injectContentInstall()
 const installingProjectIds = ref(new Set<string>())
+
+const auth = injectAuth()
+const isOwnProfile = computed(
+	() => !!auth.user.value?.id && !!user.value?.id && auth.user.value.id === user.value.id,
+)
 
 const messages = defineMessages({
 	installToInstance: {

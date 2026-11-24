@@ -5423,5 +5423,24 @@
 	},
 	"app.messenger.xfer.inlineLimit": {
 		"message": "Files over 24 MB can only be sent in direct chats — the server rejects them"
-	}
+	},
+	"app.settings.plugins.author": "Author",
+	"app.settings.plugins.enabled": "Enabled",
+	"app.settings.plugins.apply": "Apply",
+	"app.settings.plugins.close": "Close",
+	"app.settings.plugins.catalog.button": "Catalog",
+	"app.settings.plugins.catalog.search": "Search plugins…",
+	"app.settings.plugins.catalog.filter.all": "All",
+	"app.settings.plugins.catalog.filter.theme": "Themes",
+	"app.settings.plugins.catalog.filter.extension": "Extensions",
+	"app.settings.plugins.catalog.filter.content": "Content sources",
+	"app.settings.plugins.catalog.no-results": "Nothing found",
+	"app.settings.plugins.catalog.no-results.description": "Try another search — or refresh the catalog.",
+	"app.profile.last-server.title": "Last server",
+	"app.profile.last-server.empty": "Nothing here yet",
+	"app.profile.last-server.empty-description": "Join any server in Minecraft and it will be remembered here.",
+	"app.profile.last-server.play": "Join",
+	"app.profile.last-server.offline": "Offline",
+	"app.profile.last-server.online": "{online}/{max} online",
+	"app.profile.last-server.joining": "Joining…"
 }

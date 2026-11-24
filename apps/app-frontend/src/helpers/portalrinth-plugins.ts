@@ -69,6 +69,10 @@ export interface PluginManifest {
 	homepage?: string
 	repository?: string
 	tags?: string[]
+	/** Banner (screenshot) on top of the card, as a URL or a data URL. */
+	banner?: string
+	/** The plugin's own icon, as a URL or a data URL. */
+	icon?: string
 	/** Legacy field: same meaning as `styles`. */
 	css?: string[]
 	/** Paths of the CSS files inside the archive, in apply order. */
@@ -400,6 +404,8 @@ function normalizeManifest(raw: Record<string, unknown>, fallbackName: string): 
 		homepage: typeof raw.homepage === 'string' ? raw.homepage : undefined,
 		repository: typeof raw.repository === 'string' ? raw.repository : undefined,
 		tags: stringList(raw.tags),
+		banner: typeof raw.banner === 'string' ? raw.banner : undefined,
+		icon: typeof raw.icon === 'string' ? raw.icon : undefined,
 		css: stringList(raw.css),
 		styles: stringList(raw.styles),
 		entry: typeof raw.entry === 'string' ? raw.entry : undefined,
@@ -433,10 +439,38 @@ function assertTextLimit(files: Record<string, string>, css: string) {
 	}
 }
 
+/** A picture from the archive, as a data URL the card can show offline. */
+const ICON_MAX_BYTES = 256 * 1024
+const ICON_MIME: Record<string, string> = {
+	png: 'image/png',
+	jpg: 'image/jpeg',
+	jpeg: 'image/jpeg',
+	webp: 'image/webp',
+	gif: 'image/gif',
+	svg: 'image/svg+xml',
+}
+
+function mimeOfIcon(path: string): string | undefined {
+	return ICON_MIME[path.split('.').pop()?.toLowerCase() ?? '']
+}
+
+async function zipPicture(archive: JSZip, path: string | undefined): Promise<string | undefined> {
+	if (!path) return undefined
+	if (/^(data|https?):/i.test(path)) return path
+	const file = archive.files[path] ?? archive.files[path.replace(/^\//, '')]
+	if (!file || file.dir) return undefined
+	const base64 = await file.async('base64')
+	if (base64.length > (ICON_MAX_BYTES * 4) / 3) return undefined
+	const mime = mimeOfIcon(path)
+	if (!mime) return undefined
+	return `data:${mime};base64,${base64}`
+}
+
 async function installFromArchive(
 	data: ArrayBuffer,
 	source: InstalledPlugin['source'],
 	fallbackName: string,
+	catalogBanner?: string,
 ): Promise<void> {
 	let archive: JSZip
 	try {
@@ -500,12 +534,15 @@ async function installFromArchive(
 		throw new Error('В архиве нет ни стилей, ни кода плагина')
 	}
 	assertTextLimit(files, css)
+	manifest.banner = manifest.banner ?? (source === 'catalog' ? catalogBanner : undefined)
+	manifest.icon = await zipPicture(archive, manifest.icon)
 	upsertPlugin({
 		manifest,
 		css,
 		files,
 		values: defaultValues(manifest),
-		enabled: true,
+		// Re-installing (an update) keeps the toggle the player chose before.
+		enabled: plugins.find((plugin) => plugin.manifest.id === manifest.id)?.enabled ?? true,
 		installedAt: new Date().toISOString(),
 		source,
 	})
@@ -670,7 +707,7 @@ export async function installFromCatalog(entry: CatalogPlugin): Promise<void> {
 		const hash = await sha256Hex(new Uint8Array(buffer))
 		if (hash !== entry.sha256) throw new Error('Контрольная сумма архива не совпала')
 	}
-	await installFromArchive(buffer, 'catalog', entry.id)
+	await installFromArchive(buffer, 'catalog', entry.id, entry.banner_url)
 }
 
 /* ------------------------------- worker run ------------------------------- */

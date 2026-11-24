@@ -8025,5 +8025,24 @@
 	},
 	"app.messenger.xfer.inlineLimit": {
 		"message": "Файлы больше 24 МБ можно отправить только в личном чате — сервер их не принимает"
-	}
+	},
+	"app.settings.plugins.author": "Автор",
+	"app.settings.plugins.enabled": "Включён",
+	"app.settings.plugins.apply": "Применить",
+	"app.settings.plugins.close": "Закрыть",
+	"app.settings.plugins.catalog.button": "Каталог",
+	"app.settings.plugins.catalog.search": "Поиск плагинов…",
+	"app.settings.plugins.catalog.filter.all": "Все",
+	"app.settings.plugins.catalog.filter.theme": "Темы",
+	"app.settings.plugins.catalog.filter.extension": "Расширения",
+	"app.settings.plugins.catalog.filter.content": "Источники",
+	"app.settings.plugins.catalog.no-results": "Ничего не найдено",
+	"app.settings.plugins.catalog.no-results.description": "Попробуйте другой запрос — или обновите каталог.",
+	"app.profile.last-server.title": "Последний сервер",
+	"app.profile.last-server.empty": "Пока-что ничего нет",
+	"app.profile.last-server.empty-description": "Зайди на любой сервер в Minecraft — он запомнится здесь.",
+	"app.profile.last-server.play": "Играть",
+	"app.profile.last-server.offline": "Не в сети",
+	"app.profile.last-server.online": "{online}/{max} онлайн",
+	"app.profile.last-server.joining": "Подключаюсь…"
 }

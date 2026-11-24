@@ -9,6 +9,7 @@ import {
 	hostedAddress,
 	type HostedServerView,
 	hosting_command,
+	hosting_file_create_dir,
 	hosting_file_read,
 	hosting_file_write,
 	hosting_files,
@@ -23,6 +24,7 @@ import {
 	hosting_stop,
 	isHostedActive,
 } from './hosting'
+import { proxiedFetch } from './proxy-fetch'
 
 const STATUS: Record<string, string> = {
 	stopped: 'выключен',
@@ -370,6 +372,57 @@ function houseCommands(style: string, anchor: Anchor): string[] {
 		commands.push(`setblock ${fx - px} ${ground + 1} ${fz - pz} bookshelf`)
 	}
 	return commands
+}
+
+/**
+ * Размер файла структуры не бесконечен: сетевые каталоги любят крупные постройки,
+ * но гонять десятки мегабайт через консольный пайп незачем.
+ */
+const STRUCTURE_LIMIT = 10 * 1024 * 1024
+
+function sanitizeStructureName(raw: string): string {
+	return (
+		raw
+			.trim()
+			.toLowerCase()
+			.replace(/[^a-z0-9_-]+/g, '_')
+			.replace(/^_+|_+$/g, '')
+			.slice(0, 40) || 'structure'
+	)
+}
+
+/** Папка мира сервера: та, где лежит level.dat (мир мог переименовать кто угодно). */
+async function findWorldFolder(server: HostedServerView): Promise<string | null> {
+	const entries = await hosting_files(server.id, '.').catch(() => null)
+	if (!entries) return null
+	const dirs = entries.filter((item) => item.dir).map((item) => item.name)
+	const candidates = [
+		...dirs.filter((name) => name.toLowerCase() === 'world'),
+		...dirs.filter((name) => name.toLowerCase().includes('world')),
+		...dirs.filter(
+			(name) => !/^(plugins|mods|config|logs|libraries|cache|versions|worlds?)$/i.test(name),
+		),
+	].slice(0, 8)
+	for (const folder of candidates) {
+		const marker = await hosting_file_read(server.id, `${folder}/level.dat`).catch(() => null)
+		if (marker !== null) return folder
+	}
+	return null
+}
+
+/** Где у сервера лежат схематики WorldEdit/FastAsyncWorldEdit — иначе ставить некуда. */
+const SCHEMATIC_DIRS = [
+	'plugins/WorldEdit/schematics',
+	'plugins/FastAsyncWorldEdit/schematics',
+	'config/worldedit/schematics',
+]
+
+async function findSchematicDir(server: HostedServerView): Promise<string | null> {
+	for (const dir of SCHEMATIC_DIRS) {
+		const entries = await hosting_files(server.id, dir).catch(() => null)
+		if (entries !== null) return dir
+	}
+	return null
 }
 
 registerAiToolHandler(async (tool, args) => {
@@ -773,6 +826,118 @@ registerAiToolHandler(async (tool, args) => {
 				...(errors.length ? ['Ошибки:', ...errors.slice(0, 10)] : []),
 				'Площадка вокруг игрока могла быть занята: при ошибках предложи другое место или расчисти его hosting_build.',
 			].join('\n')
+		}
+		case 'hosting_structure': {
+			const [target, raw] = splitArgs(args)
+			const server = await resolveServer(target)
+			if (typeof server === 'string') return server
+			if (server.status !== 'running') return notRunning(server)
+			const parts = raw
+				.split('::')
+				.map((part) => part.trim())
+				.filter(Boolean)
+			const url = parts[0] ?? ''
+			const name = sanitizeStructureName(parts[1] || url.split('?')[0].split('/').pop() || '')
+			if (!url || !/^https?:\/\//i.test(url))
+				return 'Нужна ПРЯМАЯ ссылка на файл структуры: <<hosting_structure|сервер::https://…/house.nbt::имя::x y z>>. Ссылка на страницу не годится — ищи raw-ссылку (например raw.githubusercontent.com) через web_search.'
+			noteAgentThought(`Скачиваю структуру «${name}» на «${server.name}»`)
+			let response: Response
+			try {
+				response = await proxiedFetch(url)
+			} catch {
+				try {
+					response = await fetch(url)
+				} catch {
+					return `Не удалось скачать ${url} — сеть не пустила. Попробуй другой источник.`
+				}
+			}
+			if (!response.ok)
+				return `Ссылка ответила ${response.status}. Нужна прямая ссылка на сам файл.`
+			const buffer = await response.arrayBuffer()
+			if (buffer.byteLength > STRUCTURE_LIMIT)
+				return `Файл слишком большой (${formatSize(buffer.byteLength)}) — лимит 10 МБ.`
+			const path = url.split('?')[0].toLowerCase()
+			const coords = (parts[2] ?? '')
+				.match(/-?\d+/g)
+				?.slice(0, 3)
+				.map((n) => Number.parseInt(n, 10))
+			const bytes = new Uint8Array(buffer)
+
+			// .schem/.schematic — схематик WorldEdit: в папку схематиков, затем schem load + paste -o
+			if (/\.(schem|schematic)$/.test(path)) {
+				const dir = await findSchematicDir(server)
+				if (!dir)
+					return `Схематики держит WorldEdit/FastAsyncWorldEdit, а на «${server.name}» его нет. Поставить: <<hosting_install|${server.id}::worldedit>> (или fastasyncworldedit), потом повторить.`
+				const written = await hosting_file_write(server.id, `${dir}/${name}.schem`, bytes).then(
+					() => true,
+					() => false,
+				)
+				if (!written) return `Не удалось записать ${dir}/${name}.schem.`
+				const answer = (await runCommands(server, [`schem load ${name}`, 'paste -o'], 300)).map(
+					stripHead,
+				)
+				const errors = answer.filter((line) => COMMAND_ERROR_RE.test(line))
+				return [
+					`Схематик ${name}.schem положен в ${dir}/ на «${server.name}» и вставлен командой paste -o — на то место, где постройку сохранили.`,
+					answer.length ? `Консоль:\n${answer.slice(-8).join('\n')}` : '(сервер ничего не ответил)',
+					...(errors.length ? ['Ошибки:', ...errors.slice(0, 6)] : []),
+					'Если консоль не поняла schem/paste — на ядре другой плагин схематиков; проверь hosting_plugins и консоль hosting_console. Paste ставит постройку по СТАРЫМ координатам — перенести можно hosting_build (clone) или самим schematics-плагином.',
+				].join('\n')
+			}
+
+			// .nbt/.mcstructure — ванильная структура: в <мир>/structures, затем place template
+			if (/\.(nbt|mcstructure)$/.test(path)) {
+				const world = await findWorldFolder(server)
+				if (!world)
+					return `Не нашёл папку мира на «${server.name}» (ищу level.dat). Список папок: <<hosting_files|${server.id}::.>>.`
+				const structures = `${world}/structures`
+				await hosting_file_create_dir(server.id, structures).catch(() => undefined)
+				const written = await hosting_file_write(
+					server.id,
+					`${structures}/${name}.nbt`,
+					bytes,
+				).then(
+					() => true,
+					() => false,
+				)
+				if (!written) return `Не удалось записать ${structures}/${name}.nbt.`
+				// Позиция: назвал игрок → она; один игрок в сети → перед ним; иначе спросим.
+				let at: number[] | null = coords && coords.length === 3 ? coords : null
+				if (!at && server.players.length === 1) {
+					const anchor = await playerAnchor(server, server.players[0])
+					if (typeof anchor !== 'string') {
+						const dir = facingFromYaw(anchor.yaw)
+						at = [
+							Math.floor(anchor.x) + dir.dx * 3,
+							Math.floor(anchor.y),
+							Math.floor(anchor.z) + dir.dz * 3,
+						]
+					}
+				}
+				if (!at)
+					return `Структура ${name}.nbt записана в ${structures}/. Куда ставить? Дай координаты: <<hosting_structure|${server.id}::${url}::${name}::x y z>> (позицию игрока знает hosting_player).`
+				const [x, y, z] = at
+				let answer = (
+					await runCommands(server, [`place template ${name} ${x} ${y} ${z}`], 300)
+				).map(stripHead)
+				if (answer.some((line) => COMMAND_ERROR_RE.test(line))) {
+					// Версии 1.19.4–1.20.1 называют ту же команду «place structure».
+					answer = (await runCommands(server, [`place structure ${name} ${x} ${y} ${z}`], 300)).map(
+						stripHead,
+					)
+				}
+				const errors = answer.filter((line) => COMMAND_ERROR_RE.test(line))
+				return [
+					`Структура ${name}.nbt → ${structures}/ на «${server.name}», ставлю в ${x} ${y} ${z}.`,
+					answer.length ? `Консоль:\n${answer.slice(-6).join('\n')}` : '(сервер ничего не ответил)',
+					...(errors.length ? ['Ошибки:', ...errors.slice(0, 6)] : []),
+					'«Unknown template» — файл не ванильный .nbt; «Unknown command» у обоих вариантов — версия старше 1.19.4, тогда только hosting_build. Повернуть: <<hosting_cmd|сервер::place template ' +
+						`${name} ${x} ${y} ${z} 90` +
+						'>>.',
+				].join('\n')
+			}
+
+			return 'Не понял формат файла. Поддерживаю .nbt (ванильная структура) и .schem/.schematic (WorldEdit). Прямая ссылка должна вести на сам файл, а не на страницу.'
 		}
 		default:
 			return null

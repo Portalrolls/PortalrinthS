@@ -5412,9 +5412,6 @@
 	"app.messenger.error.invalidAttachment": {
 		"message": "The server rejected the attachment (24 MB limit) — send large files in direct chats"
 	},
-	"app.messenger.game.playing": {
-		"message": "In game"
-	},
 	"app.messenger.idCopied": {
 		"message": "ID copied"
 	},

@@ -121,7 +121,10 @@ function stripHead(line: string) {
 }
 
 const COMMAND_ERROR_RE =
-	/unknown|incorrect|invalid|expected|no (?:player|entity|entities|block|item)|could not|cannot|can't|not loaded|out of (?:the )?world|too many blocks|failed|<--\[HERE\]/i
+	/unknown|incorrect|invalid|expected|no (?:player|entity|entities|block|item)|could not|cannot|can't|not loaded|out of (?:the )?world|too many blocks|failed|<--\[HERE\]|нет (?:игрок|цели|сущност|такого)|не найден|не найдена|не найдено|неизвестн|неверн|неправильн|не удалось|ошибк/i
+
+/** Ошибка про игрока (ник не совпал или офлайн) — для честной подсказки модели. */
+const PLAYER_ERROR_RE = /player|игрок|ник/i
 
 function atLeast(version: string, major: number, minor: number, patch = 0) {
 	const [a = 0, b = 0, c = 0] = version.split(/[.-]/).map((part) => Number.parseInt(part, 10) || 0)
@@ -483,10 +486,26 @@ registerAiToolHandler(async (tool, args) => {
 				return 'Нет команды. Формат: <<hosting_cmd|сервер::команда;;команда>>.'
 			if (server.status !== 'running') return notRunning(server)
 			const answer = (await runCommands(server, commands)).slice(-30)
+			const errors = answer.filter((line) => COMMAND_ERROR_RE.test(line))
+			// Честная пометка провала: если сервер не принял команды, ответ
+			// начинается с «Ошибка:» — шаг краснеет в карточке, модель видит
+			// провал явно, а не пересказывает консоль как успех.
+			const allBad = errors.length > 0 && errors.length >= commands.length
+			const playerMiss = errors.some((line) => PLAYER_ERROR_RE.test(line))
 			return [
-				`Консоль «${server.name}»:`,
+				allBad
+					? `Ошибка: сервер «${server.name}» не принял ${commands.length > 1 ? 'все команды' : 'команду'} — исправь и повтори:`
+					: `Консоль «${server.name}»:`,
 				...commands.map((command) => `> ${command}`),
 				answer.length ? answer.map(stripHead).join('\n') : '(сервер ничего не ответил)',
+				...(errors.length > 0 && !allBad
+					? [`Ошибки (${errors.length}):`, ...errors.slice(0, 6)]
+					: []),
+				...(playerMiss
+					? [
+							'Ник не совпал или игрок не в сети: точные ники онлайн — в <<hosting_list|сервер>> (строка «онлайн»). Спроси игрока через ask_user и повтори с точным ником.',
+						]
+					: []),
 			].join('\n')
 		}
 		case 'hosting_build': {
@@ -731,6 +750,18 @@ registerAiToolHandler(async (tool, args) => {
 			const answer = (await runCommands(server, [`give ${player} ${item} ${count}`], 60))
 				.map(stripHead)
 				.slice(-6)
+			const errors = answer.filter((line) => COMMAND_ERROR_RE.test(line))
+			// Сервер отклонил команду — честный «Ошибка:» вместо успешного вида:
+			// шаг краснеет, действие не считается выполненным, модель видит
+			// точную причину и может повторить с правильным ником/id.
+			if (errors.length > 0)
+				return [
+					`Ошибка: сервер не принял give ${player} ${item} ×${count}:`,
+					...answer,
+					PLAYER_ERROR_RE.test(errors.join(' '))
+						? `Ник не совпал или игрок не в сети (сейчас онлайн: ${server.players.join(', ') || 'никого'}). Уточни ник и повтори.`
+						: '«Unknown item» — неверный id; у модовых предметов префикс мода обязателен.',
+				].join('\n')
 			return [
 				`Выдаю ${item} ×${count} → ${player} на «${server.name}»:`,
 				answer.length ? answer.join('\n') : '(сервер ничего не ответил)',

@@ -8014,9 +8014,6 @@
 	"app.messenger.error.invalidAttachment": {
 		"message": "Сервер не принял вложение (лимит 24 МБ) — большие файлы отправляйте в личном чате"
 	},
-	"app.messenger.game.playing": {
-		"message": "В игре"
-	},
 	"app.messenger.idCopied": {
 		"message": "ID скопирован"
 	},

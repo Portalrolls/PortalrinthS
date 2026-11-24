@@ -6,6 +6,11 @@
  * мессенджера. Префикс --msgr-* namespaced, на остальное приложение не влияет.
  * Тёмная тема — Discord-серые по умолчанию; OLED переопределяет их на
  * «Modrinth, но чуть темнее» (см. блок .oled-mode ниже).
+ *
+ * Рядом с каждым цветом лежит его «твёрдая» копия --msgr-*-solid: она нужна
+ * блоку html.portalrinth-backdrop-active — когда за лаунчером стоит
+ * картинка-фон, мессенджер становится стеклом так же, как остальные страницы:
+ * те же цвета, но разбавленные прозрачностью, с блюром подложки.
  */
 :root {
 	--msgr-panel: #17181b;
@@ -25,31 +30,68 @@
 	--msgr-search: rgba(0, 0, 0, 0.4);
 	--msgr-ok: #23a55a;
 	--msgr-danger: #f23f43;
+	--msgr-surface-solid: #16171b;
+	--msgr-inset-solid: #111214;
+	--msgr-inset2-solid: #0e0f12;
+	--msgr-peer-solid: #18191c;
+	--msgr-rail-solid: #0d0e11;
+	--msgr-glass-solid: #14151a;
+	--msgr-glass2-solid: #0e0f13;
+	--msgr-side-solid: #131418;
+	--msgr-main-solid: #1b1c21;
 }
 
 /*
- * OLED: «Modrinth, но чуть темнее» — все панели тёмно-серые, никаких глухих
- * чёрных заливок: серые читаются на OLED-матрице лучше чистого #000 и всё
- * ещё заметно темнее обычного Modrinth-дарка. Рельс серверов, плашка юзера
- * снизу и список участников — полупрозрачное стекло, сквозь которое мягко
- * проходит фон и любой акцент.
+ * OLED: «Modrinth, но чуть темнее». Урок Раунда 70: полупрозрачный серый над
+ * чёрной подложкой OLED (--surface-1 — чистый #000) снова даёт чёрный, поэтому
+ * здесь все поверхности — плотные, видимо серые (посветлее Modrinth-OLED,
+ * заметно темнее обычного дарка). Никакого глухого чёрного.
  */
-.oled-mode {
-	--msgr-panel: #101014;
-	--msgr-surface: #19191e;
-	--msgr-inset: #1e1e24;
-	--msgr-inset2: #15151a;
-	--msgr-peer: #1f1f25;
-	--msgr-ring: #131318;
-	--msgr-btn: #2c2c33;
-	--msgr-btn2: #212127;
-	--msgr-btn3: #35353d;
-	--msgr-glass: rgba(15, 15, 20, 0.62);
-	--msgr-glass2: rgba(10, 10, 15, 0.74);
-	--msgr-rail: rgba(9, 9, 13, 0.58);
-	--msgr-side-bg: rgba(22, 23, 28, 0.85);
-	--msgr-main-bg: rgba(30, 31, 37, 0.8);
-	--msgr-search: rgba(255, 255, 255, 0.07);
+html.oled-mode {
+	--msgr-panel: #15151a;
+	--msgr-surface: #1d1d24;
+	--msgr-inset: #212129;
+	--msgr-inset2: #18181f;
+	--msgr-peer: #23232b;
+	--msgr-ring: #17171e;
+	--msgr-btn: #31323a;
+	--msgr-btn2: #25262e;
+	--msgr-btn3: #3c3d47;
+	--msgr-glass: rgba(32, 33, 40, 0.92);
+	--msgr-glass2: rgba(24, 25, 31, 0.94);
+	--msgr-rail: rgba(28, 29, 36, 0.95);
+	--msgr-side-bg: rgba(26, 27, 33, 0.95);
+	--msgr-main-bg: rgba(34, 35, 43, 0.93);
+	--msgr-search: rgba(255, 255, 255, 0.08);
+	--msgr-surface-solid: #1d1d24;
+	--msgr-inset-solid: #212129;
+	--msgr-inset2-solid: #18181f;
+	--msgr-peer-solid: #23232b;
+	--msgr-rail-solid: #1c1d24;
+	--msgr-glass-solid: #202128;
+	--msgr-glass2-solid: #181920;
+	--msgr-side-solid: #1a1b22;
+	--msgr-main-solid: #22232a;
+}
+
+/*
+ * Картинка-фон стоит — мессенджер стеклянный «как везде»: те же цвета, но
+ * разбавленные, и подложка под ними блюрится (blur уже стоит на рейле,
+ * сайдбаре, чате и списке участников). Обычные темы при этом не меняются —
+ * блок специфичнее .oled-mode и перекрывает его тоже: за фоном серость
+ * даёт сам фон, а не заливка.
+ */
+html.portalrinth-backdrop-active {
+	--msgr-surface: color-mix(in srgb, var(--msgr-surface-solid) 60%, transparent);
+	--msgr-inset: color-mix(in srgb, var(--msgr-inset-solid) 45%, transparent);
+	--msgr-inset2: color-mix(in srgb, var(--msgr-inset2-solid) 55%, transparent);
+	--msgr-peer: color-mix(in srgb, var(--msgr-peer-solid) 55%, transparent);
+	--msgr-rail: color-mix(in srgb, var(--msgr-rail-solid) 40%, transparent);
+	--msgr-glass: color-mix(in srgb, var(--msgr-glass-solid) 42%, transparent);
+	--msgr-glass2: color-mix(in srgb, var(--msgr-glass2-solid) 50%, transparent);
+	--msgr-side-bg: color-mix(in srgb, var(--msgr-side-solid) 46%, transparent);
+	--msgr-main-bg: color-mix(in srgb, var(--msgr-main-solid) 40%, transparent);
+	--msgr-search: rgba(255, 255, 255, 0.06);
 }
 
 .msgr-side {

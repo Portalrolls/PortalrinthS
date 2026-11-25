@@ -9,6 +9,8 @@ import {
 } from '@modrinth/assets'
 import { computed, ref } from 'vue'
 
+import { backgroundUrl } from '@/helpers/portalrinth-background'
+
 import FloatingMenu from './FloatingMenu.vue'
 import { useMessengerT } from './i18n'
 import type { PresenceStatus } from './model'
@@ -48,8 +50,11 @@ const currentLabel = computed(
 /** «Обо мне» из карточки профиля — как кастомный статус в Discord. */
 const customStatus = computed(() => cardOf(me.value?.id ?? '').bio.trim())
 
-/** Плашка снизу красится баннером своей карточки — как в Discord. */
+/** Плашка снизу красится баннером своей карточки — как в Discord. Когда
+ * за окном стоит картинка-фон, баннер убираем: поверх фона карточка
+ * смотрится лишней, панель остаётся просто прозрачным стеклом. */
 const panelStyle = computed(() => {
+	if (backgroundUrl.value) return {}
 	const card = cardOf(me.value?.id ?? '')
 	const accent = card.accent || card.bannerColor || ''
 	if (card.bannerImage) {
@@ -260,6 +265,15 @@ async function logout(): Promise<void> {
 .msgr-user__btn svg {
 	width: 1.15rem;
 	height: 1.15rem;
+}
+
+/* Фон стоит — панель просто прозрачная: никакой заливки и баннера, только
+ * второй слой блюра поверх уже стеклянного сайдбара (первый — на панели
+ * чата и списка участников), чтобы текст читался на любой картинке. */
+html.portalrinth-backdrop-active .msgr-user {
+	background-color: transparent;
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
 }
 
 .msgr-user__card {

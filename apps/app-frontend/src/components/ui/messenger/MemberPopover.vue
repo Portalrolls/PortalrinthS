@@ -213,7 +213,13 @@ async function kick(): Promise<void> {
 </script>
 
 <template>
-	<FloatingMenu :anchor="popover.anchor" placement="left-start" :width="300" @close="closePopover">
+	<FloatingMenu
+		:anchor="popover.anchor"
+		placement="left-start"
+		:width="300"
+		variant="soft"
+		@close="closePopover"
+	>
 		<div v-if="popover.userId" class="msgr-pop">
 			<div
 				class="msgr-pop__banner"

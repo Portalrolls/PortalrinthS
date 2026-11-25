@@ -15,8 +15,11 @@ const props = withDefaults(
 			| 'left-start'
 		gap?: number
 		width?: number
+		/** soft — заметно прозрачнее при фоновой картинке: для профиля
+		 * во всплывашке, где плотность «+»-меню излишня. */
+		variant?: 'default' | 'soft'
 	}>(),
-	{ placement: 'bottom-start', gap: 6, width: 0 },
+	{ placement: 'bottom-start', gap: 6, width: 0, variant: 'default' },
 )
 
 const emit = defineEmits<{ close: [] }>()
@@ -155,7 +158,7 @@ defineExpose({ place })
 				v-if="anchor"
 				ref="el"
 				class="msgr-float"
-				:class="{ 'is-ready': ready }"
+				:class="{ 'is-ready': ready, 'msgr-float--soft': variant === 'soft' }"
 				:style="{
 					left: `${pos.left}px`,
 					top: `${pos.top}px`,
@@ -190,6 +193,12 @@ defineExpose({ place })
 
 .msgr-float.is-ready {
 	visibility: visible;
+}
+
+/* Профиль во всплывашке: при фоновой картинке стекло мягче обычных меню —
+ * прозрачности больше, но блюр остаётся, текст читается. */
+.msgr-float--soft {
+	background: var(--msgr-float-soft);
 }
 
 .msgr-float-enter-active {

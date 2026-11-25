@@ -18,6 +18,7 @@
 	--msgr-inset: #111214;
 	--msgr-inset2: #0e0f12;
 	--msgr-float: #111214;
+	--msgr-float-soft: #111214;
 	--msgr-peer: #18191c;
 	--msgr-ring: #1a1b1e;
 	--msgr-btn: #2b2d31;
@@ -55,6 +56,7 @@ html.oled-mode {
 	--msgr-inset: #212129;
 	--msgr-inset2: #18181f;
 	--msgr-float: #1e1e26;
+	--msgr-float-soft: #1e1e26;
 	--msgr-peer: #23232b;
 	--msgr-ring: #17171e;
 	--msgr-btn: #31323a;
@@ -92,6 +94,9 @@ html.portalrinth-backdrop-active {
 	/* Всплывашки и меню (то, что открывает «+», статусы, профиль) — заметно
            плотнее поверхностей: читать меню сквозь фон невозможно. */
 	--msgr-float: color-mix(in srgb, var(--msgr-float-solid) 88%, transparent);
+	/* Профиль во всплывашке (поповер участника) — мягче меню: прозрачное
+           стекло, а читаемость держит блюр, а не плотная заливка. */
+	--msgr-float-soft: color-mix(in srgb, var(--msgr-float-solid) 60%, transparent);
 	--msgr-peer: color-mix(in srgb, var(--msgr-peer-solid) 55%, transparent);
 	--msgr-rail: color-mix(in srgb, var(--msgr-rail-solid) 40%, transparent);
 	--msgr-glass: color-mix(in srgb, var(--msgr-glass-solid) 42%, transparent);

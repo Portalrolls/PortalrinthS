@@ -2001,7 +2001,7 @@
 		"message": "Экспорт темы"
 	},
 	"portalrinth.settings.themes.export-tip": {
-		"message": "Выгрузить тему в файл"
+		"message": "Экспорт"
 	},
 	"portalrinth.settings.themes.exported": {
 		"message": "Тема выгружена"
@@ -8062,5 +8062,32 @@
 	"app.profile.last-server.play": "Играть",
 	"app.profile.last-server.offline": "Не в сети",
 	"app.profile.last-server.online": "{online}/{max} онлайн",
-	"app.profile.last-server.joining": "Подключаюсь…"
+	"app.profile.last-server.joining": "Подключаюсь…",
+	"portalrinth.settings.accent-places.gear-tip": {
+		"message": "Выбрать места, которые идут под акцент"
+	},
+	"portalrinth.settings.accent-places.hint": {
+		"message": "Всё из списка берёт цвет акцента, пока включён главный переключатель сверху. Выключите место, чтобы оно осталось в своём цвете."
+	},
+	"portalrinth.settings.accent-places.brand": {
+		"message": "Фирменные иконки и логотип"
+	},
+	"portalrinth.settings.accent-places.platform": {
+		"message": "Платформа на странице модификации"
+	},
+	"portalrinth.settings.accent-places.updateall": {
+		"message": "Кнопка «Обновить всё»"
+	},
+	"portalrinth.settings.accent-places.clock": {
+		"message": "Иконка времени на часах"
+	},
+	"portalrinth.settings.accent-places.shortcuts": {
+		"message": "Иконка горячих клавиш"
+	},
+	"portalrinth.settings.accent-places.running": {
+		"message": "Запущенная сборка и кнопка «Остановить»"
+	},
+	"portalrinth.settings.accent-places.server": {
+		"message": "Кнопки сервера (перезапуск и остановка)"
+	}
 }

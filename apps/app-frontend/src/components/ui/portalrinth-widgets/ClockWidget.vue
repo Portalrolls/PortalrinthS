@@ -3,7 +3,7 @@
 		v-tooltip="tooltip"
 		class="flex cursor-default select-none items-center gap-1.5 rounded-xl border-none bg-transparent px-2 py-1 text-sm font-medium text-contrast"
 	>
-		<component :is="icon" class="size-4 shrink-0" :class="iconClass" />
+		<component :is="icon" class="portalrinth-accent-clock size-4 shrink-0" :class="iconClass" />
 		<span class="tabular-nums">{{ timeLabel }}</span>
 		<span v-if="pluginSafeMode" v-tooltip="safeModeTip" class="sm-badge" aria-label="Safe Mode">
 			SM

@@ -267,6 +267,7 @@ const tabs = [
 		}),
 		category: tabCategories.system,
 		icon: KeyboardIcon,
+		iconClass: 'portalrinth-accent-shortcuts',
 		content: HotkeysSettings,
 	},
 	{

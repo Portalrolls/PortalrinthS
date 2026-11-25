@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckIcon, DropdownIcon, PlusIcon, XIcon } from '@modrinth/assets'
+import { CheckIcon, DropdownIcon, PlusIcon, SettingsIcon, XIcon } from '@modrinth/assets'
 import {
 	AppearanceSettingsLayout,
 	Collapsible,
@@ -7,6 +7,7 @@ import {
 	Combobox,
 	commonMessages,
 	defineMessages,
+	IconButton,
 	injectAuth,
 	injectUserPreferences,
 	provideAppearanceSettings,
@@ -19,6 +20,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { platform } from '@tauri-apps/plugin-os'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+import type { IconsAccentPlace } from '@/composables/use-accent'
 import {
 	ACCENT_PRESETS,
 	accentColorFor,
@@ -28,12 +30,15 @@ import {
 	CUSTOM_ACCENT_ID,
 	DEFAULT_ACCENT_PRESET,
 	findAccentPreset,
+	ICONS_ACCENT_PLACES,
 	iconsAccent,
+	iconsAccentPlaces,
 	MAX_ACCENT_GRADIENT_STOPS,
 	removeCustomAccentColor,
 	setAccentGradientAnimated,
 	setAccentGradientSpeed,
 	setIconsAccent,
+	setIconsAccentPlace,
 	showAccent,
 	useAccentPreset,
 } from '@/composables/use-accent.ts'
@@ -124,6 +129,17 @@ const iconsAccentMode = computed({
 	get: () => iconsAccent.value,
 	set: setIconsAccent,
 })
+
+/** The gear unfolds the list of places the accent rule covers. */
+const placesOpen = ref(false)
+
+function placeOn(place: IconsAccentPlace): boolean {
+	return iconsAccentPlaces.value[place] !== false
+}
+
+function setPlace(place: IconsAccentPlace, on: boolean): void {
+	setIconsAccentPlace(place, on)
+}
 
 const loopAnimationMode = computed({
 	get: () => loopAnimation.value,
@@ -255,12 +271,59 @@ const messages = defineMessages({
 		defaultMessage:
 			'The Modrinth and CurseForge icons and our mark - in the title bar and on the desktop - take the accent\u2019s colour. A gradient gives them its first colour. Account icons keep their own.',
 	},
+	iconsAccentGearTip: {
+		id: 'portalrinth.settings.accent-places.gear-tip',
+		defaultMessage: 'Choose the places that follow the accent',
+	},
+	iconsAccentPlacesHint: {
+		id: 'portalrinth.settings.accent-places.hint',
+		defaultMessage:
+			'Everything listed here follows the accent while the master switch above is on. Turn a place off to leave it in its own colour.',
+	},
+	placeBrand: {
+		id: 'portalrinth.settings.accent-places.brand',
+		defaultMessage: 'Brand icons and logo',
+	},
+	placePlatform: {
+		id: 'portalrinth.settings.accent-places.platform',
+		defaultMessage: 'Platform badge on a project page',
+	},
+	placeUpdateall: {
+		id: 'portalrinth.settings.accent-places.updateall',
+		defaultMessage: '"Update all" button',
+	},
+	placeClock: {
+		id: 'portalrinth.settings.accent-places.clock',
+		defaultMessage: 'Clock time icon',
+	},
+	placeShortcuts: {
+		id: 'portalrinth.settings.accent-places.shortcuts',
+		defaultMessage: 'Hotkeys icon',
+	},
+	placeRunning: {
+		id: 'portalrinth.settings.accent-places.running',
+		defaultMessage: 'Running instance and "Stop"',
+	},
+	placeServer: {
+		id: 'portalrinth.settings.accent-places.server',
+		defaultMessage: 'Server control buttons',
+	},
 	accentTintDescription: {
 		id: 'app.appearance-settings.accent-tint.description',
 		defaultMessage:
 			"Gives the app's greys ╨а╨Ж╨атАЪ╨▓╨В╤Ь its backgrounds and its panels ╨а╨Ж╨атАЪ╨▓╨В╤Ь a faint cast of the same colour. The accent, the sidebar and the loading bar follow the preset either way.",
 	},
 })
+
+const placeMessages: Record<IconsAccentPlace, { id: string; defaultMessage: string }> = {
+	brand: messages.placeBrand,
+	platform: messages.placePlatform,
+	updateall: messages.placeUpdateall,
+	clock: messages.placeClock,
+	shortcuts: messages.placeShortcuts,
+	running: messages.placeRunning,
+	server: messages.placeServer,
+}
 
 type AppearanceSettingsState = {
 	interfaceFont: string
@@ -659,7 +722,39 @@ provideAppearanceSettings({
 					{{ formatMessage(messages.iconsAccentDescription) }}
 				</p>
 			</div>
-			<Toggle id="accent-icons" v-model="iconsAccentMode" aria-labelledby="accent-icons-label" />
+			<div class="flex items-center gap-1.5">
+				<IconButton
+					v-tooltip="formatMessage(messages.iconsAccentGearTip)"
+					type="quiet"
+					:label="formatMessage(messages.iconsAccentGearTip)"
+					:aria-expanded="placesOpen"
+					@click="placesOpen = !placesOpen"
+				>
+					<SettingsIcon class="transition-transform" :class="{ 'rotate-180': placesOpen }" />
+				</IconButton>
+				<Toggle id="accent-icons" v-model="iconsAccentMode" aria-labelledby="accent-icons-label" />
+			</div>
+		</div>
+		<div
+			v-if="placesOpen"
+			class="mt-2 flex flex-col gap-2.5 rounded-xl border border-solid border-surface-5 bg-surface-2 p-3"
+		>
+			<p class="m-0 text-xs text-secondary">
+				{{ formatMessage(messages.iconsAccentPlacesHint) }}
+			</p>
+			<div
+				v-for="place in ICONS_ACCENT_PLACES"
+				:key="place"
+				class="flex items-center justify-between gap-4"
+			>
+				<span class="text-sm text-primary">{{ formatMessage(placeMessages[place]) }}</span>
+				<Toggle
+					:model-value="placeOn(place)"
+					:disabled="!iconsAccentMode"
+					:aria-label="formatMessage(placeMessages[place])"
+					@update:model-value="(value: boolean) => setPlace(place, value)"
+				/>
+			</div>
 		</div>
 		<div class="mt-3 flex items-center justify-between gap-4">
 			<div class="min-w-0">

@@ -1338,7 +1338,7 @@
 		"message": "Export theme"
 	},
 	"portalrinth.settings.themes.export-tip": {
-		"message": "Export a theme to a file"
+		"message": "Export"
 	},
 	"portalrinth.settings.themes.exported": {
 		"message": "Theme exported"
@@ -5460,5 +5460,32 @@
 	"app.profile.last-server.play": "Join",
 	"app.profile.last-server.offline": "Offline",
 	"app.profile.last-server.online": "{online}/{max} online",
-	"app.profile.last-server.joining": "Joining…"
+	"app.profile.last-server.joining": "Joining…",
+	"portalrinth.settings.accent-places.gear-tip": {
+		"message": "Choose the places that follow the accent"
+	},
+	"portalrinth.settings.accent-places.hint": {
+		"message": "Everything listed here follows the accent while the master switch above is on. Turn a place off to leave it in its own colour."
+	},
+	"portalrinth.settings.accent-places.brand": {
+		"message": "Brand icons and logo"
+	},
+	"portalrinth.settings.accent-places.platform": {
+		"message": "Platform badge on a project page"
+	},
+	"portalrinth.settings.accent-places.updateall": {
+		"message": "\"Update all\" button"
+	},
+	"portalrinth.settings.accent-places.clock": {
+		"message": "Clock time icon"
+	},
+	"portalrinth.settings.accent-places.shortcuts": {
+		"message": "Hotkeys icon"
+	},
+	"portalrinth.settings.accent-places.running": {
+		"message": "Running instance and \"Stop\""
+	},
+	"portalrinth.settings.accent-places.server": {
+		"message": "Server control buttons (restart and stop)"
+	}
 }

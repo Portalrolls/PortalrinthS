@@ -167,19 +167,6 @@ function back() {
 					</div>
 					<div class="flex min-w-0 flex-1 flex-col gap-1.5">
 						<div class="flex flex-wrap items-center gap-1.5">
-							<span class="hosting-badge hosting-badge--blue">
-								{{ formatMessage(hostingMessages.selfHosted) }}
-							</span>
-							<span
-								class="hosting-badge"
-								:class="server.public_relay ? 'hosting-badge--green' : 'hosting-badge--muted'"
-							>
-								{{
-									formatMessage(
-										server.public_relay ? hostingMessages.public : hostingMessages.private,
-									)
-								}}
-							</span>
 							<span class="hosting-badge hosting-badge--muted">
 								{{ softwareLabels[server.software] ?? server.software }} {{ server.game_version }}
 							</span>
@@ -225,6 +212,7 @@ function back() {
 							v-tooltip="formatMessage(hostingMessages.restart)"
 							type="colored"
 							color="orange"
+							class="portalrinth-accent-server"
 							:loading="actions.isPending(server.id, 'restart')"
 							:disabled="!active || actions.isPending(server.id)"
 							:aria-label="formatMessage(hostingMessages.restart)"
@@ -235,6 +223,7 @@ function back() {
 						<Button
 							v-tooltip="formatMessage(active ? hostingMessages.stop : hostingMessages.start)"
 							type="colored"
+							class="portalrinth-accent-server"
 							:color="active ? 'red' : 'brand'"
 							:loading="actions.isPending(server.id, 'power')"
 							:disabled="server.status === 'stopping' || actions.isPending(server.id)"

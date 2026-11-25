@@ -21,7 +21,11 @@
 					class="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-solid border-surface-5 bg-surface-2 p-1"
 					:aria-label="source.label"
 				>
-					<component :is="source.icon" class="size-full" :class="source.iconClass" />
+					<component
+						:is="source.icon"
+						class="portalrinth-accent-platform size-full"
+						:class="source.iconClass"
+					/>
 				</span>
 			</div>
 		</template>

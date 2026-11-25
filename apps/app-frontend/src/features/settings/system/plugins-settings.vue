@@ -390,6 +390,29 @@ function contentSourcesOf(plugin: InstalledPlugin) {
 
 const settingsTarget = ref<InstalledPlugin | null>(null)
 const settingsDraft = ref<Record<string, string | boolean | number>>({})
+/** Значения на момент открытия: сравнение с ними, а не с черновиком —
+ * черновик уже записан в цель при каждом изменении поля. */
+const settingsOriginal = ref<Record<string, string | boolean | number>>({})
+
+/** Баннер и иконка: свои, а если их нет — из записи каталога с тем же id
+ * (карточки, установленные до того, как каталог начал отдавать обложку). */
+function bannerOf(plugin: InstalledPlugin): string | undefined {
+	return (
+		plugin.manifest.banner ??
+		catalogPlugins.value.find((entry) => entry.id === plugin.manifest.id)?.banner_url
+	)
+}
+
+function iconOf(plugin: InstalledPlugin): string | undefined {
+	return (
+		plugin.manifest.icon ??
+		catalogPlugins.value.find((entry) => entry.id === plugin.manifest.id)?.icon_url
+	)
+}
+
+function initialOf(name: string): string {
+	return (name.trim()[0] ?? '?').toUpperCase()
+}
 
 function visibleFields(plugin: InstalledPlugin) {
 	return (plugin.manifest.settings ?? []).filter(
@@ -400,6 +423,7 @@ function visibleFields(plugin: InstalledPlugin) {
 function openSettings(plugin: InstalledPlugin) {
 	settingsTarget.value = plugin
 	settingsDraft.value = { ...plugin.values }
+	settingsOriginal.value = { ...plugin.values }
 	settingsModal.value?.show()
 }
 
@@ -419,7 +443,7 @@ async function saveSettings() {
 	const plugin = settingsTarget.value
 	if (!plugin) return
 	for (const [key, value] of Object.entries(settingsDraft.value)) {
-		if (plugin.values[key] !== value) setPluginSetting(plugin.manifest.id, key, value)
+		if (settingsOriginal.value[key] !== value) setPluginSetting(plugin.manifest.id, key, value)
 	}
 	settingsModal.value?.hide()
 }
@@ -500,7 +524,7 @@ function toggleSafeMode(on: boolean) {
 				</Button>
 			</template>
 		</EmptyState>
-		<div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+		<div v-else class="grid grid-cols-1 gap-4 2xl:grid-cols-2">
 			<div
 				v-for="plugin in plugins"
 				:key="plugin.manifest.id"
@@ -510,8 +534,8 @@ function toggleSafeMode(on: boolean) {
 					class="relative aspect-[2/1] w-full overflow-hidden border-0 border-b border-solid border-surface-5 bg-surface-3"
 				>
 					<img
-						v-if="plugin.manifest.banner"
-						:src="plugin.manifest.banner"
+						v-if="bannerOf(plugin)"
+						:src="bannerOf(plugin)"
 						alt=""
 						class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
 					/>
@@ -530,16 +554,16 @@ function toggleSafeMode(on: boolean) {
 				<div class="flex grow flex-col gap-2 p-4">
 					<div class="flex gap-3">
 						<img
-							v-if="plugin.manifest.icon"
-							:src="plugin.manifest.icon"
+							v-if="iconOf(plugin)"
+							:src="iconOf(plugin)"
 							alt=""
 							class="-mt-9 size-14 shrink-0 rounded-xl border-2 border-solid border-surface-2 bg-surface-3 object-cover shadow-md"
 						/>
 						<span
 							v-else
-							class="-mt-9 flex size-14 shrink-0 items-center justify-center rounded-xl border-2 border-solid border-surface-2 bg-surface-4 shadow-md"
+							class="-mt-9 flex size-14 shrink-0 items-center justify-center rounded-xl border-2 border-solid border-surface-2 bg-surface-4 text-xl font-extrabold text-secondary shadow-md"
 						>
-							<PlugIcon class="size-6 text-secondary" aria-hidden="true" />
+							{{ initialOf(plugin.manifest.name) }}
 						</span>
 						<div class="flex min-w-0 flex-col gap-0.5 pt-1">
 							<div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -586,7 +610,7 @@ function toggleSafeMode(on: boolean) {
 						{{ plugin.manifest.pages.map((page) => page.title).join(', ') }} —
 						{{ formatMessage(messages.pagesHint) }}
 					</p>
-					<div class="mt-auto flex items-center justify-between gap-2 pt-1">
+					<div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
 						<div class="flex items-center gap-2">
 							<Toggle
 								:model-value="plugin.enabled"
@@ -763,9 +787,9 @@ function toggleSafeMode(on: boolean) {
 								/>
 								<span
 									v-else
-									class="-mt-9 flex size-14 shrink-0 items-center justify-center rounded-xl border-2 border-solid border-surface-2 bg-surface-4 shadow-md"
+									class="-mt-9 flex size-14 shrink-0 items-center justify-center rounded-xl border-2 border-solid border-surface-2 bg-surface-4 text-xl font-extrabold text-secondary shadow-md"
 								>
-									<PlugIcon class="size-6 text-secondary" aria-hidden="true" />
+									{{ initialOf(entry.name) }}
 								</span>
 								<div class="flex min-w-0 flex-col gap-0.5 pt-1">
 									<div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -823,7 +847,7 @@ function toggleSafeMode(on: boolean) {
 									</Button>
 								</div>
 							</div>
-							<div class="mt-auto flex items-center justify-between gap-2 pt-1">
+							<div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
 								<Button
 									size="sm"
 									:type="catalogStateOf(entry) === 'installed' ? 'outlined' : 'colored'"

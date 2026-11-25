@@ -10,28 +10,18 @@
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
+				<Button type="outlined" :disabled="busy || full" @click="runImport">
+					<DownloadIcon aria-hidden="true" />
+					{{ formatMessage(messages.import) }}
+				</Button>
+				<Button type="outlined" :disabled="busy || !savedThemes.length" @click="openExport">
+					<UploadIcon aria-hidden="true" />
+					{{ formatMessage(messages.export) }}
+				</Button>
 				<Button type="outlined" :disabled="busy" @click="openSave">
 					<SaveIcon aria-hidden="true" />
 					{{ formatMessage(messages.save) }}
 				</Button>
-				<IconButton
-					v-tooltip="formatMessage(messages.exportTip)"
-					type="quiet"
-					:label="formatMessage(messages.export)"
-					:disabled="busy || !savedThemes.length"
-					@click="openExport"
-				>
-					<UploadIcon aria-hidden="true" />
-				</IconButton>
-				<IconButton
-					v-tooltip="formatMessage(messages.importTip)"
-					type="quiet"
-					:label="formatMessage(messages.import)"
-					:disabled="busy || full"
-					@click="runImport"
-				>
-					<DownloadIcon aria-hidden="true" />
-				</IconButton>
 			</div>
 		</div>
 
@@ -259,7 +249,7 @@ const messages = defineMessages({
 	saved: { id: 'portalrinth.settings.themes.saved', defaultMessage: 'Theme saved' },
 	exportTip: {
 		id: 'portalrinth.settings.themes.export-tip',
-		defaultMessage: 'Export a theme to a file',
+		defaultMessage: 'Export',
 	},
 	importTip: {
 		id: 'portalrinth.settings.themes.import-tip',

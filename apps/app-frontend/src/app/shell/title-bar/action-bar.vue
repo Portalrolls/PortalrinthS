@@ -20,7 +20,7 @@
 		<SoundButton />
 		<SpeedTestButton />
 		<div
-			class="flex border-solid border-surface-5 text-sm font-medium items-center gap-2 py-1.5 px-3 rounded-xl border"
+			class="portalrinth-accent-running-pill flex border-solid border-surface-5 text-sm font-medium items-center gap-2 py-1.5 px-3 rounded-xl border"
 		>
 			<Transition name="nm-swap-seq" mode="out-in">
 				<div v-if="selectedProcess" :key="selectedProcess.uuid" class="flex items-center gap-2">
@@ -96,7 +96,7 @@
 											class="active:scale-95 flex"
 											@click.stop="stop(process)"
 										>
-											<StopCircleIcon class="text-red size-5" />
+											<StopCircleIcon class="portalrinth-accent-stop-icon text-red size-5" />
 										</button>
 										<button
 											v-tooltip="formatMessage(messages.viewLogs)"
@@ -115,7 +115,7 @@
 						class="active:scale-95 flex"
 						@click="stop(selectedProcess)"
 					>
-						<StopCircleIcon class="text-red size-5" />
+						<StopCircleIcon class="portalrinth-accent-stop-icon text-red size-5" />
 					</button>
 					<button
 						v-tooltip="formatMessage(messages.viewLogs)"
@@ -160,8 +160,8 @@ import { useRouter } from 'vue-router'
 
 import AppUpdateButton from '@/components/ui/app-update-button/index.vue'
 import DownloadManager from '@/components/ui/download-manager/index.vue'
-import SpeedTestButton from '@/components/ui/portalrinth-audio/SpeedTestButton.vue'
 import SoundButton from '@/components/ui/portalrinth-audio/SoundButton.vue'
+import SpeedTestButton from '@/components/ui/portalrinth-audio/SpeedTestButton.vue'
 import { useAppEvent } from '@/composables/use-app-event'
 import { trackEvent } from '@/helpers/analytics'
 import { get_many as getInstances } from '@/helpers/instance'

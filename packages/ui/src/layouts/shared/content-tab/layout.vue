@@ -1442,7 +1442,7 @@ const confirmUnlinkModal = ref<InstanceType<typeof ConfirmUnlinkModal>>()
 									type="quiet"
 									color="green"
 									:disabled="isBulkOperating || loadingUpdateAll"
-									class="!text-sm !font-medium hover:!bg-green focus-visible:!bg-green hover:!text-[var(--color-accent-contrast)] focus-visible:!text-[var(--color-accent-contrast)]"
+									class="portalrinth-accent-update-all !text-sm !font-medium hover:!bg-green focus-visible:!bg-green hover:!text-[var(--color-accent-contrast)] focus-visible:!text-[var(--color-accent-contrast)]"
 									@click="promptUpdateAll"
 								>
 									<DownloadIcon />

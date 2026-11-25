@@ -14,6 +14,8 @@ export interface Tab {
 	name: MessageDescriptor
 	category?: MessageDescriptor
 	icon: Component
+	/** Extra classes for the tab's icon, e.g. the accent-places marks. */
+	iconClass?: string
 	color?: 'orange'
 	content?: Component
 	href?: string
@@ -228,7 +230,7 @@ defineExpose({ show, hide, selectedTab, setTab })
 								]"
 								@click="!tab.href && setTab(visibleTabs.indexOf(tab))"
 							>
-								<component :is="tab.icon" class="size-5 flex-shrink-0" />
+								<component :is="tab.icon" class="size-5 flex-shrink-0" :class="tab.iconClass" />
 								<span
 									:ref="(element) => setTabLabelRef(index, element)"
 									v-tooltip="tabLabelTooltip(index, formatMessage(tab.name))"

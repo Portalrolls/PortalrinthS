@@ -236,6 +236,7 @@ onMounted(() => {
 					v-tooltip="formatMessage(messages.stop)"
 					type="colored"
 					color="red"
+					class="portalrinth-accent-stop"
 					:label="formatMessage(messages.stop)"
 					@mouseenter="checkProcess"
 					@click="(e) => stop(e, 'InstanceCard')"

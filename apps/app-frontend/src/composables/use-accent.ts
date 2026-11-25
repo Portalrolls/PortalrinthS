@@ -271,38 +271,38 @@ ${scope} .indicator[data-tone='green']`
 const GRADIENT_STYLESHEET = `
 /* Filled with the accent: filled with the run. */
 ${filledSelectors(G)} {
-	background-image: var(--portalrinth-accent-gradient) !important;
+        background-image: var(--portalrinth-accent-gradient) !important;
 }
 
 /* Washed with the accent - a selected chip, the current page, a tab - washed with the run. */
 ${softSelectors(G)} {
-	background-color: transparent !important;
-	background-image: var(--portalrinth-accent-gradient-soft) !important;
+        background-color: transparent !important;
+        background-image: var(--portalrinth-accent-gradient-soft) !important;
 }
 
 /* Outlined in the accent: outlined in the run. */
 ${G} .chips .selected,
 ${G} .button-frame--outlined${BRAND} {
-	border-color: transparent !important;
-	box-shadow: none !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
 }
 ${G} .chips .selected {
-	position: relative;
+        position: relative;
 }
 ${G} .chips .selected::after,
 ${G} .button-frame--outlined${BRAND}::after {
-	position: absolute;
-	inset: 0;
-	padding: 1px;
-	pointer-events: none;
-	content: '';
-	border-radius: inherit;
-	background: var(--portalrinth-accent-gradient);
-	-webkit-mask:
-		linear-gradient(#000 0 0) content-box,
-		linear-gradient(#000 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
+        position: absolute;
+        inset: 0;
+        padding: 1px;
+        pointer-events: none;
+        content: '';
+        border-radius: inherit;
+        background: var(--portalrinth-accent-gradient);
+        -webkit-mask:
+                linear-gradient(#000 0 0) content-box,
+                linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
 }
 
 /* The run set moving: drawn twice as wide and walked across what it fills.
@@ -310,19 +310,19 @@ ${G} .button-frame--outlined${BRAND}::after {
 @media (prefers-reduced-motion: no-preference) {
 ${filledSelectors(GA)},
 ${softSelectors(GA)} {
-	background-size: 280% 280% !important;
-	animation: portalrinth-accent-shimmer var(--portalrinth-shimmer-duration, 9s) ease-in-out infinite;
+        background-size: 280% 280% !important;
+        animation: portalrinth-accent-shimmer var(--portalrinth-shimmer-duration, 9s) ease-in-out infinite;
 }
 }
 
 @keyframes portalrinth-accent-shimmer {
-	0%,
-	100% {
-		background-position: 0% 50%;
-	}
-	50% {
-		background-position: 100% 50%;
-	}
+        0%,
+        100% {
+                background-position: 0% 50%;
+        }
+        50% {
+                background-position: 100% 50%;
+        }
 }
 `
 
@@ -609,18 +609,88 @@ applyShimmerSpeed(accentGradientSpeed.value)
  * take the accent instead. Account icons keep their own faces. Where the
  * accent is a run of colours, the icons take its first, the one colour a
  * single small picture can hold.
+ *
+ * The rule covers several places of the interface, and each can be left out:
+ * the gear beside the master switch lists them. A place turns on only while
+ * the master switch is on too.
  */
 const ICONS_KEY = 'portalrinth-icons-accent'
 const ICONS_CLASS = 'portalrinth-icons-accent'
 const ICONS_STYLE_ID = 'portalrinth-icons-accent-style'
 
+/** The places that can follow the accent, each with its own class on <html>. */
+export type IconsAccentPlace =
+	| 'brand'
+	| 'platform'
+	| 'updateall'
+	| 'clock'
+	| 'shortcuts'
+	| 'running'
+	| 'server'
+
+export const ICONS_ACCENT_PLACES: IconsAccentPlace[] = [
+	'brand',
+	'platform',
+	'updateall',
+	'clock',
+	'shortcuts',
+	'running',
+	'server',
+]
+
+const PLACES_KEY = 'portalrinth-icons-accent-places'
+const PLACE_CLASS_PREFIX = 'portalrinth-ia-'
+const ACCENT_COLOR = 'var(--portalrinth-accent, var(--color-brand))'
+
 const ICONS_STYLESHEET = `
 /* The source pickers, the badges on combined search results: everything
    painted in a brand's colour follows the accent instead. */
-html.${ICONS_CLASS} .portalrinth-brand-icon,
-html.${ICONS_CLASS} .browse-source-icon--modrinth,
-html.${ICONS_CLASS} .browse-source-icon--curseforge {
-	color: var(--portalrinth-accent, var(--color-brand)) !important;
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}brand .portalrinth-brand-icon,
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}brand .browse-source-icon--modrinth,
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}brand .browse-source-icon--curseforge {
+        color: ${ACCENT_COLOR} !important;
+}
+
+/* The platform badge on a project's page. */
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}platform .portalrinth-accent-platform {
+        color: ${ACCENT_COLOR} !important;
+}
+
+/* The green "update all" button wears the accent instead of green. */
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}updateall .portalrinth-accent-update-all {
+        --button-color: ${ACCENT_COLOR} !important;
+}
+
+/* The clock's part-of-day icon. */
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}clock .portalrinth-accent-clock {
+        color: ${ACCENT_COLOR} !important;
+}
+
+/* The hotkeys tab's keyboard icon. */
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}shortcuts .portalrinth-accent-shortcuts {
+        color: ${ACCENT_COLOR} !important;
+}
+
+/* The running instance: the red stop button turns into an accent one, and
+   the pill in the title bar takes a wash of the same colour. */
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}running .portalrinth-accent-stop {
+        --button-color: ${ACCENT_COLOR} !important;
+        color: ${ACCENT_COLOR} !important;
+}
+
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}running .portalrinth-accent-running-pill {
+        border-color: color-mix(in srgb, ${ACCENT_COLOR} 45%, transparent) !important;
+        background-color: color-mix(in srgb, ${ACCENT_COLOR} 16%, transparent) !important;
+}
+
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}running .portalrinth-accent-running-pill .portalrinth-accent-stop-icon,
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}running .portalrinth-accent-running-pill .nm-live {
+        color: ${ACCENT_COLOR} !important;
+}
+
+/* The server page's restart and stop buttons. */
+html.${ICONS_CLASS}.${PLACE_CLASS_PREFIX}server .portalrinth-accent-server {
+        --button-color: ${ACCENT_COLOR} !important;
 }
 `
 
@@ -644,6 +714,40 @@ export function setIconsAccent(on: boolean): void {
 	}
 }
 
+/** Every place starts following the accent; the gear can hold one back. */
+function readIconsAccentPlaces(): Record<IconsAccentPlace, boolean> {
+	const places = {} as Record<IconsAccentPlace, boolean>
+	for (const place of ICONS_ACCENT_PLACES) places[place] = true
+	try {
+		const raw = localStorage.getItem(PLACES_KEY)
+		if (!raw) return places
+		const kept = JSON.parse(raw) as Record<string, unknown>
+		for (const place of ICONS_ACCENT_PLACES) {
+			if (typeof kept[place] === 'boolean') places[place] = kept[place]
+		}
+	} catch {
+		// Whatever is kept unreadable, every place stays on.
+	}
+	return places
+}
+
+export const iconsAccentPlaces = ref<Record<IconsAccentPlace, boolean>>(readIconsAccentPlaces())
+
+/** Holds one place back from the accent, or lets it back in. */
+export function setIconsAccentPlace(place: IconsAccentPlace, on: boolean): void {
+	iconsAccentPlaces.value = { ...iconsAccentPlaces.value, [place]: on }
+	try {
+		localStorage.setItem(PLACES_KEY, JSON.stringify(iconsAccentPlaces.value))
+	} catch {
+		// Not kept, but still in effect until the window is closed.
+	}
+}
+
+/** Whether a place is wearing the accent right now: master switch first. */
+export function iconsAccentOn(place: IconsAccentPlace): boolean {
+	return iconsAccent.value && iconsAccentPlaces.value[place] !== false
+}
+
 /** The title bar's own rule lives with the logo; this one is for the rest. */
 function applyIconsAccent(): void {
 	if (!document.getElementById(ICONS_STYLE_ID)) {
@@ -653,6 +757,12 @@ function applyIconsAccent(): void {
 		document.head.appendChild(style)
 	}
 	document.documentElement.classList.toggle(ICONS_CLASS, iconsAccent.value)
+	for (const place of ICONS_ACCENT_PLACES) {
+		document.documentElement.classList.toggle(
+			PLACE_CLASS_PREFIX + place,
+			iconsAccent.value && iconsAccentPlaces.value[place],
+		)
+	}
 }
 
 /** The colour a preset is drawn in under the theme currently on screen. */
@@ -856,7 +966,15 @@ function settle(id: string): void {
 // than on dark, so the override is recomputed rather than kept.
 let firstApply = true
 watch(
-	[presetId, tintBackground, customColor, accentGradientAnimated, () => theme.active, iconsAccent],
+	[
+		presetId,
+		tintBackground,
+		customColor,
+		accentGradientAnimated,
+		() => theme.active,
+		iconsAccent,
+		iconsAccentPlaces,
+	],
 	([id, tint, , , active], previous) => {
 		applyIconsAccent()
 		if (firstApply) {

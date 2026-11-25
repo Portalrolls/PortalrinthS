@@ -990,7 +990,8 @@ function mention(name: string, el: HTMLElement): void {
 .msgr-msg__toolbar {
 	position: absolute;
 	top: -1rem;
-	right: 1rem;
+	/* Панель действий заканчивается почти на самом кончике сообщения. */
+	right: 0;
 	z-index: 3;
 	display: flex;
 	padding: 2px;

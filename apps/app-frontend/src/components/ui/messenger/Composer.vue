@@ -643,7 +643,6 @@ defineExpose({ addFile, focus, insertText: (value: string) => (text.value += val
 			<button type="button" class="msgr-menu-item" @click="choose('file')">
 				<FileIcon />
 				<span>{{ t('app.messenger.plus.file', 'Загрузить файл') }}</span>
-				<span class="msgr-menu-item__hint">≤ 1 ГБ</span>
 			</button>
 			<button type="button" class="msgr-menu-item" @click="choose('image')">
 				<ImageIcon /> {{ t('app.messenger.plus.image', 'Изображение или GIF') }}

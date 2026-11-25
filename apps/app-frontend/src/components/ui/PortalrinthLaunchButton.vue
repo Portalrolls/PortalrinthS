@@ -122,6 +122,8 @@ import { LoaderSpinnerIcon, PlayIcon, StopCircleIcon } from '@modrinth/assets'
 import { Motion } from 'motion-v'
 import { computed, onBeforeUnmount, onMounted, ref, useId, useTemplateRef, watch } from 'vue'
 
+import { iconsAccentOn } from '@/composables/use-accent'
+
 export type LaunchState = 'play' | 'starting' | 'installing' | 'stop' | 'stopping'
 
 const props = defineProps<{
@@ -176,8 +178,11 @@ const colors = computed(() => {
 	const brand = read('--color-brand', '#bd85ff')
 	const red = read('--color-red', '#ff496e')
 	const stopping = props.state === 'stop' || props.state === 'stopping'
+	// «Остановить» тоже может идти под акцент — если место включено и акцент
+	// выбран; без своего акцента остаётся прежний красный.
+	const accent = iconsAccentOn('running') ? read('--portalrinth-accent', '').trim() : ''
 	return {
-		main: stopping ? red : brand,
+		main: stopping ? accent || red : brand,
 		again: brand,
 		text: read('--color-accent-contrast', '#000000'),
 	}

@@ -10,18 +10,33 @@
 				</p>
 			</div>
 			<div class="flex items-center gap-2">
-				<Button type="outlined" :disabled="busy || full" @click="runImport">
-					<DownloadIcon aria-hidden="true" />
-					{{ formatMessage(messages.import) }}
-				</Button>
-				<Button type="outlined" :disabled="busy || !savedThemes.length" @click="openExport">
-					<UploadIcon aria-hidden="true" />
-					{{ formatMessage(messages.export) }}
-				</Button>
-				<Button type="outlined" :disabled="busy" @click="openSave">
+				<IconButton
+					v-tooltip="formatMessage(messages.save)"
+					type="outlined"
+					:label="formatMessage(messages.save)"
+					:disabled="busy"
+					@click="openSave"
+				>
 					<SaveIcon aria-hidden="true" />
-					{{ formatMessage(messages.save) }}
-				</Button>
+				</IconButton>
+				<IconButton
+					v-tooltip="formatMessage(messages.export)"
+					type="outlined"
+					:label="formatMessage(messages.export)"
+					:disabled="busy || !savedThemes.length"
+					@click="openExport"
+				>
+					<UploadIcon aria-hidden="true" />
+				</IconButton>
+				<IconButton
+					v-tooltip="formatMessage(messages.import)"
+					type="outlined"
+					:label="formatMessage(messages.import)"
+					:disabled="busy || full"
+					@click="runImport"
+				>
+					<DownloadIcon aria-hidden="true" />
+				</IconButton>
 			</div>
 		</div>
 

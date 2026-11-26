@@ -1272,6 +1272,11 @@ export const AI_LAUNCHER_HINT = [
 	'СТРУКТУРЫ (.nbt/.schem/.schematic) — это ГОТОВАЯ постройка целиком: ставь её через <<hosting_structure|сервер::ссылка::имя::x y z>>, а не пересобирай блоками вручную. Прямая ссылка (адрес кончается именем файла) — ставь сразу; страница-галерея — сначала найди прямую ссылку (web_search «<название> .nbt download», raw.githubusercontent.com). Проверяй ответ инструмента: счётчик поставленных блоков = успех; ошибка — объясни игроку и исправь (не та позиция — возьми координаты из <<hosting_player|сервер::ник>> и повтори). Схематик WorldEdit требует WorldEdit на сервере: его нет — предложи поставить <<hosting_install|сервер::worldedit>> и после установки повтори. Не знаешь, что внутри файла, — честно скажи «ставлю как есть — осмотрись и скажи, что поправить». Большую структуру ставь в свободное место: не поверх игроков, мобов и чужих построек.',
 	'КОМАНДЫ СЕРВЕРА — ты оператор, а не справочник: 1) после каждого <<hosting_cmd|…>> ЧИТАЙ ответ консоли — там правда: «Unknown/Incorrect/No player/Nothing changed» значит «НЕ сделано», разбери ошибку и повтори с исправлением, а не докладывай «готово»; 2) действие про игрока на сервере привязывай к нему: execute as <ник> at @s run <команда> — тогда ~ это его координаты; ники бери из hosting_list, а не выдумывай; 3) точечные правки мира и сущностей — data: data get entity <цель> — посмотреть NBT, data modify entity <цель> <путь> set value <значение> — изменить (экипировка, сундук, профессия жителя); содержимое контейнера смотрится и через <<hosting_chest|сервер::x y z>>; 4) рутинные действия — сразу без вопросов: gamemode, time set, weather, gamerule, difficulty, effect, tp; 5) массовое и необратимое (kill @e, fill на тысячи блоков, worldborder, stop) — только с явного «да» через ask_user; 6) незнакомую команду, синтаксис или NBT под версию не выдумывай — web_search «minecraft <команда> command syntax <версия>>',
 	'НА РАБОТАЮЩЕМ СЕРВЕРЕ — всё вживую, в одном ходе: стройка hosting_build/hosting_geo, лут сразу в сундуки, summon мобов, <<hosting_give|сервер::ник::предмет::количество>> ресурсов игроку, эффекты, погода, освещение, командные блоки и редстоун. Не рассказывай «могу сделать» — делай и докладывай по ходу, как репортёр с площадки: игрок смотрит, как всё появляется у него на глазах.',
+	'КОНФИГИ СБОРКИ И СЕРВЕРА — правь как инженер, а не вслепую: 1) сначала ПРОЧИТАЙ файл (сервер: <<hosting_read|сервер::путь>> — server.properties, configs/*.yml плагинов; сборка: <<list_configs|сборка>>, <<instance_files|сборка::config>>, <<instance_read|сборка::файл>>) и пойми формат: .properties — ключ=значение по одному на строке, .yml — отступы строго пробелами и двоеточия, .toml — ключ = значение и секции [секции], .json — запятые и кавычки; 2) правь ТОЧЕЧНО: серверу — <<hosting_config|сервер::путь::ключ=значение;;ключ: значение>> (сам выключит, сохранит остальное и включит), файл сборки — <<instance_write|сборка::файл::текст>> ЦЕЛИКОМ после полного чтения (урезанная запись отклоняется, прежняя версия бэкапится); 3) после записи ПЕРЕЧИТАЙ файл и покажи игроку «было → стало» и когда вступит в силу (сервер перезапустится сам, сборке нужен перезапуск); 4) не переписывай весь файл из головы — потерянный ключ ломает мод или сервер. Частые server.properties: difficulty, gamemode, pvp, max-players, view-distance, simulation-distance, spawn-protection, online-mode, motd, level-seed, white-list, enable-command-block.',
+
+	'Конфиги модов и клиента: в сборке — config/ (yml/toml/json под каждый мод), у клиента — options.txt (guiScale, renderDistance, fov, key_…). Не знаешь ключа — web_search «<мод> config <настройка>» или открой доку, не выдумывай имена. Оптимизация по железу из sysinfo: слабый ПК — меньше renderDistance/simulation-distance, лёгкие шейдеры или без них; ключ правки — одна за раз с проверкой, а не десять вслепую. После правок предложи запуск: <<launch_instance|…>>, при краше — <<instance_logs|сборка::краш>> и разбор виновника.',
+
+	'Геймплей-настройки живого сервера БЕЗ правки файлов: gamerule (keepInventory, doDaylightCycle, mobGriefing, doFireTick…), difficulty, time set, weather, worldborder, effect — это hosting_cmd, мгновенно и без перезапуска. Мирные и обратимые правки делай сразу; глобальные и рискованные (worldborder set 0, удаление мира, смена online-mode) — сначала спроси через ask_user, одной строкой что произойдёт. Просьба «построй в мирном/креативе» — переключи сам и верни как было после стройки.',
 
 	'Шпаргалка команд (Java 1.13+): выдать предмет give <ник|@a> minecraft:<id> [кол-во] (больше 64 можно — разложится по стакам); зачарованный предмет: give @p minecraft:diamond_sword[enchantments={sharpness:5}] на 1.20.5+, а на старых — give @p diamond_sword{Enchantments:[{id:sharpness,lvl:5}]}; опыт xp add <ник> <N> levels; режим gamemode <survival|creative|adventure|spectator> <ник|@a>; оператор op/deop <ник>; телепорт tp <кто> <к кому> или tp <кто> x y z; время time set <day|night|noon|midnight>; погода weather <clear|rain|thunder> [секунды]; сложность difficulty <peaceful|easy|normal|hard>; правила gamerule <правило> <значение> (keepInventory true, doDaylightCycle false, doMobSpawning false, playersSleepingPercentage 0…); эффекты effect give <ник> minecraft:<эффект> <сек> <уровень>, снять effect clear <ник>; лечение effect give <ник> minecraft:instant_health 1 10; спавн setworldspawn, spawnpoint <ник>; whitelist add/remove <ник>, whitelist on/off, whitelist list; кик kick <ник> [причина]; бан ban <ник> [причина], pardon <ник>; сообщение всем say <текст>, личное tell <ник> <текст>, большой экран title @a title {"text":"…"}; убрать предметы с земли kill @e[type=item]; очистить инвентарь clear <ник>; сохранить мир save-all; список игроков list; граница worldborder set <размер>. Версия сервера есть в hosting_list — учитывай синтаксис версии, при сомнении проверь web_search.',
 	'Работа с миром через консоль. Координаты НИКОГДА не выдумывай: сначала <<hosting_player|::ник>> (Pos [x, y, z] — округли вниз; Rotation [yaw, …]: yaw ≈ 0 смотрит на юг +Z, 90 — запад −X, 180/−180 — север −Z, −90 — восток +X), и строй ПЕРЕД игроком в 2-3 блоках от него, на его уровне Y. Консоль не знает «~» относительно игрока — используй execute: execute as <ник> at @s run setblock ~ ~ ~2 … или абсолютные числа из Pos. Предмет в руке/экипировка — hosting_player; содержимое сундука — hosting_chest по координатам (если игрок стоит у сундука — проверь блоки вокруг его Pos). Найти структуру: execute as <ник> at @s run locate structure minecraft:village_plains (1.19+; на 1.16-1.18 locate village) — ответ даёт координаты, предложи tp. Биом: locate biome minecraft:…. Модовые вещи: id вида mod:item — give <ник> create:wrench, summon modid:entity x y z; не знаешь id — найди (launcher_search_mods/web_search по «<мод> item id») или проверь give; ошибка «Unknown item» = неверный id, исправь и повтори. Рассказать про предмет: возьми id из SelectedItem, назови мод (часть до «:») и объясни, что это и для чего; крафт — объясни словами по сетке 3x3 (ряд за рядом) или по машине мода; если не уверен в рецепте — web_search «<мод> <предмет> recipe», не выдумывай.',
@@ -3086,6 +3091,8 @@ async function aiCompleteTurn(request: AiRequest): Promise<AiResult> {
 	let claimNudges = 0
 	// Code-dump nudges: the same budget idea for «вот код, вставь сам».
 	let codeNudges = 0
+	// Подборка найдена, а установка не началась: после хода сборка пуста.
+	let installNudges = 0
 	// Open-plan nudges: the model closed one checklist step and wrapped up
 	// the turn with the rest still open — pushed back to the plan (three
 	// at most, then the answer passes as-is).
@@ -3338,6 +3345,53 @@ async function aiCompleteTurn(request: AiRequest): Promise<AiResult> {
 											.join(
 												'; ',
 											)}. Продолжай В ЭТОМ ЖЕ ходе: скажи одной строкой, что уже сделано, и сразу выполняй следующий шаг инструментами (<<инструмент|аргумент>>), закрывая его <<plan_done|номер>>. Ход заканчивается, только когда все шаги закрыты (или ты честно объяснил, что именно блокирует дальнейшие).`,
+									},
+								]
+								await sleep(60, request.signal)
+								continue
+							}
+							// Нашёл — и не поставил: игрок просил установить, модель показала
+							// подборку и закончила ход, сборка осталась пустой.
+							const lastUserText = (() => {
+								const messages = request.messages ?? []
+								for (let i = messages.length - 1; i >= 0; i--) {
+									const message = messages[i]
+									if (message?.role === 'user' && typeof message.content === 'string')
+										return message.content
+								}
+								return ''
+							})()
+							const wantsInstall =
+								/постав|установ|закин|накат|добав(ь|ьте)|собер|в сборку|сборку с/i.test(
+									lastUserText,
+								)
+							const searchedCount = doneActions.filter(
+								(action) => action === 'launcher_search_mods',
+							).length
+							const installedCount = doneActions.filter(
+								(action) =>
+									action === 'launcher_install' ||
+									action === 'install_to_instance' ||
+									action === 'install_modpack',
+							).length
+							const missingInstall =
+								!fastPath &&
+								settings.mode !== 'ask' &&
+								!questionTurn &&
+								installNudges < 2 &&
+								round < maxRounds - 1 &&
+								wantsInstall &&
+								searchedCount > 0 &&
+								installedCount === 0
+							if (missingInstall) {
+								installNudges++
+								payload = [
+									...payload,
+									{ role: 'assistant', content: raw },
+									{
+										role: 'user',
+										content:
+											'[служебное] Ты нашёл контент, но НЕ установил ни одного id в сборку: список в чате — это не установка, игрок проверил и увидел пустую сборку. Выбери подходящие (✓ под версию и ядро сборки) и поставь пачкой: <<launcher_install|id1,id2,id3::тип>> (сборку можно не указывать — ставится в выбранную), затем проверь <<instance_mods|сборка>> и докладывай по факту. Если игрок просил только показать варианты — коротко ответь подборкой без установки.',
 									},
 								]
 								await sleep(60, request.signal)
@@ -4879,7 +4933,12 @@ registerAiToolHandler(async (tool, args) => {
 			/* a missing key is the ordinary case */
 		}
 		if (lines.length === 0) return 'Ничего не нашлось'
-		return lines.join('\n') + cards.map((card) => `\n@@MOD@@${JSON.stringify(card)}`).join('')
+		return (
+			lines.join('\n') +
+			'\n' +
+			'Это СПИСОК НАЙДЕННОГО, а не установка: чтобы контент оказался в сборке, вызови <<launcher_install|id1,id2,id3::тип>> пачкой через запятую (только то, что помечено ✓ под её версию и ядро), затем проверь <<instance_mods|сборка>>. Показывать подборку без установки, когда игрок просил «поставь/собери», — провал хода.' +
+			cards.map((card) => `\n@@MOD@@${JSON.stringify(card)}`).join('')
+		)
 	}
 	if (tool === 'skin_nick') {
 		const nick = args.trim()

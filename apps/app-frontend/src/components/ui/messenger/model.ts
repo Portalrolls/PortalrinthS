@@ -334,6 +334,10 @@ export function mapMessage(
 	// Сервис подставляет имя файла в body, если текста не было — это не подпись.
 	let body = String(row.body || '')
 	if (attachment && body.trim() === attachment.name) body = ''
+	// Вложение потерялось по дороге (сервер отдал строку без файла, текста
+	// не было) — пустой пузырь выглядит как «пропало на глазах»: рисуем
+	// честную пометку вместо тишины.
+	if (!body.trim() && !attachment) body = '📁 Вложение не дошло — файл недоступен'
 	return {
 		id,
 		conversationId: String(row.conversationId || opts.conversationId || ''),

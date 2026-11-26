@@ -91,7 +91,20 @@ function onLoad(): void {
 	emit('loaded')
 }
 
-watch(() => props.src, start, { immediate: true })
+/** Смена токена в ссылке — тот же файл: перезапуск не должен гасить картинку. */
+function sameImage(a: string, b: string): boolean {
+	const strip = (url: string) => url.replace(/([?&])token=[^&]*/g, '$1').replace(/[?&]$/, '')
+	return strip(a) === strip(b)
+}
+
+watch(
+	() => props.src,
+	(next, prev) => {
+		if (prev && next && sameImage(prev, next) && ready.value && shown.value) return
+		start()
+	},
+	{ immediate: true },
+)
 
 onBeforeUnmount(clearStall)
 </script>

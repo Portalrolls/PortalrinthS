@@ -808,6 +808,10 @@ export async function sendMessage(payload: {
 			body: retry,
 		})
 	}
+
+	// Локальная картинка из optimistic-пузыря: если сервис подтвердит
+	// сообщение без вложения, она останется вместо пропавшей.
+	const draftAttachment = draft?.attachment ?? null
 	if (draft) patchEverywhere(draft.id, () => null)
 	if (!response.ok) {
 		fail(response)
@@ -817,6 +821,10 @@ export async function sendMessage(payload: {
 	const sent = response.data?.message ? mapMessage(response.data.message, mapOpts(conv.id)) : null
 	if (sent) {
 		rememberMessage(sent)
+		// Сервис иногда отдаёт подтверждение без вложения, хотя файл ушёл:
+		// картинка «на глазах пропадает». Пока сервер не начал отдавать файл
+		// сам — показываем локальный data-адрес, байты у нас есть.
+		if (!sent.attachment && draftAttachment) sent.attachment = draftAttachment
 		upsert(key, sent)
 		conv.lastPreview = previewOf(response.data.message)
 		conv.updatedAt = sent.createdAt

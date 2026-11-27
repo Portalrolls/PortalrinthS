@@ -107,10 +107,43 @@ async function runCommands(server: HostedServerView, commands: string[], gapMs =
 	return answer.map((line) => line.replace(ANSI, '').trim()).filter(Boolean)
 }
 
+/** Игрок ждёт постройку, а не лог ошибок: модели пишут координаты с дробями
+ * (Pos игрока — 100.45) и блоки через пробел («polished granite») — сервер
+ * это не принимает, команда падает с ошибкой. Чиним заранее, до отправки. */
+const BUILD_KEYWORDS = new Set(['replace', 'hollow', 'destroy', 'keep'])
+
+function sanitizeBuildCommand(command: string): string {
+	const match = /^(fill|setblock)\s+(.+)$/i.exec(command.trim())
+	if (!match) return command
+	const verb = match[1].toLowerCase()
+	const rest = match[2]
+	const brace = rest.indexOf('{')
+	const rawHead = brace >= 0 ? rest.slice(0, brace) : rest
+	const tail = brace >= 0 ? rest.slice(brace) : ''
+	const glue = brace >= 0 && /\s$/.test(rawHead) ? ' ' : ''
+	const tokens = rawHead.trim().split(/\s+/)
+	const coordsEnd = verb === 'fill' ? 6 : 3
+	const fixed = tokens
+		.slice(0, coordsEnd)
+		.map((token) => (/^-?\d+\.\d+$/.test(token) ? String(Math.round(Number(token))) : token))
+	let blockPart = tokens.slice(coordsEnd)
+	let trailing: string[] = []
+	if (blockPart.length > 0 && BUILD_KEYWORDS.has(blockPart[blockPart.length - 1].toLowerCase())) {
+		trailing = blockPart.slice(-1)
+		blockPart = blockPart.slice(0, -1)
+	}
+	if (blockPart.length > 1 && blockPart.every((token) => /^[a-z0-9_:.[\]=,+-]+$/i.test(token))) {
+		blockPart = [
+			blockPart.some((token) => token.includes('[')) ? blockPart.join('') : blockPart.join('_'),
+		]
+	}
+	return `${verb} ${[...fixed, ...blockPart, ...trailing].join(' ')}${glue}${tail}`
+}
+
 function parseCommands(raw: string, limit: number) {
 	return raw
 		.split(/;;|\n/)
-		.map((command) => command.trim().replace(/^\//, ''))
+		.map((command) => sanitizeBuildCommand(command.trim().replace(/^\//, '')))
 		.filter(Boolean)
 		.slice(0, limit)
 }
@@ -171,9 +204,11 @@ function circleLayer(cx: number, y: number, cz: number, r: number, block: string
 function parseGeoNums(parts: string[], count: number, offset: number): number[] | string {
 	const nums: number[] = []
 	for (let i = 0; i < count; i++) {
-		const value = Number(parts[offset + i])
-		if (!Number.isFinite(value))
-			return `Ожидались числа: в позиции ${offset + i} стоит «${parts[offset + i] ?? ''}»`
+		const raw = parts[offset + i] ?? ''
+		if (/^[-+]?~/i.test(raw))
+			return `«${raw}» — консоль не знает, где стоит игрок: относительные координаты тут не работают. Возьми абсолютные числа из <<hosting_player|сервер::ник>> и подставь готовые числа.`
+		const value = Number(raw)
+		if (!Number.isFinite(value)) return `Ожидались числа: в позиции ${offset + i} стоит «${raw}»`
 		nums.push(Math.round(value))
 	}
 	return nums

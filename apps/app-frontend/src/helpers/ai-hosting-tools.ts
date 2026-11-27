@@ -123,6 +123,9 @@ function stripHead(line: string) {
 const COMMAND_ERROR_RE =
 	/unknown|incorrect|invalid|expected|no (?:player|entity|entities|block|item)|could not|cannot|can't|not loaded|out of (?:the )?world|too many blocks|failed|<--\[HERE\]|нет (?:игрок|цели|сущност|такого)|не найден|не найдена|не найдено|неизвестн|неверн|неправильн|не удалось|ошибк/i
 
+/** Что сервер отвечает на успешные fill/setblock («Filled … blocks», «Changed the block»). */
+const GEO_OK_RE = /\bfilled\b|changed the block|placed/i
+
 // ---- Геометрические примитивы (hosting_geo) --------------------------------
 //
 // Один вызов hosting_geo разворачивается на фронте в пачку fill/setblock и
@@ -181,7 +184,9 @@ function geoBlock(parts: string[], afterNums: number): { block: string; hollow: 
 	if (rest.length === 0)
 		return 'Не назван блок (например: stone, oak_log, oak_stairs[facing=north])'
 	const hollow = (rest[rest.length - 1] ?? '').toLowerCase() === 'hollow'
-	const block = (hollow ? rest.slice(0, -1) : rest).join(' ')
+	let block = (hollow ? rest.slice(0, -1) : rest).join(' ')
+	// Модели часто пишут «gold block» с пробелом: id блоков пробелов не содержат.
+	if (!block.includes('[')) block = block.replace(/\s+/g, '_')
 	return { block, hollow }
 }
 
@@ -696,9 +701,14 @@ registerAiToolHandler(async (tool, args) => {
 				stripHead,
 			)
 			const errors = answer.filter((line) => COMMAND_ERROR_RE.test(line))
-			const done = Math.max(0, Math.min(commands.length, answer.length - errors.length))
+			const confirmed = answer.filter((line) => GEO_OK_RE.test(line)).length
 			return [
-				`Стройка на «${server.name}»: отправлено ${commands.length} команд, успешных ответов ~${done}, ошибок ${errors.length}.`,
+				`Стройка на «${server.name}»: отправлено ${commands.length} команд, подтверждено сервером ${confirmed}, ошибок ${errors.length}.`,
+				...(confirmed === 0 && errors.length === 0
+					? [
+							'Сервер не подтвердил ни одной команды: скорее всего координаты вне загруженных чанков. Возьми позицию игрока через <<hosting_player|сервер::ник>> и строй рядом с ним — НЕ по угаданным координатам.',
+						]
+					: []),
 				...(errors.length
 					? [
 							'Ошибки (исправь id блока/состояние/координаты и повтори только их):',
@@ -725,8 +735,14 @@ registerAiToolHandler(async (tool, args) => {
 				answers.push(...(await runCommands(server, chunk, 20)).map(stripHead))
 			}
 			const errors = answers.filter((line) => COMMAND_ERROR_RE.test(line))
+			const confirmed = answers.filter((line) => GEO_OK_RE.test(line)).length
 			return [
-				`Геометрия «${built.op}» на «${server.name}»: развёрнуто ${built.commands.length} команд (fill/setblock), ошибок ${errors.length}.`,
+				`Геометрия «${built.op}» на «${server.name}»: развёрнуто ${built.commands.length} команд (fill/setblock), подтверждено сервером ${confirmed}, ошибок ${errors.length}.`,
+				...(confirmed === 0 && errors.length === 0
+					? [
+							'Сервер не подтвердил ни одной команды: координаты вне загруженных чанков или команды не дошли. Возьми позицию игрока через <<hosting_player|сервер::ник>> и строй рядом с ним — НЕ по угаданным координатам.',
+						]
+					: []),
 				...(errors.length
 					? [
 							'Ошибки (проверь координаты/блок и повтори вызов с исправлением):',

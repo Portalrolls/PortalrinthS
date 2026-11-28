@@ -1724,7 +1724,15 @@ mod tests {
 
     #[test]
     fn a_project_type_curseforge_lacks_is_refused() {
-        assert!(search_url(&query("plugin")).is_err());
+        assert!(search_url(&query("addon")).is_err());
+    }
+
+    #[test]
+    fn a_plugin_search_asks_for_bukkit_plugins() {
+        let url = search_url(&query("plugin")).unwrap();
+        assert!(url.contains("classId=5"));
+        // Bukkit plugins have no mod loader filter.
+        assert!(!url.contains("modLoaderTypes"));
     }
 
     #[test]

@@ -5487,5 +5487,125 @@
 	},
 	"portalrinth.settings.accent-places.server": {
 		"message": "Server control buttons (restart and stop)"
+	},
+	"app.server-hosting.content.tab-installed": {
+		"message": "Installed"
+	},
+	"app.server-hosting.content.tab-catalog": {
+		"message": "Catalog"
+	},
+	"app.server-hosting.content.installed-hint": {
+		"message": "Files from this computer or a catalog, active after a restart"
+	},
+	"app.server-hosting.content.catalog-hint": {
+		"message": "Search Modrinth and CurseForge and install with one click"
+	},
+	"app.server-hosting.browse.cf-failed": {
+		"message": "CurseForge is unreachable right now — Modrinth results are shown"
+	},
+	"app.server-hosting.browse.cf-only-failed": {
+		"message": "CurseForge could not be reached"
+	},
+	"app.server-hosting.browse.cf-only-failed-hint": {
+		"message": "Try again, or pick Modrinth as the source"
+	},
+	"app.server-hosting.browse.source-both": {
+		"message": "Modrinth and CurseForge"
+	},
+	"app.server-hosting.browse.source-modrinth": {
+		"message": "Modrinth"
+	},
+	"app.server-hosting.browse.source-curseforge": {
+		"message": "CurseForge"
+	},
+	"app.server-hosting.browse.sort-relevance": {
+		"message": "Relevance"
+	},
+	"app.server-hosting.browse.sort-downloads": {
+		"message": "Most downloads"
+	},
+	"app.server-hosting.browse.sort-follows": {
+		"message": "Most follows"
+	},
+	"app.server-hosting.browse.sort-updated": {
+		"message": "Recently updated"
+	},
+	"app.server-hosting.settings.world": {
+		"message": "World"
+	},
+	"app.server-hosting.settings.seed": {
+		"message": "World seed"
+	},
+	"app.server-hosting.settings.seed-hint": {
+		"message": "Applies when the world is generated anew; empty lets the server pick one"
+	},
+	"app.server-hosting.settings.world-type": {
+		"message": "World type"
+	},
+	"app.server-hosting.settings.simulation-distance": {
+		"message": "Simulation distance"
+	},
+	"app.server-hosting.settings.spawn-protection": {
+		"message": "Spawn protection"
+	},
+	"app.server-hosting.settings.spawn-protection-hint": {
+		"message": "Blocks around the spawn only operators may change; 0 turns it off"
+	},
+	"app.server-hosting.settings.idle-timeout": {
+		"message": "Kick idle players (min)"
+	},
+	"app.server-hosting.settings.idle-timeout-hint": {
+		"message": "0 keeps idling players in"
+	},
+	"app.server-hosting.settings.whitelist-names": {
+		"message": "Whitelist nicknames"
+	},
+	"app.server-hosting.settings.whitelist-names-hint": {
+		"message": "Separated by commas or spaces, for example: Steve, Alex"
+	},
+	"app.server-hosting.settings.enforce-whitelist": {
+		"message": "Kick players not on the whitelist"
+	},
+	"app.server-hosting.settings.spawn-monsters": {
+		"message": "Monsters"
+	},
+	"app.server-hosting.settings.spawn-animals": {
+		"message": "Animals"
+	},
+	"app.server-hosting.settings.spawn-villagers": {
+		"message": "Villagers"
+	},
+	"app.server-hosting.settings.allow-nether": {
+		"message": "Nether"
+	},
+	"app.server-hosting.settings.generate-structures": {
+		"message": "Structures"
+	},
+	"app.server-hosting.settings.force-gamemode": {
+		"message": "Force game mode"
+	},
+	"app.server-hosting.settings.force-gamemode-hint": {
+		"message": "Players join in the server mode, even in their own world"
+	},
+	"app.server-hosting.settings.enable-status": {
+		"message": "Show in the server list"
+	},
+	"app.server-hosting.settings.hide-online": {
+		"message": "Hide the player count"
+	},
+	"app.server-hosting.world-type.normal": {
+		"message": "Normal world"
+	},
+	"app.server-hosting.world-type.flat": {
+		"message": "Flat world"
+	},
+	"app.server-hosting.world-type.large-biomes": {
+		"message": "Large biomes"
+	},
+	"app.server-hosting.world-type.amplified": {
+		"message": "Amplified"
+	},
+	"app.server-hosting.browse.title": {
+		"message": "Modrinth and CurseForge catalog"
 	}
 }

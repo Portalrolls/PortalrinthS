@@ -5230,7 +5230,7 @@
 		"message": "Доход"
 	},
 	"app.server-hosting.browse.title": {
-		"message": "Найти на Modrinth"
+		"message": "Каталог Modrinth и CurseForge"
 	},
 	"app.server-hosting.browse.search": {
 		"message": "Поиск"
@@ -8089,5 +8089,122 @@
 	},
 	"portalrinth.settings.accent-places.server": {
 		"message": "Кнопки сервера (перезапуск и остановка)"
+	},
+	"app.server-hosting.content.tab-installed": {
+		"message": "Установленные"
+	},
+	"app.server-hosting.content.tab-catalog": {
+		"message": "Каталог"
+	},
+	"app.server-hosting.content.installed-hint": {
+		"message": "Установлено с компьютера или из каталога, заработает после перезапуска"
+	},
+	"app.server-hosting.content.catalog-hint": {
+		"message": "Поиск по Modrinth и CurseForge, установка в один клик"
+	},
+	"app.server-hosting.browse.cf-failed": {
+		"message": "CurseForge сейчас не отвечает — показаны результаты Modrinth"
+	},
+	"app.server-hosting.browse.cf-only-failed": {
+		"message": "CurseForge недоступен"
+	},
+	"app.server-hosting.browse.cf-only-failed-hint": {
+		"message": "Попробуйте ещё раз или выберите источником Modrinth"
+	},
+	"app.server-hosting.browse.source-both": {
+		"message": "Modrinth и CurseForge"
+	},
+	"app.server-hosting.browse.source-modrinth": {
+		"message": "Modrinth"
+	},
+	"app.server-hosting.browse.source-curseforge": {
+		"message": "CurseForge"
+	},
+	"app.server-hosting.browse.sort-relevance": {
+		"message": "По релевантности"
+	},
+	"app.server-hosting.browse.sort-downloads": {
+		"message": "Больше всего скачиваний"
+	},
+	"app.server-hosting.browse.sort-follows": {
+		"message": "Больше всего лайков"
+	},
+	"app.server-hosting.browse.sort-updated": {
+		"message": "Недавно обновлённые"
+	},
+	"app.server-hosting.settings.world": {
+		"message": "Мир"
+	},
+	"app.server-hosting.settings.seed": {
+		"message": "Сид мира"
+	},
+	"app.server-hosting.settings.seed-hint": {
+		"message": "Сработает, когда мир будет создан заново; пусто — сервер придумает сам"
+	},
+	"app.server-hosting.settings.world-type": {
+		"message": "Тип мира"
+	},
+	"app.server-hosting.settings.simulation-distance": {
+		"message": "Дистанция симуляции"
+	},
+	"app.server-hosting.settings.spawn-protection": {
+		"message": "Защита спавна"
+	},
+	"app.server-hosting.settings.spawn-protection-hint": {
+		"message": "Блоки у спавна, которые могут менять только операторы; 0 — выключить"
+	},
+	"app.server-hosting.settings.idle-timeout": {
+		"message": "Кикать бездействующих (мин)"
+	},
+	"app.server-hosting.settings.idle-timeout-hint": {
+		"message": "0 — не кикать никого"
+	},
+	"app.server-hosting.settings.whitelist-names": {
+		"message": "Никнеймы в белом списке"
+	},
+	"app.server-hosting.settings.whitelist-names-hint": {
+		"message": "Через запятую или пробел, например: Steve, Alex"
+	},
+	"app.server-hosting.settings.enforce-whitelist": {
+		"message": "Кикать тех, кого нет в белом списке"
+	},
+	"app.server-hosting.settings.spawn-monsters": {
+		"message": "Монстры"
+	},
+	"app.server-hosting.settings.spawn-animals": {
+		"message": "Животные"
+	},
+	"app.server-hosting.settings.spawn-villagers": {
+		"message": "Жители"
+	},
+	"app.server-hosting.settings.allow-nether": {
+		"message": "Нижний мир"
+	},
+	"app.server-hosting.settings.generate-structures": {
+		"message": "Структуры"
+	},
+	"app.server-hosting.settings.force-gamemode": {
+		"message": "Принудительный режим игры"
+	},
+	"app.server-hosting.settings.force-gamemode-hint": {
+		"message": "Игрок входит в режиме сервера, даже если у него свой"
+	},
+	"app.server-hosting.settings.enable-status": {
+		"message": "Показывать в списке серверов"
+	},
+	"app.server-hosting.settings.hide-online": {
+		"message": "Скрывать число игроков"
+	},
+	"app.server-hosting.world-type.normal": {
+		"message": "Обычный мир"
+	},
+	"app.server-hosting.world-type.flat": {
+		"message": "Плоский мир"
+	},
+	"app.server-hosting.world-type.large-biomes": {
+		"message": "Большие биомы"
+	},
+	"app.server-hosting.world-type.amplified": {
+		"message": "Увеличенный (Amplified)"
 	}
 }

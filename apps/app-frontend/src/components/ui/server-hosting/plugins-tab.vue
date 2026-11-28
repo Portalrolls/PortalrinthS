@@ -11,8 +11,9 @@ import {
 } from '@modrinth/ui'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { open } from '@tauri-apps/plugin-dialog'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
+import { guessIcon, storedIcon } from '@/helpers/hosted-content'
 import {
 	type HostedPlugin,
 	type HostedServerView,
@@ -44,6 +45,22 @@ const messages = defineMessages({
 	restartHint: {
 		id: 'app.server-hosting.content.restart-hint',
 		defaultMessage: 'Changes take effect after the server restarts.',
+	},
+	tabInstalled: {
+		id: 'app.server-hosting.content.tab-installed',
+		defaultMessage: 'Installed',
+	},
+	tabCatalog: {
+		id: 'app.server-hosting.content.tab-catalog',
+		defaultMessage: 'Catalog of {kind}',
+	},
+	installedHint: {
+		id: 'app.server-hosting.content.installed-hint',
+		defaultMessage: 'Files from this computer or a catalog, active after a restart',
+	},
+	catalogHint: {
+		id: 'app.server-hosting.content.catalog-hint',
+		defaultMessage: 'Search Modrinth and CurseForge and install with one click',
 	},
 	modsOffTitle: {
 		id: 'app.server-hosting.content.mods-off-title',
@@ -78,6 +95,9 @@ async function restoreMods() {
 }
 
 const kind = computed(() => contentKind(props.server))
+const kindLabel = computed(() => formatMessage(contentMessages[kind.value]))
+const subTab = ref<'installed' | 'catalog'>('installed')
+
 const queryKey = computed(() => ['server-hosting', 'plugins', props.server.id] as const)
 const pluginsQuery = useQuery({
 	queryKey,
@@ -122,6 +142,29 @@ function onInstalled(list: HostedPlugin[]) {
 function openFolder() {
 	void openPath(`${props.server.dir}/${contentFolder(props.server)}`).catch(handleError)
 }
+
+/* Иконки уже скачанного: сначала то, что запомнилось при установке,
+ * для остального — точная догадка по имени файла на Modrinth. */
+const icons = ref<Record<string, string | null>>({})
+
+watch(
+	() => [props.server.id, plugins.value.map((plugin) => plugin.name).join('\n')] as const,
+	() => {
+		for (const plugin of plugins.value) {
+			if (icons.value[plugin.name] !== undefined) continue
+			const known = storedIcon(props.server.id, plugin.name)
+			if (known) {
+				icons.value[plugin.name] = known
+				continue
+			}
+			icons.value[plugin.name] = null
+			void guessIcon(props.server.id, plugin.name).then((url) => {
+				if (url) icons.value[plugin.name] = url
+			})
+		}
+	},
+	{ immediate: true },
+)
 </script>
 
 <template>
@@ -135,8 +178,7 @@ function openFolder() {
 		<section class="hosting-panel flex flex-col gap-3">
 			<div class="flex flex-wrap items-center justify-between gap-2">
 				<h2 class="m-0 flex items-center gap-2 text-lg font-bold text-contrast">
-					<BoxIcon class="shrink-0" />
-					{{ formatMessage(contentMessages[kind]) }}
+					{{ kindLabel }}
 					<span v-if="plugins.length > 0" class="text-secondary">{{ plugins.length }}</span>
 				</h2>
 				<div class="flex items-center gap-2">
@@ -151,53 +193,93 @@ function openFolder() {
 				</div>
 			</div>
 
-			<EmptyState
-				v-if="!pluginsQuery.isPending.value && plugins.length === 0"
-				type="empty"
-				:heading="formatMessage(messages.empty)"
-				:description="formatMessage(messages.emptyHint)"
-			/>
-			<template v-else>
-				<div class="flex flex-col gap-2">
-					<div
-						v-for="plugin in plugins"
-						:key="plugin.name"
-						class="hosting-item"
-						:class="{ 'is-off': !plugin.enabled }"
-					>
-						<BoxIcon class="shrink-0 text-secondary" />
-						<span class="min-w-0 flex-1 truncate font-semibold text-contrast">{{
-							plugin.name
-						}}</span>
-						<span class="shrink-0 text-sm text-secondary">{{ formatSize(plugin.size) }}</span>
-						<Toggle
-							:model-value="plugin.enabled"
-							:disabled="busy !== null"
-							@update:model-value="
-								apply(`toggle:${plugin.name}`, () => hosting_plugin_toggle(server.id, plugin.name))
-							"
-						/>
-						<Button
-							v-tooltip="formatMessage(messages.remove)"
-							size="sm"
-							type="quiet"
-							color="red"
-							:disabled="busy !== null"
-							:aria-label="formatMessage(messages.remove)"
-							@click="
-								apply(`remove:${plugin.name}`, () => hosting_plugin_remove(server.id, plugin.name))
-							"
+			<nav class="hosting-subtabs" role="tablist">
+				<button
+					type="button"
+					role="tab"
+					:aria-selected="subTab === 'installed'"
+					:class="{ 'is-active': subTab === 'installed' }"
+					@click="subTab = 'installed'"
+				>
+					{{ formatMessage(messages.tabInstalled) }}
+				</button>
+				<button
+					type="button"
+					role="tab"
+					:aria-selected="subTab === 'catalog'"
+					:class="{ 'is-active': subTab === 'catalog' }"
+					@click="subTab = 'catalog'"
+				>
+					{{ formatMessage(messages.tabCatalog) }}
+				</button>
+			</nav>
+			<p class="m-0 text-sm text-secondary">
+				{{
+					subTab === 'installed'
+						? formatMessage(messages.installedHint)
+						: formatMessage(messages.catalogHint)
+				}}
+			</p>
+
+			<template v-if="subTab === 'installed'">
+				<EmptyState
+					v-if="!pluginsQuery.isPending.value && plugins.length === 0"
+					type="empty"
+					:heading="formatMessage(messages.empty)"
+					:description="formatMessage(messages.emptyHint)"
+				/>
+				<template v-else>
+					<div class="flex flex-col gap-2">
+						<div
+							v-for="plugin in plugins"
+							:key="plugin.name"
+							class="hosting-item"
+							:class="{ 'is-off': !plugin.enabled }"
 						>
-							<TrashIcon />
-						</Button>
+							<img
+								v-if="icons[plugin.name]"
+								:src="icons[plugin.name]"
+								alt=""
+								class="hosting-item-icon"
+							/>
+							<BoxIcon v-else class="shrink-0 text-secondary" />
+							<span class="min-w-0 flex-1 truncate font-semibold text-contrast">{{
+								plugin.name
+							}}</span>
+							<span class="shrink-0 text-sm text-secondary">{{ formatSize(plugin.size) }}</span>
+							<Toggle
+								:model-value="plugin.enabled"
+								:disabled="busy !== null"
+								@update:model-value="
+									apply(`toggle:${plugin.name}`, () =>
+										hosting_plugin_toggle(server.id, plugin.name),
+									)
+								"
+							/>
+							<Button
+								v-tooltip="formatMessage(messages.remove)"
+								size="sm"
+								type="quiet"
+								color="red"
+								:disabled="busy !== null"
+								:aria-label="formatMessage(messages.remove)"
+								@click="
+									apply(`remove:${plugin.name}`, () =>
+										hosting_plugin_remove(server.id, plugin.name),
+									)
+								"
+							>
+								<TrashIcon />
+							</Button>
+						</div>
 					</div>
-				</div>
-				<span v-if="plugins.length > 0" class="text-sm text-secondary">
-					{{ formatMessage(messages.restartHint) }}
-				</span>
+					<span v-if="plugins.length > 0" class="text-sm text-secondary">
+						{{ formatMessage(messages.restartHint) }}
+					</span>
+				</template>
 			</template>
+			<ContentBrowser v-else :server="server" @installed="onInstalled" />
 		</section>
-		<ContentBrowser :server="server" @installed="onInstalled" />
 	</div>
 </template>
 
@@ -222,6 +304,50 @@ function openFolder() {
 
 	&.is-off {
 		opacity: 0.6;
+	}
+}
+
+.hosting-item-icon {
+	width: 1.5rem;
+	height: 1.5rem;
+	flex-shrink: 0;
+	border-radius: 0.375rem;
+	object-fit: cover;
+}
+
+.hosting-subtabs {
+	display: flex;
+	gap: 1.25rem;
+	border-bottom: 1px solid var(--surface-5);
+
+	button {
+		position: relative;
+		padding: 0.375rem 0.125rem 0.5rem;
+		border: none;
+		background: transparent;
+		color: var(--color-secondary);
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: color 0.15s ease;
+
+		&:hover {
+			color: var(--color-contrast);
+		}
+
+		&.is-active {
+			color: var(--color-contrast);
+		}
+
+		&.is-active::after {
+			content: '';
+			position: absolute;
+			inset-inline: 0;
+			bottom: -1px;
+			height: 2px;
+			border-radius: 1px;
+			background: var(--color-brand);
+		}
 	}
 }
 </style>

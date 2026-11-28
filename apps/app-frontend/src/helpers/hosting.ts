@@ -9,15 +9,31 @@ export type HostedStatus =
 	| 'stopping'
 	| 'crashed'
 
-export type HostedSoftware = 'paper' | 'purpur' | 'vanilla' | 'fabric' | 'quilt' | 'folia'
+export type HostedSoftware =
+	| 'paper'
+	| 'purpur'
+	| 'vanilla'
+	| 'fabric'
+	| 'quilt'
+	| 'folia'
+	| 'leaves'
+	| 'spigot'
+	| 'craftbukkit'
+	| 'velocity'
+	| 'waterfall'
 
 export const HOSTED_SOFTWARE: HostedSoftware[] = [
+	'vanilla',
 	'paper',
 	'purpur',
-	'vanilla',
+	'folia',
+	'leaves',
+	'spigot',
+	'craftbukkit',
 	'fabric',
 	'quilt',
-	'folia',
+	'velocity',
+	'waterfall',
 ]
 
 export interface HostedServer {
@@ -39,6 +55,21 @@ export interface HostedServer {
 	allow_flight: boolean
 	command_blocks: boolean
 	hardcore: boolean
+	level_seed: string
+	world_type: 'normal' | 'flat' | 'large_biomes' | 'amplified'
+	simulation_distance: number
+	spawn_protection: number
+	idle_timeout: number
+	spawn_monsters: boolean
+	spawn_animals: boolean
+	spawn_villagers: boolean
+	allow_nether: boolean
+	generate_structures: boolean
+	force_gamemode: boolean
+	enable_status: boolean
+	hide_online: boolean
+	enforce_whitelist: boolean
+	whitelist_names: string
 	public_relay: boolean
 	eula_accepted: boolean
 	java_path: string
@@ -127,6 +158,21 @@ export function toHostedServer(view: HostedServerView): HostedServer {
 		allow_flight: view.allow_flight,
 		command_blocks: view.command_blocks,
 		hardcore: view.hardcore,
+		level_seed: view.level_seed,
+		world_type: view.world_type,
+		simulation_distance: view.simulation_distance,
+		spawn_protection: view.spawn_protection,
+		idle_timeout: view.idle_timeout,
+		spawn_monsters: view.spawn_monsters,
+		spawn_animals: view.spawn_animals,
+		spawn_villagers: view.spawn_villagers,
+		allow_nether: view.allow_nether,
+		generate_structures: view.generate_structures,
+		force_gamemode: view.force_gamemode,
+		enable_status: view.enable_status,
+		hide_online: view.hide_online,
+		enforce_whitelist: view.enforce_whitelist,
+		whitelist_names: view.whitelist_names,
 		public_relay: view.public_relay,
 		eula_accepted: view.eula_accepted,
 		java_path: view.java_path,

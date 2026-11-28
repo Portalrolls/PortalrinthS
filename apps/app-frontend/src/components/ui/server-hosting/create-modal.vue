@@ -26,19 +26,12 @@
 				<span class="text-lg font-semibold text-contrast">
 					{{ formatMessage(messages.software) }}
 				</span>
-				<div class="grid grid-cols-3 gap-2">
-					<button
-						v-for="option in HOSTED_SOFTWARE"
-						:key="option"
-						type="button"
-						class="hosting-software"
-						:class="{ 'is-active': software === option }"
-						:disabled="creating"
-						@click="software = option"
-					>
-						{{ softwareLabels[option] }}
-					</button>
-				</div>
+				<Combobox
+					v-model="software"
+					:options="softwareOptions"
+					:disabled="creating"
+					:aria-label="formatMessage(messages.software)"
+				/>
 			</div>
 
 			<div class="flex flex-col gap-2">
@@ -100,13 +93,13 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, watch } from 'vue'
 
 import {
-	HOSTED_SOFTWARE,
 	type HostedServerView,
 	type HostedSoftware,
 	hosting_create,
 	hosting_versions,
 } from '@/helpers/hosting'
 
+import { coreIconFor } from './core-icon'
 import { softwareLabels } from './messages'
 import { hostedServersKey } from './queries'
 
@@ -154,6 +147,14 @@ const versionsQuery = useQuery({
 	staleTime: 10 * 60 * 1000,
 })
 
+const softwareOptions = computed<ComboboxOption<HostedSoftware>[]>(() =>
+	HOSTED_SOFTWARE.map((value) => ({
+		value,
+		label: softwareLabels[value],
+		icon: coreIconFor(value),
+	})),
+)
+
 const versionOptions = computed<ComboboxOption<string>[]>(() =>
 	(versionsQuery.data.value ?? []).map((value) => ({ value, label: value })),
 )
@@ -197,34 +198,3 @@ async function submit() {
 
 defineExpose({ show, hide })
 </script>
-
-<style scoped lang="scss">
-.hosting-software {
-	padding: 0.5rem 0.75rem;
-	border-radius: var(--radius-md, 0.5rem);
-	border: 1px solid var(--surface-5);
-	background: var(--surface-3);
-	color: var(--color-secondary);
-	font-weight: 600;
-	cursor: pointer;
-	transition:
-		border-color 0.15s ease,
-		color 0.15s ease,
-		background-color 0.15s ease;
-
-	&:hover:not(:disabled) {
-		color: var(--color-contrast);
-	}
-
-	&.is-active {
-		border-color: var(--color-brand);
-		background: var(--color-brand-highlight);
-		color: var(--color-brand);
-	}
-
-	&:disabled {
-		cursor: not-allowed;
-		opacity: 0.6;
-	}
-}
-</style>

@@ -28,8 +28,19 @@ const USER_AGENT: &str = "Portalrinth";
 const STOP_GRACE: std::time::Duration = std::time::Duration::from_secs(20);
 
 /// The server software that can be installed, in the order it is offered.
-pub const SOFTWARE: [&str; 6] =
-    ["paper", "purpur", "vanilla", "fabric", "quilt", "folia"];
+pub const SOFTWARE: [&str; 11] = [
+    "paper",
+    "purpur",
+    "vanilla",
+    "fabric",
+    "quilt",
+    "folia",
+    "leaves",
+    "spigot",
+    "craftbukkit",
+    "velocity",
+    "waterfall",
+];
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(default)]
@@ -52,6 +63,28 @@ pub struct HostedServer {
     pub allow_flight: bool,
     pub command_blocks: bool,
     pub hardcore: bool,
+    /// The seed the world is generated from; empty lets the server pick one.
+    pub level_seed: String,
+    /// The world generator: normal, flat, large_biomes or amplified.
+    pub world_type: String,
+    pub simulation_distance: u32,
+    pub spawn_protection: u32,
+    /// Minutes a player may idle before being kicked; 0 turns it off.
+    pub idle_timeout: u32,
+    pub spawn_monsters: bool,
+    pub spawn_animals: bool,
+    pub spawn_villagers: bool,
+    pub allow_nether: bool,
+    pub generate_structures: bool,
+    pub force_gamemode: bool,
+    /// Whether the server answers pings for the multiplayer list.
+    pub enable_status: bool,
+    /// Whether the player list is hidden from that ping.
+    pub hide_online: bool,
+    /// Kicks players who slip past the whitelist until they are added.
+    pub enforce_whitelist: bool,
+    /// Nicknames of the whitelisted players, separated by anything.
+    pub whitelist_names: String,
     /// Whether the server is published through the relay once it is up.
     pub public_relay: bool,
     pub eula_accepted: bool,
@@ -82,6 +115,21 @@ impl Default for HostedServer {
             allow_flight: false,
             command_blocks: false,
             hardcore: false,
+            level_seed: String::new(),
+            world_type: "normal".to_string(),
+            simulation_distance: 10,
+            spawn_protection: 16,
+            idle_timeout: 0,
+            spawn_monsters: true,
+            spawn_animals: true,
+            spawn_villagers: true,
+            allow_nether: true,
+            generate_structures: true,
+            force_gamemode: false,
+            enable_status: true,
+            hide_online: false,
+            enforce_whitelist: false,
+            whitelist_names: String::new(),
             public_relay: true,
             eula_accepted: false,
             java_path: String::new(),
@@ -271,6 +319,15 @@ fn sanitize(server: &mut HostedServer) {
     if server.level_name.is_empty() {
         server.level_name = "world".to_string();
     }
+    server.level_seed = server.level_seed.trim().chars().take(64).collect();
+    if !["normal", "flat", "large_biomes", "amplified"]
+        .contains(&server.world_type.as_str())
+    {
+        server.world_type = "normal".to_string();
+    }
+    server.simulation_distance = server.simulation_distance.clamp(2, 32);
+    server.spawn_protection = server.spawn_protection.clamp(0, 256);
+    server.idle_timeout = server.idle_timeout.clamp(0, 60_000);
 }
 
 fn next_free_port(list: &[HostedServer]) -> u16 {
@@ -280,6 +337,15 @@ fn next_free_port(list: &[HostedServer]) -> u16 {
 }
 
 /// The Java major a Minecraft version's server needs at least.
+/// The Java a server needs: proxies (Velocity) name their own releases as
+/// versions, so the Minecraft rule does not apply to them.
+fn java_need_for(server: &HostedServer) -> u32 {
+    match server.software.as_str() {
+        "velocity" | "waterfall" => 17,
+        _ => java_major_for(&server.game_version),
+    }
+}
+
 pub fn java_major_for(version: &str) -> u32 {
     let parts: Vec<u32> = version
         .split(['.', '-'])
@@ -338,7 +404,7 @@ async fn remove_core(dir: &Path) {
 async fn view_of(server: HostedServer) -> crate::Result<HostedServerView> {
     let dir = server_dir(&server.id).await?;
     let core_ready = core_ready(&dir, &server.software).await;
-    let java_need = java_major_for(&server.game_version);
+    let java_need = java_need_for(&server);
     let mut view = HostedServerView {
         status: HostedStatus::Stopped,
         error: None,
@@ -413,6 +479,9 @@ fn set_status(id: &str, status: HostedStatus, error: Option<String>) {
 /// before 1.14.
 fn takes_nogui(server: &HostedServer) -> bool {
     if NO_NOGUI.contains_key(&server.id) {
+        return false;
+    }
+    if matches!(server.software.as_str(), "velocity" | "waterfall") {
         return false;
     }
     if !matches!(server.software.as_str(), "paper" | "purpur" | "folia") {
@@ -669,7 +738,7 @@ const MOJANG_MANIFEST: &str =
 /// The game versions a server software can be installed for, newest first.
 pub async fn versions(software: &str) -> crate::Result<Vec<String>> {
     let mut versions = match software {
-        "paper" | "folia" => {
+        "paper" | "folia" | "velocity" | "waterfall" => {
             let data = get_json(&format!("{FILL_API}/{software}")).await?;
             let mut out: Vec<String> = Vec::new();
             if let Some(groups) = data["versions"].as_object() {
@@ -684,6 +753,11 @@ pub async fn versions(software: &str) -> crate::Result<Vec<String>> {
                 out = strings(&data["versions"]);
             }
             out
+        }
+        "leaves" => {
+            let data =
+                get_json("https://api.leavesmc.org/v2/projects/leaves").await?;
+            strings(&data["versions"])
         }
         "purpur" => {
             let data = get_json("https://api.purpurmc.org/v2/purpur").await?;
@@ -726,7 +800,7 @@ fn first_stable_version(value: &serde_json::Value) -> Option<String> {
 async fn jar_url(server: &HostedServer) -> crate::Result<String> {
     let version = urlencoding::encode(&server.game_version).to_string();
     match server.software.as_str() {
-        "paper" | "folia" => {
+        "paper" | "folia" | "velocity" | "waterfall" => {
             let data = get_json(&format!(
                 "{FILL_API}/{}/versions/{version}/builds",
                 server.software
@@ -753,6 +827,24 @@ async fn jar_url(server: &HostedServer) -> crate::Result<String> {
                     ))
                 })
         }
+        "leaves" => {
+            let latest = get_json(&format!(
+                "https://api.leavesmc.org/v2/projects/leaves/versions/{version}/builds/latest"
+            ))
+            .await?;
+            let build = latest["build"]
+                .as_i64()
+                .ok_or_else(|| input_error("Leaves did not list its builds"))?;
+            Ok(format!(
+                "https://api.leavesmc.org/v2/projects/leaves/versions/{version}/builds/{build}/downloads/application"
+            ))
+        }
+        "spigot" => Ok(format!(
+            "https://download.getbukkit.org/spigot/spigot-{version}.jar"
+        )),
+        "craftbukkit" => Ok(format!(
+            "https://download.getbukkit.org/craftbukkit/craftbukkit-{version}.jar"
+        )),
         "purpur" => Ok(format!(
             "https://api.purpurmc.org/v2/purpur/{version}/latest/download"
         )),
@@ -944,6 +1036,20 @@ async fn write_properties(
         ("allow-flight", server.allow_flight.to_string()),
         ("enable-command-block", server.command_blocks.to_string()),
         ("hardcore", server.hardcore.to_string()),
+        ("level-seed", server.level_seed.trim().to_string()),
+        ("level-type", server.world_type.clone()),
+        ("simulation-distance", server.simulation_distance.to_string()),
+        ("spawn-protection", server.spawn_protection.to_string()),
+        ("player-idle-timeout", server.idle_timeout.to_string()),
+        ("spawn-monsters", server.spawn_monsters.to_string()),
+        ("spawn-animals", server.spawn_animals.to_string()),
+        ("spawn-villagers", server.spawn_villagers.to_string()),
+        ("allow-nether", server.allow_nether.to_string()),
+        ("generate-structures", server.generate_structures.to_string()),
+        ("force-gamemode", server.force_gamemode.to_string()),
+        ("enable-status", server.enable_status.to_string()),
+        ("hide-online-players", server.hide_online.to_string()),
+        ("enforce-whitelist", server.enforce_whitelist.to_string()),
     ];
     let text = tokio::fs::read_to_string(&file).await.unwrap_or_default();
     let mut seen = Vec::new();
@@ -975,6 +1081,36 @@ async fn write_properties(
     Ok(())
 }
 
+/// Writes `whitelist.json` from the nicknames the settings keep. The UUID is
+/// the offline one: servers without online mode match players by exactly that,
+/// and online servers re-resolve the name on their own.
+async fn write_whitelist(server: &HostedServer, dir: &Path) -> crate::Result<()> {
+    let names: Vec<String> = server
+        .whitelist_names
+        .split([',', ';', ' ', '\t', '\n', '\r'])
+        .map(|name| name.trim().trim_start_matches('@').to_string())
+        .filter(|name| !name.is_empty())
+        .collect();
+    if names.is_empty() {
+        return Ok(());
+    }
+    let entries: Vec<serde_json::Value> = names
+        .iter()
+        .map(|name| {
+            serde_json::json!({
+                "name": name,
+                "uuid": crate::state::OfflineCredentials::uuid_for(name)
+            })
+        })
+        .collect();
+    tokio::fs::write(
+        dir.join("whitelist.json"),
+        serde_json::to_string_pretty(&entries)?,
+    )
+    .await?;
+    Ok(())
+}
+
 async fn resolve_java(server: &HostedServer) -> crate::Result<PathBuf> {
     let pinned = server.java_path.trim();
     if !pinned.is_empty() {
@@ -984,7 +1120,7 @@ async fn resolve_java(server: &HostedServer) -> crate::Result<PathBuf> {
         }
         return Err(input_error(format!("no Java at {pinned}")));
     }
-    let need = java_major_for(&server.game_version);
+    let need = java_need_for(&server);
     let state = crate::State::get().await?;
     if let Some(java) =
         crate::state::JavaVersion::get(need, &state.pool).await?
@@ -1097,6 +1233,7 @@ async fn launch(id: &str) -> crate::Result<()> {
         set_status(id, HostedStatus::Starting, None);
     }
     write_properties(&server, &dir).await?;
+    write_whitelist(&server, &dir).await?;
     tokio::fs::write(dir.join("eula.txt"), "eula=true\n").await?;
 
     let java = console_java(resolve_java(&server).await?);
@@ -1542,21 +1679,56 @@ async fn sample_usage(id: String, pid: u32, port: u16) {
         if tick % 5 == 0 {
             reconcile_players(&id, port).await;
         }
+        // Обновляем все процессы разом: точечный запрос на некоторых системах
+        // молча отдаёт пустые значения, а суммировать детей Java всё равно
+        // нельзя без полной картинки.
         system.refresh_processes_specifics(
-            ProcessesToUpdate::Some(&[target]),
+            ProcessesToUpdate::All,
             true,
             ProcessRefreshKind::nothing().with_cpu().with_memory(),
         );
-        let Some(process) = system.process(target) else {
+        if system.process(target).is_none() {
             continue;
-        };
-        let cpu = (process.cpu_usage() / cores).clamp(0.0, 100.0);
-        let ram = process.memory() / 1_048_576;
+        }
+        let (cpu, ram) = process_tree_usage(&system, target);
+        let cpu = (cpu / cores).clamp(0.0, 100.0);
         if let Some(mut run) = RUNTIME.get_mut(&id) {
             run.cpu_percent = cpu;
             run.ram_used_mb = ram;
         }
     }
+}
+
+/// CPU and RAM of the process together with all of its children: some Java
+/// launches keep the real server in a child of the wrapper we spawned, and
+/// the wrapper itself stays idle at a few megabytes.
+fn process_tree_usage(system: &sysinfo::System, target: sysinfo::Pid) -> (f32, u64) {
+    let mut family = vec![target];
+    for _ in 0..4 {
+        let parents = family.clone();
+        let mut grew = false;
+        for (pid, process) in system.processes() {
+            if family.contains(pid) {
+                continue;
+            }
+            if process.parent().is_some_and(|parent| parents.contains(&parent)) {
+                family.push(*pid);
+                grew = true;
+            }
+        }
+        if !grew {
+            break;
+        }
+    }
+    let mut cpu = 0.0_f32;
+    let mut ram = 0_u64;
+    for pid in &family {
+        if let Some(process) = system.process(*pid) {
+            cpu += process.cpu_usage();
+            ram += process.memory() / 1_048_576;
+        }
+    }
+    (cpu, ram)
 }
 
 pub async fn command(id: &str, text: &str) -> crate::Result<()> {

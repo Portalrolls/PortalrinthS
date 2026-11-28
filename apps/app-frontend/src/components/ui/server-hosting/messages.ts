@@ -12,12 +12,17 @@ export const statusMessages = defineMessages({
 }) satisfies Record<HostedStatus, unknown>
 
 export const softwareLabels: Record<HostedSoftware, string> = {
+	vanilla: 'Vanilla',
 	paper: 'Paper',
 	purpur: 'Purpur',
-	vanilla: 'Vanilla',
+	folia: 'Folia',
+	leaves: 'Leaves',
+	spigot: 'Spigot',
+	craftbukkit: 'CraftBukkit',
 	fabric: 'Fabric',
 	quilt: 'Quilt',
-	folia: 'Folia',
+	velocity: 'Velocity',
+	waterfall: 'Waterfall',
 }
 
 export const hostingMessages = defineMessages({

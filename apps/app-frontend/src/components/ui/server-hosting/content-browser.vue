@@ -1,8 +1,19 @@
 <script setup lang="ts">
-import { CheckIcon, DownloadIcon, HeartIcon, PlusIcon, SearchIcon } from '@modrinth/assets'
 import {
+	CheckIcon,
+	CurseForgeIcon,
+	DownloadIcon,
+	HeartIcon,
+	ModrinthBrandIcon,
+	PlusIcon,
+	SearchIcon,
+} from '@modrinth/assets'
+import {
+	Admonition,
 	Avatar,
 	Button,
+	Combobox,
+	type ComboboxOption,
 	defineMessages,
 	EmptyState,
 	injectNotificationManager,
@@ -16,6 +27,8 @@ import { useRouter } from 'vue-router'
 
 import {
 	type HostedSearchHit,
+	type HostedSort,
+	type HostedSource,
 	installToHostedServer,
 	NoFittingVersionError,
 	searchHostedContent,
@@ -47,6 +60,18 @@ const messages = defineMessages({
 		id: 'app.server-hosting.browse.failed',
 		defaultMessage: 'Modrinth could not be reached',
 	},
+	cfFailed: {
+		id: 'app.server-hosting.browse.cf-failed',
+		defaultMessage: 'CurseForge is unreachable right now — Modrinth results are shown',
+	},
+	cfOnlyFailed: {
+		id: 'app.server-hosting.browse.cf-only-failed',
+		defaultMessage: 'CurseForge could not be reached',
+	},
+	cfOnlyFailedHint: {
+		id: 'app.server-hosting.browse.cf-only-failed-hint',
+		defaultMessage: 'Try again, or pick Modrinth as the source',
+	},
 	noVersion: {
 		id: 'app.server-hosting.browse.no-version',
 		defaultMessage: 'No file of {name} fits this server',
@@ -57,12 +82,43 @@ const messages = defineMessages({
 	},
 })
 
+const sourceMessages = defineMessages({
+	both: {
+		id: 'app.server-hosting.browse.source-both',
+		defaultMessage: 'Modrinth and CurseForge',
+	},
+	modrinth: { id: 'app.server-hosting.browse.source-modrinth', defaultMessage: 'Modrinth' },
+	curseforge: { id: 'app.server-hosting.browse.source-curseforge', defaultMessage: 'CurseForge' },
+})
+const sortMessages = defineMessages({
+	relevance: { id: 'app.server-hosting.browse.sort-relevance', defaultMessage: 'Relevance' },
+	downloads: { id: 'app.server-hosting.browse.sort-downloads', defaultMessage: 'Most downloads' },
+	follows: { id: 'app.server-hosting.browse.sort-follows', defaultMessage: 'Most follows' },
+	updated: { id: 'app.server-hosting.browse.sort-updated', defaultMessage: 'Recently updated' },
+})
+
+const source = ref<HostedSource>('all')
+const sort = ref<HostedSort>('relevance')
+
+const sourceOptions = computed<ComboboxOption<HostedSource>[]>(() => [
+	{ value: 'all', label: formatMessage(sourceMessages.both) },
+	{ value: 'modrinth', label: formatMessage(sourceMessages.modrinth) },
+	{ value: 'curseforge', label: formatMessage(sourceMessages.curseforge) },
+])
+const sortOptions = computed<ComboboxOption<HostedSort>[]>(() => [
+	{ value: 'relevance', label: formatMessage(sortMessages.relevance) },
+	{ value: 'downloads', label: formatMessage(sortMessages.downloads) },
+	{ value: 'follows', label: formatMessage(sortMessages.follows) },
+	{ value: 'updated', label: formatMessage(sortMessages.updated) },
+])
+
 const query = ref('')
 const debounced = refDebounced(query, 350)
 const hits = ref<HostedSearchHit[]>([])
 const total = ref(0)
 const loading = ref(false)
 const failed = ref(false)
+const cfFailed = ref(false)
 const installing = ref<string | null>(null)
 const installed = ref(new Set<string>())
 let controller: AbortController | null = null
@@ -73,16 +129,20 @@ async function load(append: boolean) {
 	controller = current
 	loading.value = true
 	failed.value = false
+	cfFailed.value = false
 	try {
 		const result = await searchHostedContent(
 			props.server,
 			debounced.value.trim(),
 			append ? hits.value.length : 0,
 			current.signal,
+			source.value,
+			sort.value,
 		)
 		if (current.signal.aborted) return
 		hits.value = append ? [...hits.value, ...result.hits] : result.hits
 		total.value = result.total
+		cfFailed.value = result.curseforgeFailed === true
 	} catch (error) {
 		if (current.signal.aborted) return
 		failed.value = true
@@ -93,7 +153,14 @@ async function load(append: boolean) {
 }
 
 watch(
-	() => [debounced.value, props.server.id, props.server.software, props.server.game_version],
+	() => [
+		debounced.value,
+		props.server.id,
+		props.server.software,
+		props.server.game_version,
+		source.value,
+		sort.value,
+	],
 	() => void load(false),
 	{ immediate: true },
 )
@@ -105,7 +172,7 @@ async function install(hit: HostedSearchHit) {
 	if (installing.value) return
 	installing.value = hit.project_id
 	try {
-		const plugins = await installToHostedServer(props.server, hit.project_id)
+		const plugins = await installToHostedServer(props.server, hit.project_id, hit.icon_url)
 		installed.value = new Set([...installed.value, hit.project_id])
 		emit('installed', plugins)
 		addNotification({
@@ -127,6 +194,14 @@ async function install(hit: HostedSearchHit) {
 }
 
 function openProject(hit: HostedSearchHit) {
+	if (hit.source === 'curseforge') {
+		if (hit.slug) {
+			window.open(
+				`https://www.curseforge.com/minecraft/search?search=${encodeURIComponent(hit.slug)}`,
+			)
+		}
+		return
+	}
 	void router.push(`/project/${hit.slug || hit.project_id}`)
 }
 </script>
@@ -137,6 +212,10 @@ function openProject(hit: HostedSearchHit) {
 			<h2 class="m-0 text-lg font-bold text-contrast">{{ formatMessage(messages.title) }}</h2>
 			<span class="text-sm text-secondary">{{ server.game_version }}</span>
 		</div>
+		<div class="grid gap-2 md:grid-cols-2">
+			<Combobox v-model="source" :options="sourceOptions" :disabled="loading" />
+			<Combobox v-model="sort" :options="sortOptions" :disabled="loading" />
+		</div>
 		<Input
 			v-model="query"
 			:icon="SearchIcon"
@@ -144,10 +223,16 @@ function openProject(hit: HostedSearchHit) {
 			:placeholder="formatMessage(messages.search)"
 		/>
 
+		<Admonition
+			v-if="cfFailed && hits.length > 0"
+			type="warning"
+			:header="formatMessage(messages.cfFailed)"
+		/>
 		<EmptyState
 			v-if="failed && hits.length === 0"
 			type="no-connection"
-			:heading="formatMessage(messages.failed)"
+			:heading="formatMessage(source === 'curseforge' ? messages.cfOnlyFailed : messages.failed)"
+			:description="source === 'curseforge' ? formatMessage(messages.cfOnlyFailedHint) : undefined"
 		/>
 		<EmptyState
 			v-else-if="!loading && hits.length === 0"
@@ -177,11 +262,18 @@ function openProject(hit: HostedSearchHit) {
 						</span>
 						<span class="line-clamp-2 text-sm text-secondary">{{ hit.description }}</span>
 						<span class="flex items-center gap-3 text-xs text-secondary">
+							<span
+								class="flex items-center gap-1"
+								:title="hit.source === 'curseforge' ? 'CurseForge' : 'Modrinth'"
+							>
+								<CurseForgeIcon v-if="hit.source === 'curseforge'" class="hosting-source-icon" />
+								<ModrinthBrandIcon v-else class="hosting-source-icon" />
+							</span>
 							<span class="flex items-center gap-1">
 								<DownloadIcon class="size-3.5" />
 								{{ formatCompactNumber(hit.downloads) }}
 							</span>
-							<span class="flex items-center gap-1">
+							<span v-if="hit.follows > 0" class="flex items-center gap-1">
 								<HeartIcon class="size-3.5" />
 								{{ formatCompactNumber(hit.follows) }}
 							</span>
@@ -236,5 +328,11 @@ function openProject(hit: HostedSearchHit) {
 	&:hover {
 		border-color: var(--surface-6, var(--surface-5));
 	}
+}
+
+.hosting-source-icon {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
 }
 </style>

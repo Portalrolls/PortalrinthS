@@ -19,12 +19,14 @@ import {
 	HOSTED_SOFTWARE,
 	type HostedServer,
 	type HostedServerView,
+	type HostedSoftware,
 	hosting_install_core,
 	hosting_versions,
 	isHostedActive,
 	toHostedServer,
 } from '@/helpers/hosting'
 
+import { coreIconFor } from './core-icon'
 import { softwareLabels } from './messages'
 import { hostedServersKey } from './queries'
 import type { useHostedServerActions } from './use-hosted-servers'
@@ -71,6 +73,33 @@ const messages = defineMessages({
 		defaultMessage: 'View distance',
 	},
 	levelName: { id: 'app.server-hosting.settings.level-name', defaultMessage: 'World folder' },
+	world: { id: 'app.server-hosting.settings.world', defaultMessage: 'World' },
+	seed: { id: 'app.server-hosting.settings.seed', defaultMessage: 'World seed' },
+	seedHint: {
+		id: 'app.server-hosting.settings.seed-hint',
+		defaultMessage: 'Applies when the world is generated anew; empty lets the server pick one',
+	},
+	worldType: { id: 'app.server-hosting.settings.world-type', defaultMessage: 'World type' },
+	simulationDistance: {
+		id: 'app.server-hosting.settings.simulation-distance',
+		defaultMessage: 'Simulation distance',
+	},
+	spawnProtection: {
+		id: 'app.server-hosting.settings.spawn-protection',
+		defaultMessage: 'Spawn protection',
+	},
+	spawnProtectionHint: {
+		id: 'app.server-hosting.settings.spawn-protection-hint',
+		defaultMessage: 'Blocks around the spawn only operators may change; 0 turns it off',
+	},
+	idleTimeout: {
+		id: 'app.server-hosting.settings.idle-timeout',
+		defaultMessage: 'Kick idle players (min)',
+	},
+	idleTimeoutHint: {
+		id: 'app.server-hosting.settings.idle-timeout-hint',
+		defaultMessage: '0 keeps idling players in',
+	},
 	rules: { id: 'app.server-hosting.settings.rules', defaultMessage: 'Rules' },
 	onlineMode: {
 		id: 'app.server-hosting.settings.online-mode',
@@ -82,12 +111,54 @@ const messages = defineMessages({
 	},
 	pvp: { id: 'app.server-hosting.settings.pvp', defaultMessage: 'PvP' },
 	whiteList: { id: 'app.server-hosting.settings.white-list', defaultMessage: 'Whitelist' },
+	whitelistNames: {
+		id: 'app.server-hosting.settings.whitelist-names',
+		defaultMessage: 'Whitelist nicknames',
+	},
+	whitelistNamesHint: {
+		id: 'app.server-hosting.settings.whitelist-names-hint',
+		defaultMessage: 'Separated by commas or spaces, for example: Steve, Alex',
+	},
+	enforceWhitelist: {
+		id: 'app.server-hosting.settings.enforce-whitelist',
+		defaultMessage: 'Kick players not on the whitelist',
+	},
 	allowFlight: { id: 'app.server-hosting.settings.allow-flight', defaultMessage: 'Allow flight' },
 	commandBlocks: {
 		id: 'app.server-hosting.settings.command-blocks',
 		defaultMessage: 'Command blocks',
 	},
 	hardcore: { id: 'app.server-hosting.settings.hardcore', defaultMessage: 'Hardcore' },
+	spawnMonsters: {
+		id: 'app.server-hosting.settings.spawn-monsters',
+		defaultMessage: 'Monsters',
+	},
+	spawnAnimals: { id: 'app.server-hosting.settings.spawn-animals', defaultMessage: 'Animals' },
+	spawnVillagers: {
+		id: 'app.server-hosting.settings.spawn-villagers',
+		defaultMessage: 'Villagers',
+	},
+	allowNether: { id: 'app.server-hosting.settings.allow-nether', defaultMessage: 'Nether' },
+	generateStructures: {
+		id: 'app.server-hosting.settings.generate-structures',
+		defaultMessage: 'Structures',
+	},
+	forceGamemode: {
+		id: 'app.server-hosting.settings.force-gamemode',
+		defaultMessage: 'Force game mode',
+	},
+	forceGamemodeHint: {
+		id: 'app.server-hosting.settings.force-gamemode-hint',
+		defaultMessage: 'Players join in the server mode, even in their own world',
+	},
+	enableStatus: {
+		id: 'app.server-hosting.settings.enable-status',
+		defaultMessage: 'Show in the server list',
+	},
+	hideOnline: {
+		id: 'app.server-hosting.settings.hide-online',
+		defaultMessage: 'Hide the player count',
+	},
 	network: { id: 'app.server-hosting.settings.network', defaultMessage: 'Network' },
 	port: { id: 'app.server-hosting.settings.port', defaultMessage: 'Local port' },
 	publicRelay: {
@@ -131,6 +202,19 @@ const messages = defineMessages({
 	easy: { id: 'app.server-hosting.difficulty.easy', defaultMessage: 'Easy' },
 	normal: { id: 'app.server-hosting.difficulty.normal', defaultMessage: 'Normal' },
 	hard: { id: 'app.server-hosting.difficulty.hard', defaultMessage: 'Hard' },
+	worldTypeNormal: {
+		id: 'app.server-hosting.world-type.normal',
+		defaultMessage: 'Normal world',
+	},
+	worldTypeFlat: { id: 'app.server-hosting.world-type.flat', defaultMessage: 'Flat world' },
+	worldTypeLargeBiomes: {
+		id: 'app.server-hosting.world-type.large-biomes',
+		defaultMessage: 'Large biomes',
+	},
+	worldTypeAmplified: {
+		id: 'app.server-hosting.world-type.amplified',
+		defaultMessage: 'Amplified',
+	},
 })
 
 const draft = ref<HostedServer>(toHostedServer(props.server))
@@ -165,6 +249,53 @@ const versionOptions = computed<ComboboxOption<string>[]>(() => {
 	return values.map((value) => ({ value, label: value }))
 })
 
+const coreOptions = computed<ComboboxOption<HostedSoftware>[]>(() =>
+	HOSTED_SOFTWARE.map((value) => ({
+		value,
+		label: softwareLabels[value],
+		icon: coreIconFor(value),
+	})),
+)
+
+const worldTypeLabels = computed(() => ({
+	normal: formatMessage(messages.worldTypeNormal),
+	flat: formatMessage(messages.worldTypeFlat),
+	large_biomes: formatMessage(messages.worldTypeLargeBiomes),
+	amplified: formatMessage(messages.worldTypeAmplified),
+}))
+const worldTypeOptions = computed<ComboboxOption<HostedServer['world_type']>[]>(() =>
+	(['normal', 'flat', 'large_biomes', 'amplified'] as const).map((value) => ({
+		value,
+		label: worldTypeLabels.value[value],
+	})),
+)
+
+const gamemodeLabels = computed(() => ({
+	survival: formatMessage(messages.survival),
+	creative: formatMessage(messages.creative),
+	adventure: formatMessage(messages.adventure),
+	spectator: formatMessage(messages.spectator),
+}))
+const gamemodeOptions = computed<ComboboxOption<HostedServer['gamemode']>[]>(() =>
+	(['survival', 'creative', 'adventure', 'spectator'] as const).map((value) => ({
+		value,
+		label: gamemodeLabels.value[value],
+	})),
+)
+
+const difficultyLabels = computed(() => ({
+	peaceful: formatMessage(messages.peaceful),
+	easy: formatMessage(messages.easy),
+	normal: formatMessage(messages.normal),
+	hard: formatMessage(messages.hard),
+}))
+const difficultyOptions = computed<ComboboxOption<HostedServer['difficulty']>[]>(() =>
+	(['peaceful', 'easy', 'normal', 'hard'] as const).map((value) => ({
+		value,
+		label: difficultyLabels.value[value],
+	})),
+)
+
 watch(
 	() => draft.value.software,
 	(software, previous) => {
@@ -184,26 +315,36 @@ watch(
 
 const { maxMemory, snapPoints } = useMemorySlider()
 
-const gamemodes = ['survival', 'creative', 'adventure', 'spectator'] as const
-const difficulties = ['peaceful', 'easy', 'normal', 'hard'] as const
-
 const toggles = computed(
 	() =>
 		[
 			{ key: 'online_mode', label: messages.onlineMode, hint: messages.onlineModeHint },
 			{ key: 'pvp', label: messages.pvp },
 			{ key: 'white_list', label: messages.whiteList },
+			{ key: 'enforce_whitelist', label: messages.enforceWhitelist },
 			{ key: 'allow_flight', label: messages.allowFlight },
 			{ key: 'command_blocks', label: messages.commandBlocks },
 			{ key: 'hardcore', label: messages.hardcore },
+			{ key: 'spawn_monsters', label: messages.spawnMonsters },
+			{ key: 'spawn_animals', label: messages.spawnAnimals },
+			{ key: 'spawn_villagers', label: messages.spawnVillagers },
+			{ key: 'allow_nether', label: messages.allowNether },
+			{ key: 'generate_structures', label: messages.generateStructures },
+			{ key: 'force_gamemode', label: messages.forceGamemode, hint: messages.forceGamemodeHint },
+			{ key: 'enable_status', label: messages.enableStatus },
+			{ key: 'hide_online', label: messages.hideOnline },
 		] as const,
 )
 
-function setNumber(
-	key: 'port' | 'max_players' | 'view_distance',
-	value: unknown,
-	fallback: number,
-) {
+type NumberKey =
+	| 'port'
+	| 'max_players'
+	| 'view_distance'
+	| 'simulation_distance'
+	| 'spawn_protection'
+	| 'idle_timeout'
+
+function setNumber(key: NumberKey, value: unknown, fallback: number) {
 	const parsed = Number(value)
 	draft.value[key] = Number.isFinite(parsed) ? Math.round(parsed) : fallback
 }
@@ -212,6 +353,7 @@ async function save() {
 	await props.actions.save(props.server.id, {
 		...draft.value,
 		name: draft.value.name.trim() || props.server.name,
+		level_seed: draft.value.level_seed.trim(),
 	})
 }
 
@@ -275,27 +417,25 @@ async function remove() {
 					{{ formatMessage(server.core_ready ? messages.reinstallCore : messages.installCore) }}
 				</Button>
 			</div>
-			<div class="grid grid-cols-3 gap-2 sm:grid-cols-6">
-				<button
-					v-for="option in HOSTED_SOFTWARE"
-					:key="option"
-					type="button"
-					class="hosting-choice"
-					:class="{ 'is-active': draft.software === option }"
-					:disabled="active"
-					@click="draft.software = option"
-				>
-					{{ softwareLabels[option] }}
-				</button>
-			</div>
-			<div class="hosting-field md:max-w-sm">
-				<span class="hosting-field-label">{{ formatMessage(messages.version) }}</span>
-				<Combobox
-					v-model="draft.game_version"
-					:options="versionOptions"
-					:disabled="active"
-					searchable
-				/>
+			<div class="grid gap-3 md:grid-cols-2">
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.core) }}</span>
+					<Combobox
+						v-model="draft.software"
+						:options="coreOptions"
+						:disabled="active"
+						:aria-label="formatMessage(messages.core)"
+					/>
+				</label>
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.version) }}</span>
+					<Combobox
+						v-model="draft.game_version"
+						:options="versionOptions"
+						:disabled="active"
+						searchable
+					/>
+				</label>
 			</div>
 			<span class="hosting-field-hint">
 				{{ formatMessage(active ? messages.coreLocked : messages.coreHint) }}
@@ -304,37 +444,23 @@ async function remove() {
 
 		<section class="hosting-panel">
 			<h2 class="hosting-panel-title">{{ formatMessage(messages.game) }}</h2>
-			<div class="hosting-field">
-				<span class="hosting-field-label">{{ formatMessage(messages.gamemode) }}</span>
-				<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-					<button
-						v-for="mode in gamemodes"
-						:key="mode"
-						type="button"
-						class="hosting-choice"
-						:class="{ 'is-active': draft.gamemode === mode }"
-						@click="draft.gamemode = mode"
-					>
-						{{ formatMessage(messages[mode]) }}
-					</button>
-				</div>
-			</div>
-			<div class="hosting-field">
-				<span class="hosting-field-label">{{ formatMessage(messages.difficulty) }}</span>
-				<div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-					<button
-						v-for="level in difficulties"
-						:key="level"
-						type="button"
-						class="hosting-choice"
-						:class="{ 'is-active': draft.difficulty === level }"
-						@click="draft.difficulty = level"
-					>
-						{{ formatMessage(messages[level]) }}
-					</button>
-				</div>
-			</div>
-			<div class="grid gap-3 md:grid-cols-3">
+			<div class="grid gap-3 md:grid-cols-2">
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.gamemode) }}</span>
+					<Combobox
+						v-model="draft.gamemode"
+						:options="gamemodeOptions"
+						:aria-label="formatMessage(messages.gamemode)"
+					/>
+				</label>
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.difficulty) }}</span>
+					<Combobox
+						v-model="draft.difficulty"
+						:options="difficultyOptions"
+						:aria-label="formatMessage(messages.difficulty)"
+					/>
+				</label>
 				<label class="hosting-field">
 					<span class="hosting-field-label">{{ formatMessage(messages.maxPlayers) }}</span>
 					<Input
@@ -355,9 +481,65 @@ async function remove() {
 						@update:model-value="(value) => setNumber('view_distance', value, 10)"
 					/>
 				</label>
+			</div>
+		</section>
+
+		<section class="hosting-panel">
+			<h2 class="hosting-panel-title">{{ formatMessage(messages.world) }}</h2>
+			<div class="grid gap-3 md:grid-cols-2">
 				<label class="hosting-field">
 					<span class="hosting-field-label">{{ formatMessage(messages.levelName) }}</span>
 					<Input v-model="draft.level_name" :maxlength="64" autocomplete="off" />
+				</label>
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.worldType) }}</span>
+					<Combobox
+						v-model="draft.world_type"
+						:options="worldTypeOptions"
+						:aria-label="formatMessage(messages.worldType)"
+					/>
+				</label>
+				<label class="hosting-field md:col-span-2">
+					<span class="hosting-field-label">{{ formatMessage(messages.seed) }}</span>
+					<Input
+						v-model="draft.level_seed"
+						:maxlength="64"
+						autocomplete="off"
+						:spellcheck="false"
+					/>
+					<span class="hosting-field-hint">{{ formatMessage(messages.seedHint) }}</span>
+				</label>
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.simulationDistance) }}</span>
+					<Input
+						:model-value="draft.simulation_distance"
+						type="number"
+						:min="2"
+						:max="32"
+						@update:model-value="(value) => setNumber('simulation_distance', value, 10)"
+					/>
+				</label>
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.spawnProtection) }}</span>
+					<Input
+						:model-value="draft.spawn_protection"
+						type="number"
+						:min="0"
+						:max="256"
+						@update:model-value="(value) => setNumber('spawn_protection', value, 16)"
+					/>
+					<span class="hosting-field-hint">{{ formatMessage(messages.spawnProtectionHint) }}</span>
+				</label>
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.idleTimeout) }}</span>
+					<Input
+						:model-value="draft.idle_timeout"
+						type="number"
+						:min="0"
+						:max="60000"
+						@update:model-value="(value) => setNumber('idle_timeout', value, 0)"
+					/>
+					<span class="hosting-field-hint">{{ formatMessage(messages.idleTimeoutHint) }}</span>
 				</label>
 			</div>
 		</section>
@@ -375,6 +557,13 @@ async function remove() {
 					<Toggle v-model="draft[toggle.key]" />
 				</label>
 			</div>
+			<template v-if="draft.white_list">
+				<label class="hosting-field">
+					<span class="hosting-field-label">{{ formatMessage(messages.whitelistNames) }}</span>
+					<Input v-model="draft.whitelist_names" autocomplete="off" :spellcheck="false" />
+					<span class="hosting-field-hint">{{ formatMessage(messages.whitelistNamesHint) }}</span>
+				</label>
+			</template>
 		</section>
 
 		<section class="hosting-panel">
@@ -533,39 +722,6 @@ async function remove() {
 	border: 1px solid var(--surface-5);
 	background: var(--surface-3);
 	cursor: pointer;
-}
-
-.hosting-choice {
-	min-width: 0;
-	overflow: hidden;
-	padding: 0.5rem 0.625rem;
-	border-radius: var(--radius-md, 0.5rem);
-	border: 1px solid var(--surface-5);
-	background: var(--surface-3);
-	color: var(--color-secondary);
-	font-weight: 600;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	cursor: pointer;
-	transition:
-		border-color 0.15s ease,
-		color 0.15s ease,
-		background-color 0.15s ease;
-
-	&:hover:not(:disabled) {
-		color: var(--color-contrast);
-	}
-
-	&.is-active {
-		border-color: var(--color-brand);
-		background: var(--color-brand-highlight);
-		color: var(--color-brand);
-	}
-
-	&:disabled {
-		cursor: not-allowed;
-		opacity: 0.6;
-	}
 }
 
 .hosting-savebar {

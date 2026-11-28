@@ -5501,10 +5501,10 @@
 		"message": "Search Modrinth and CurseForge and install with one click"
 	},
 	"app.server-hosting.browse.cf-failed": {
-		"message": "CurseForge is unreachable right now — Modrinth results are shown"
+		"message": "CurseForge did not answer — a CurseForge API key is missing or disabled in settings; Modrinth results are shown"
 	},
 	"app.server-hosting.browse.cf-only-failed": {
-		"message": "CurseForge could not be reached"
+		"message": "CurseForge did not answer — check the CurseForge API key in settings"
 	},
 	"app.server-hosting.browse.cf-only-failed-hint": {
 		"message": "Try again, or pick Modrinth as the source"

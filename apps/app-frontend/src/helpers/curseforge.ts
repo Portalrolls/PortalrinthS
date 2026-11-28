@@ -353,6 +353,14 @@ export function curseforgeFileUrl(websiteUrl: string, fileId: string): string {
 	return `${websiteUrl.replace(/\/$/, '')}/files/${fileId}`
 }
 
+/** Where one file can be fetched from, most likely first. */
+export async function curseforgeDownloadUrls(modId: number, fileId: number) {
+	return await invoke<string[]>(plugin('curseforge_download_urls'), {
+		modId,
+		fileId,
+	})
+}
+
 export async function curseforgeInstallProject(
 	instanceId: string,
 	projectId: string,

@@ -45,7 +45,10 @@ const { formatCompactNumber } = useCompactNumber()
 const { addNotification, handleError } = injectNotificationManager()
 const router = useRouter()
 const messages = defineMessages({
-	title: { id: 'app.server-hosting.browse.title', defaultMessage: 'Find on Modrinth' },
+	title: {
+		id: 'app.server-hosting.browse.title',
+		defaultMessage: 'Find on Modrinth and CurseForge',
+	},
 	search: { id: 'app.server-hosting.browse.search', defaultMessage: 'Search' },
 	install: { id: 'app.server-hosting.browse.install', defaultMessage: 'Install' },
 	installed: { id: 'app.server-hosting.browse.installed', defaultMessage: 'Installed' },
@@ -62,11 +65,12 @@ const messages = defineMessages({
 	},
 	cfFailed: {
 		id: 'app.server-hosting.browse.cf-failed',
-		defaultMessage: 'CurseForge is unreachable right now — Modrinth results are shown',
+		defaultMessage:
+			'CurseForge did not answer — a CurseForge API key is missing or disabled in settings; Modrinth results are shown',
 	},
 	cfOnlyFailed: {
 		id: 'app.server-hosting.browse.cf-only-failed',
-		defaultMessage: 'CurseForge could not be reached',
+		defaultMessage: 'CurseForge did not answer — check the CurseForge API key in settings',
 	},
 	cfOnlyFailedHint: {
 		id: 'app.server-hosting.browse.cf-only-failed-hint',
@@ -195,11 +199,10 @@ async function install(hit: HostedSearchHit) {
 
 function openProject(hit: HostedSearchHit) {
 	if (hit.source === 'curseforge') {
-		if (hit.slug) {
-			window.open(
-				`https://www.curseforge.com/minecraft/search?search=${encodeURIComponent(hit.slug)}`,
-			)
-		}
+		window.open(
+			hit.website_url ||
+				`https://www.curseforge.com/minecraft/search?search=${encodeURIComponent(hit.title)}`,
+		)
 		return
 	}
 	void router.push(`/project/${hit.slug || hit.project_id}`)

@@ -8103,10 +8103,10 @@
 		"message": "Поиск по Modrinth и CurseForge, установка в один клик"
 	},
 	"app.server-hosting.browse.cf-failed": {
-		"message": "CurseForge сейчас не отвечает — показаны результаты Modrinth"
+		"message": "CurseForge не отвечает — проверь ключ CurseForge в настройках; показаны результаты Modrinth"
 	},
 	"app.server-hosting.browse.cf-only-failed": {
-		"message": "CurseForge недоступен"
+		"message": "CurseForge не отвечает — проверь ключ CurseForge в настройках"
 	},
 	"app.server-hosting.browse.cf-only-failed-hint": {
 		"message": "Попробуйте ещё раз или выберите источником Modrinth"

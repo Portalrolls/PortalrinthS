@@ -1261,6 +1261,10 @@ async fn launch(id: &str) -> crate::Result<()> {
             };
             tokio::time::sleep(std::time::Duration::from_millis(300)).await;
             if !on_exit(&id, status).await {
+                // The process is gone, but a core that re-executes Java may have
+                // left a child behind; it would keep holding the jars and the
+                // world, so it is stopped the same way leftovers are.
+                stop_leftovers(&id, &dir).await;
                 break;
             }
             stop_leftovers(&id, &dir).await;
@@ -1879,9 +1883,37 @@ pub async fn plugin_remove(
 ) -> crate::Result<Vec<HostedPlugin>> {
     let name = plain_name(name)?;
     let dir = content_dir(id).await?;
-    let _ = tokio::fs::remove_file(dir.join(name)).await;
-    let _ = tokio::fs::remove_file(dir.join(format!("{name}.disabled"))).await;
+    remove_content_file(id, &dir, &dir.join(name)).await?;
+    remove_content_file(id, &dir, &dir.join(format!("{name}.disabled")))
+        .await?;
     plugins(id).await
+}
+
+/// Deletes one content file even when a just-stopped server still holds it:
+/// a core that re-executes Java leaves a child behind, the launcher reports
+/// the server as stopped, and the child keeps the jar locked. First a plain
+/// delete, then the folder's leftover Java processes are stopped and it is
+/// retried, and only then does the failure surface instead of a silent no-op.
+async fn remove_content_file(id: &str, dir: &Path, path: &Path) -> crate::Result<()> {
+    if tokio::fs::remove_file(path).await.is_ok() {
+        return Ok(());
+    }
+    if !tokio::fs::try_exists(path).await.unwrap_or(false) {
+        return Ok(()); // already gone, nothing to complain about
+    }
+    stop_leftovers(id, dir).await;
+    for _ in 0..10 {
+        if tokio::fs::remove_file(path).await.is_ok() {
+            return Ok(());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    }
+    if tokio::fs::try_exists(path).await.unwrap_or(false) {
+        return Err(input_error(
+            "the file is held by a running server process; stop the server fully and try again",
+        ));
+    }
+    Ok(())
 }
 
 pub async fn plugin_import(
@@ -1901,9 +1933,9 @@ pub async fn plugin_import(
     plugins(id).await
 }
 
-/// Fetches a file published on Modrinth straight into the server's content
-/// folder. Only Modrinth's CDN is trusted, so the launcher never writes
-/// whatever a page happened to link to.
+/// Fetches a file published on Modrinth or CurseForge straight into the
+/// server's content folder. Only their own CDNs are trusted, so the launcher
+/// never writes whatever a page happened to link to.
 pub async fn plugin_download(
     id: &str,
     url: &str,
@@ -1919,10 +1951,16 @@ pub async fn plugin_download(
         .filter(|parsed| parsed.scheme() == "https")
         .and_then(|parsed| parsed.host_str().map(str::to_owned))
         .is_some_and(|host| {
-            host == "cdn.modrinth.com" || host.ends_with(".modrinth.com")
+            host == "cdn.modrinth.com"
+                || host.ends_with(".modrinth.com")
+                || host == "edge.curseforgecdn.com"
+                || host == "edge.forgecdn.net"
+                || host == "mediafilez.forgecdn.net"
         });
     if !trusted {
-        return Err(input_error("the file is not hosted on Modrinth"));
+        return Err(input_error(
+            "the file is not hosted on Modrinth or CurseForge",
+        ));
     }
     let dir = content_dir(id).await?;
     let response = crate::util::fetch::REQWEST_CLIENT

@@ -40,8 +40,10 @@ const MAX_PAGE_SIZE: u32 = 50;
 const MAX_DEPENDENCY_DEPTH: usize = 8;
 
 /// CurseForge's class ids, by the project type Modrinth calls them.
-const CLASSES: [(&str, i64); 5] = [
+/// "plugin" is the Self-Hosted catalog's name for Bukkit Plugins.
+const CLASSES: [(&str, i64); 6] = [
     ("mod", 6),
+    ("plugin", 5),
     ("modpack", 4471),
     ("resourcepack", 12),
     ("shader", 6552),
